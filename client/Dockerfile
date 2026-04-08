@@ -19,11 +19,11 @@ COPY server/package.json server/
 
 RUN npm ci
 
-# Copy sources for shared + client only
+# Copy sources. shared/ has no compile step — Vite transpiles its
+# TypeScript source directly via the @shared alias.
 COPY shared/ shared/
 COPY client/ client/
 
-RUN npm run build --workspace=shared
 RUN npm run build --workspace=client
 
 
