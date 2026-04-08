@@ -145,6 +145,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   engine: new GameEngine(),
   ai: new EasyAI(),
   tick: 0,
+  mpPlacementSubmitted: false,
 
   placingShipType: ShipType.Carrier,
   placingOrientation: Orientation.Horizontal,
