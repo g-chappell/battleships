@@ -12,7 +12,7 @@ A stylized 3D pirate battleships game with a 15-mission single-player campaign, 
 ## Dev quickstart
 
 ```bash
-git clone <repo>
+git clone https://github.com/g-chappell/battleships.git
 cd battleships
 npm install
 

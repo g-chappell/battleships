@@ -28,7 +28,7 @@ sudo usermod -aG docker $USER
 ```bash
 sudo mkdir -p /opt/battleships
 sudo chown $USER:$USER /opt/battleships
-git clone <your-repo-url> /opt/battleships
+git clone https://github.com/g-chappell/battleships.git /opt/battleships
 cd /opt/battleships
 ```
 
