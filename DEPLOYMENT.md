@@ -45,7 +45,7 @@ Edit `.env` and fill in:
 | Variable | How to set |
 |---|---|
 | `JWT_SECRET` | `openssl rand -hex 64` — paste the output (64+ chars required) |
-| `POSTGRES_PASSWORD` | Strong random password (e.g. `openssl rand -base64 32`) |
+| `POSTGRES_PASSWORD` | `openssl rand -hex 32` — **use hex, not base64.** Base64 contains `/` and `+` which break the `DATABASE_URL` connection string. |
 | `CLIENT_URL` | The public HTTPS URL, e.g. `https://battleships.yourdomain.com` |
 | `ADMIN_TOKEN` | (optional) random string used to authorize admin endpoints |
 
@@ -206,6 +206,19 @@ The server container isn't reachable. Check `docker compose -f docker-compose.pr
 
 ### "Database connection refused"
 Postgres is still starting up. The server container has `depends_on: postgres.service_healthy`, so it will retry until Postgres is ready — give it 10–20 seconds on first boot.
+
+### Prisma: `P1013: The provided database string is invalid. invalid port number in database URL`
+Your `POSTGRES_PASSWORD` contains characters that break URL parsing — usually `/`, `+`, `=`, `@`, or `:`. This happens if you generated the password with `openssl rand -base64 ...` instead of `-hex`. Fix:
+
+```bash
+docker compose -f docker-compose.prod.yml down -v   # wipes the postgres volume
+openssl rand -hex 32                                # URL-safe by construction
+# edit .env, paste the new value as POSTGRES_PASSWORD
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml exec server npx prisma migrate deploy
+```
+
+The `-v` flag is safe only if you haven't accumulated real data yet — on an existing deployment, instead URL-encode the password in `DATABASE_URL` or rotate it via `ALTER USER` inside a psql session.
 
 ### WebSocket fails to connect (browser network tab shows no 101 upgrade)
 Your reverse proxy isn't forwarding the `Upgrade` + `Connection` headers. Caddy does this automatically; if you're using nginx on the host, add the same headers as the in-container nginx config in `client/nginx.conf`.
