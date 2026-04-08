@@ -63,10 +63,13 @@ This brings up four containers: `postgres`, `redis`, `server`, `client`. The cli
 ### 4. Apply the database schema
 
 ```bash
-npm run docker:prod:migrate
+docker compose -f docker-compose.prod.yml exec server npx prisma db push
 ```
 
-This runs `prisma migrate deploy` inside the server container.
+This project uses `prisma db push` (schema sync) rather than a
+migration history. `db push` creates all tables directly from
+`schema.prisma` — run it once after first boot, and again any time
+you pull a commit that changes the schema.
 
 ### 5. (Optional) Seed an initial season
 
@@ -127,7 +130,7 @@ npm run docker:prod:build
 npm run docker:prod:up
 
 # Only if prisma/schema.prisma changed:
-npm run docker:prod:migrate
+docker compose -f docker-compose.prod.yml exec server npx prisma db push
 ```
 
 `docker compose up -d` with `--build` recreates changed containers with zero-downtime for the database volume.
