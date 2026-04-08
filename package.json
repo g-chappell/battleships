@@ -1,0 +1,25 @@
+{
+  "name": "battleships",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "dev": "npm-run-all -p dev:server dev:client",
+    "build": "npm run build --workspace=shared && npm run build --workspace=client && npm run build --workspace=server",
+    "build:prod": "npm run build --workspace=shared && npm run build --workspace=client && npm run build --workspace=server",
+    "test": "npm run test --workspace=shared",
+    "lint": "eslint . --ext .ts,.tsx",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:prod:build": "docker compose -f docker-compose.prod.yml build",
+    "docker:prod:up": "docker compose -f docker-compose.prod.yml up -d",
+    "docker:prod:down": "docker compose -f docker-compose.prod.yml down",
+    "docker:prod:logs": "docker compose -f docker-compose.prod.yml logs -f",
+    "docker:prod:migrate": "docker compose -f docker-compose.prod.yml exec server npx prisma migrate deploy"
+  }
+}

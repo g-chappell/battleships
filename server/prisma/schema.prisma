@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String?
+  provider      String?  // "google", "discord", or null for email/password
+  providerId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // P2-1 Cosmetics + gold
+  gold                Int      @default(0)
+  equippedShipSkin    String?  @default("default")
+  equippedBoardTheme  String?  @default("default")
+  equippedExplosionFx String?  @default("default")
+
+  // P2-3 Clans
+  clanId        String?
+  clanRole      String?  // 'leader' | 'officer' | 'member'
+  clan          Clan?    @relation(fields: [clanId], references: [id])
+
+  stats         PlayerStats?
+  cosmetics     UserCosmetic[]
+  seasonStats   SeasonPlayerStats[]
+  matchesAsP1   Match[]  @relation("player1")
+  matchesAsP2   Match[]  @relation("player2")
+  wonMatches    Match[]  @relation("winner")
+
+  @@unique([provider, providerId])
+}
+
+model PlayerStats {
+  id              String @id @default(cuid())
+  userId          String @unique
+  user            User   @relation(fields: [userId], references: [id])
+
+  rating          Int    @default(1200)
+  wins            Int    @default(0)
+  losses          Int    @default(0)
+  totalGamesAI    Int    @default(0)
+  totalGamesMP    Int    @default(0)
+  shotsFired      Int    @default(0)
+  shotsHit        Int    @default(0)
+  shipsSunk       Int    @default(0)
+  shipsLost       Int    @default(0)
+  totalTurns      Int    @default(0)
+  totalGameTimeMs BigInt  @default(0)
+
+  updatedAt       DateTime @updatedAt
+}
+
+model Match {
+  id          String   @id @default(cuid())
+  player1Id   String
+  player2Id   String?  // null for AI matches
+  winnerId    String?
+  player1     User     @relation("player1", fields: [player1Id], references: [id])
+  player2     User?    @relation("player2", fields: [player2Id], references: [id])
+  winner      User?    @relation("winner", fields: [winnerId], references: [id])
+
+  mode        String   // "ai_easy", "ai_medium", "ai_hard", "ranked", "private", "tournament"
+  turns       Int
+  durationMs  Int
+  p1Accuracy  Float
+  p2Accuracy  Float
+  p1ShipsSunk Int
+  p2ShipsSunk Int
+
+  // Event log for replay system (P2-4)
+  events      Json?
+
+  createdAt   DateTime @default(now())
+
+  @@index([player1Id, createdAt])
+  @@index([player2Id, createdAt])
+}
+
+// === P2-1 Cosmetics ===
+model UserCosmetic {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  cosmeticId  String
+  kind        String   // 'ship_skin' | 'board_theme' | 'explosion_fx'
+  acquiredAt  DateTime @default(now())
+
+  @@unique([userId, cosmeticId])
+  @@index([userId])
+}
+
+// === P2-2 Tournaments ===
+model Tournament {
+  id         String   @id @default(cuid())
+  name       String
+  status     String   // 'lobby' | 'active' | 'finished' | 'cancelled'
+  maxPlayers Int
+  createdBy  String
+  createdAt  DateTime @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+  winnerId   String?
+  seasonId   String?
+
+  entries TournamentEntry[]
+  matches TournamentMatch[]
+
+  @@index([status, createdAt])
+}
+
+model TournamentEntry {
+  id           String   @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  userId       String
+  seed         Int
+  eliminated   Boolean  @default(false)
+  joinedAt     DateTime @default(now())
+
+  @@unique([tournamentId, userId])
+}
+
+model TournamentMatch {
+  id           String   @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  round        Int
+  bracketIdx   Int
+  p1UserId     String?
+  p2UserId     String?
+  winnerUserId String?
+  matchId      String?
+  status       String   // 'pending' | 'ready' | 'in_progress' | 'done'
+
+  @@index([tournamentId, round])
+}
+
+// === P2-3 Clans ===
+model Clan {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  tag         String   @unique // 2-5 chars
+  description String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  totalWins   Int      @default(0)
+  totalLosses Int      @default(0)
+
+  members User[]
+  chat    ClanChatMessage[]
+}
+
+model ClanChatMessage {
+  id        String   @id @default(cuid())
+  clanId    String
+  clan      Clan     @relation(fields: [clanId], references: [id])
+  userId    String
+  username  String
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([clanId, createdAt])
+}
+
+// === P2-6 Seasons ===
+model Season {
+  id         String   @id @default(cuid())
+  name       String
+  startAt    DateTime
+  endAt      DateTime
+  isActive   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  stats      SeasonPlayerStats[]
+}
+
+model SeasonPlayerStats {
+  id         String @id @default(cuid())
+  seasonId   String
+  season     Season @relation(fields: [seasonId], references: [id])
+  userId     String
+  user       User   @relation(fields: [userId], references: [id])
+
+  rating     Int    @default(1200)
+  wins       Int    @default(0)
+  losses     Int    @default(0)
+  peakRating Int    @default(1200)
+
+  updatedAt  DateTime @updatedAt
+
+  @@unique([seasonId, userId])
+  @@index([seasonId, rating])
+}

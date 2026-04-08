@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/.env
+**/.env.local
+**/.env.development
+**/.env.*.local
+**/coverage
+**/.vscode
+**/.idea
+**/.git
+**/.gitignore
+**/*.log
+**/.DS_Store
+**/Thumbs.db
+**/*.md
+!client/nginx.conf

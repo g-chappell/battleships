@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens exposed as Tailwind v4 @theme variables.
+ * These auto-generate utility classes: bg-blood, text-bone, border-gold, etc.
+ */
+@theme {
+  --color-blood: #8b0000;
+  --color-blood-dark: #5c0000;
+  --color-blood-bright: #c41e3a;
+  --color-crimson: #6b0a0a;
+  --color-mahogany: #2a1410;
+  --color-mahogany-light: #3d1f17;
+  --color-mahogany-mid: #4a2820;
+  --color-pitch: #0d0606;
+  --color-coal: #1a0a0a;
+  --color-copper: #b87333;
+  --color-aged-gold: #a06820;
+  --color-gold: #d4a040;
+  --color-bone: #e8dcc8;
+  --color-parchment: #d4c4a1;
+  --color-rust: #8b3a1c;
+
+  --font-pirate: 'Pirata One', serif;
+  --font-label: 'IM Fell English SC', serif;
+  --font-body: 'IM Fell English', serif;
+}
+
+/*
+ * Legacy CSS variables — kept for hand-written CSS that references
+ * var(--color-*). New code should prefer Tailwind utilities generated
+ * from the @theme block above.
+ */
+:root {
+  --color-blood: #8b0000;
+  --color-blood-dark: #5c0000;
+  --color-blood-bright: #c41e3a;
+  --color-crimson: #6b0a0a;
+  --color-mahogany: #2a1410;
+  --color-mahogany-light: #3d1f17;
+  --color-mahogany-mid: #4a2820;
+  --color-black-pitch: #0d0606;
+  --color-coal: #1a0a0a;
+  --color-copper: #b87333;
+  --color-aged-gold: #a06820;
+  --color-bone: #e8dcc8;
+  --color-parchment: #d4c4a1;
+  --color-rust: #8b3a1c;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'IM Fell English', 'Times New Roman', serif;
+  background-color: var(--color-black-pitch);
+  color: var(--color-bone);
+}
+
+/* Headings use the bold pirate font */
+h1, h2, h3, h4 {
+  font-family: 'Pirata One', 'IM Fell English SC', serif;
+  letter-spacing: 0.05em;
+}
+
+button {
+  font-family: 'IM Fell English SC', serif;
+  letter-spacing: 0.03em;
+}
+
+@keyframes fadeInScale {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes slideInRight {
+  0% { opacity: 0; transform: translateX(120%); }
+  60% { transform: translateX(-10px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+/* Panel glow utility — used by HUD bars, side nav, lobby panels */
+.panel-glow {
+  box-shadow:
+    inset 0 0 14px rgba(196, 30, 58, 0.18),
+    0 0 10px rgba(0, 0, 0, 0.7),
+    0 2px 0 rgba(212, 160, 64, 0.15);
+}
+
+.panel-border {
+  border: 1px solid rgba(139, 0, 0, 0.6);
+}
