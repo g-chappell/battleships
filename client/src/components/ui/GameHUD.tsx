@@ -49,10 +49,10 @@ export function GameHUD() {
   const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
 
   return (
-    <div className="mx-4 mt-4 h-12 bg-[#1a0a0a]/85 backdrop-blur-md border border-[#8b0000]/60 rounded-full flex items-center px-6 gap-4 shrink-0 panel-glow">
+    <div className="mx-2 sm:mx-4 mt-4 h-14 bg-[#221210]/90 backdrop-blur-md border border-[#8b0000]/60 rounded-full flex items-center px-3 sm:px-8 gap-2 sm:gap-5 shrink-0 panel-glow overflow-x-auto">
       <div className="flex items-center gap-2" style={labelStyle}>
-        <span className="text-xs text-[#a06820] uppercase tracking-wider">Turn</span>
-        <span className="text-base font-bold text-[#e8dcc8]">{engine.turnCount}</span>
+        <span className="text-sm text-[#a06820] uppercase tracking-wider">Turn</span>
+        <span className="text-lg font-bold text-[#e8dcc8]">{engine.turnCount}</span>
       </div>
 
       <div className="w-px h-6 bg-[#8b0000]/30" />
@@ -77,34 +77,34 @@ export function GameHUD() {
 
       <div className="w-px h-6 bg-[#8b0000]/30" />
 
-      <div className="flex items-center gap-2" style={labelStyle}>
-        <span className="text-xs text-[#a06820] uppercase tracking-wider">Acc</span>
-        <span className="text-base font-bold text-[#e8dcc8]">{Math.round(engine.getPlayerShotAccuracy() * 100)}%</span>
+      <div className="hidden md:flex items-center gap-2" style={labelStyle}>
+        <span className="text-sm text-[#a06820] uppercase tracking-wider">Acc</span>
+        <span className="text-lg font-bold text-[#e8dcc8]">{Math.round(engine.getPlayerShotAccuracy() * 100)}%</span>
       </div>
 
-      <div className="w-px h-6 bg-[#8b0000]/30" />
+      <div className="hidden md:block w-px h-6 bg-[#8b0000]/30" />
 
       <div className="flex items-center gap-1" style={labelStyle}>
-        <span className="text-xs text-[#a06820] uppercase tracking-wider">Fleet</span>
-        <span className="text-base font-bold text-[#c41e3a]">{playerRemaining}/5</span>
+        <span className="text-sm text-[#a06820] uppercase tracking-wider">Fleet</span>
+        <span className="text-lg font-bold text-[#c41e3a]">{playerRemaining}/5</span>
       </div>
       <div className="flex items-center gap-1" style={labelStyle}>
-        <span className="text-xs text-[#a06820] uppercase tracking-wider">Enemy</span>
-        <span className="text-base font-bold text-[#8b0000]">{opponentRemaining}/5</span>
+        <span className="text-sm text-[#a06820] uppercase tracking-wider">Enemy</span>
+        <span className="text-lg font-bold text-[#8b0000]">{opponentRemaining}/5</span>
       </div>
 
       {opponentSunk.length > 0 && (
-        <>
+        <div className="hidden md:flex items-center gap-2">
           <div className="w-px h-6 bg-[#8b0000]/30" />
-          <span className="text-xs text-[#c41e3a]/70" style={labelStyle}>
+          <span className="text-sm text-[#c41e3a]/70 whitespace-nowrap" style={labelStyle}>
             Sunk: {opponentSunk.map((t) => SHIP_NAMES[t]).join(', ')}
           </span>
-        </>
+        </div>
       )}
 
       <div className="flex-1" />
 
-      <div className="text-base italic text-[#c41e3a] truncate max-w-md" style={{ fontFamily: "'IM Fell English', serif", textShadow: '0 0 8px rgba(196, 30, 58, 0.3)' }}>
+      <div className="hidden sm:block text-lg italic text-[#c41e3a] truncate max-w-md" style={{ fontFamily: "'IM Fell English', serif", textShadow: '0 0 8px rgba(196, 30, 58, 0.3)' }}>
         {commentary}
       </div>
     </div>

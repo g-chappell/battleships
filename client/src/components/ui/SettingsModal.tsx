@@ -25,7 +25,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="absolute inset-0 bg-black/85 flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-gradient-to-b from-[#1a0a0a] to-[#2a1410] border-2 border-[#8b0000] rounded p-8 w-96 panel-glow"
+        className="bg-gradient-to-b from-[#221210] to-[#2a1410] border-2 border-[#8b0000] rounded p-8 w-96 panel-glow"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
@@ -44,7 +44,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             <span className="text-[#d4c4a1] text-sm" style={labelStyle}>Mute All</span>
             <button
               onClick={toggleMuted}
-              className={`w-12 h-6 rounded-full border ${muted ? 'bg-[#c41e3a] border-[#c41e3a]' : 'bg-[#3d1f17] border-[#8b0000]/40'}`}
+              className={`w-12 h-6 rounded-full border ${muted ? 'bg-[#c41e3a] border-[#c41e3a]' : 'bg-[#4d2e22] border-[#8b0000]/40'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-[#e8dcc8] transition-transform ${muted ? 'translate-x-7' : 'translate-x-1'}`} />
             </button>
@@ -54,7 +54,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             <span className="text-[#d4c4a1] text-sm" style={labelStyle}>Background Music</span>
             <button
               onClick={toggleMusic}
-              className={`w-12 h-6 rounded-full border ${musicEnabled ? 'bg-[#2ecc71]/40 border-[#2ecc71]/60' : 'bg-[#3d1f17] border-[#8b0000]/40'}`}
+              className={`w-12 h-6 rounded-full border ${musicEnabled ? 'bg-[#2ecc71]/40 border-[#2ecc71]/60' : 'bg-[#4d2e22] border-[#8b0000]/40'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-[#e8dcc8] transition-transform ${musicEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
             </button>

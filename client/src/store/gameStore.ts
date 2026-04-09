@@ -318,16 +318,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   autoPlaceShips: () => {
-    const engine = new GameEngine();
-    const placements = randomPlacement();
+    const { engine } = get();
+    // Reset player board keeping land cells, then re-place randomly
+    for (let r = 0; r < engine.playerBoard.grid.length; r++) {
+      for (let c = 0; c < engine.playerBoard.grid[r].length; c++) {
+        if (engine.playerBoard.grid[r][c] === CellState.Ship) {
+          engine.playerBoard.grid[r][c] = CellState.Empty;
+        }
+      }
+    }
+    engine.playerBoard.ships = [];
+    const placements = randomPlacement(engine.playerBoard);
     for (const p of placements) {
       engine.placePlayerShip(p);
     }
-    set({
-      engine,
+    set((s) => ({
       placedShips: Object.values(ShipType),
       placingShipType: null,
-    });
+      tick: s.tick + 1,
+    }));
   },
 
   confirmPlacement: () => {
@@ -435,16 +444,44 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   useAbility: (type, coord) => {
-    const { engine, isAnimating, playerAbilities } = get();
+    const { engine, isAnimating, playerAbilities, opponentTraits } = get();
     if (isAnimating || !playerAbilities) return;
     if (engine.phase !== GamePhase.Playing || engine.currentTurn !== 'player') return;
     if (!canUseAbility(playerAbilities, type)) return;
     playAbilityActivate();
 
+    // Apply Ironclad/Nimble traits to ability-based shots (same as playerFire)
+    const applyTraits = (outcomes: ShotOutcome[]) => {
+      if (!opponentTraits) return;
+      for (const outcome of outcomes) {
+        const c = outcome.coordinate;
+        // Nimble: forced miss adjacent to destroyer
+        if (outcome.result === ShotResult.Hit && processNimble(c, opponentTraits)) {
+          const ship = engine.opponentBoard.getShipAt(c);
+          if (ship) ship.hits.delete(coordKey(c));
+          engine.opponentBoard.grid[c.row][c.col] = CellState.Miss;
+          outcome.result = ShotResult.Miss;
+          outcome.sunkShip = undefined;
+        }
+        // Ironclad: absorb first hit on Battleship
+        if (outcome.result === ShotResult.Hit) {
+          const negated = processIronclad(engine.opponentBoard, c, opponentTraits);
+          if (negated) {
+            const ship = engine.opponentBoard.getShipAt(c);
+            if (ship) ship.hits.delete(coordKey(c));
+            engine.opponentBoard.grid[c.row][c.col] = CellState.Ship;
+            outcome.result = ShotResult.Miss;
+            outcome.sunkShip = undefined;
+          }
+        }
+      }
+    };
+
     switch (type) {
       case AbilityType.CannonBarrage: {
         const result = executeCannonBarrage(engine.opponentBoard, coord, playerAbilities);
         if (result && result.outcomes.length > 0) {
+          applyTraits(result.outcomes);
           const lastOutcome = result.outcomes[result.outcomes.length - 1];
           engine.currentTurn = 'opponent';
           if (engine.opponentBoard.allShipsSunk()) {
@@ -487,6 +524,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case AbilityType.ChainShot: {
         const result = executeChainShot(engine.opponentBoard, coord, playerAbilities);
         if (result && result.outcomes.length > 0) {
+          applyTraits(result.outcomes);
           const lastOutcome = result.outcomes[result.outcomes.length - 1];
           engine.currentTurn = 'opponent';
           if (engine.opponentBoard.allShipsSunk()) {
@@ -500,6 +538,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case AbilityType.Spyglass: {
         const result = executeSpyglass(engine.opponentBoard, coord, playerAbilities);
         if (result) {
+          applyTraits([result.shotOutcome]);
           engine.currentTurn = 'opponent';
           if (engine.opponentBoard.allShipsSunk()) {
             engine.phase = GamePhase.Finished;

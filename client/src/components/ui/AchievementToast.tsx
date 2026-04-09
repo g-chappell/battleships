@@ -19,7 +19,7 @@ export function AchievementToast() {
 
   return (
     <div
-      className="fixed top-20 right-4 z-50 w-80 bg-gradient-to-r from-[#1a0a0a] to-[#3d1f17] border-2 border-[#d4a040] rounded p-4 shadow-2xl shadow-[#d4a040]/40 panel-glow"
+      className="fixed top-20 right-4 z-50 w-80 bg-gradient-to-r from-[#221210] to-[#4d2e22] border-2 border-[#d4a040] rounded p-4 shadow-2xl shadow-[#d4a040]/40 panel-glow"
       style={{ animation: 'slideInRight 0.4s ease-out' }}
     >
       <div className="flex items-start gap-3">

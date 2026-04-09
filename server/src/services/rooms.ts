@@ -308,6 +308,34 @@ export function useAbility(
 
   const targetBoard = isPlayer1 ? room.engine.opponentBoard : room.engine.playerBoard;
   const ownBoard = isPlayer1 ? room.engine.playerBoard : room.engine.opponentBoard;
+  const opponentIdx = isPlayer1 ? 1 : 0;
+  const opponent = room.players[opponentIdx];
+  const opponentTraits = opponent?.traits ?? null;
+
+  // Apply Ironclad/Nimble traits to ability-based shots
+  const applyTraits = (outcomes: Array<{ result: ShotResult; coordinate: Coordinate; sunkShip?: ShipType }>) => {
+    if (!opponentTraits) return;
+    for (const outcome of outcomes) {
+      const c = outcome.coordinate;
+      if (outcome.result === ShotResult.Hit && processNimble(c, opponentTraits)) {
+        const ship = targetBoard.getShipAt(c);
+        if (ship) ship.hits.delete(coordKey(c));
+        targetBoard.grid[c.row][c.col] = CellState.Miss;
+        outcome.result = ShotResult.Miss;
+        outcome.sunkShip = undefined;
+      }
+      if (outcome.result === ShotResult.Hit) {
+        const negated = processIronclad(targetBoard, c, opponentTraits);
+        if (negated) {
+          const ship = targetBoard.getShipAt(c);
+          if (ship) ship.hits.delete(coordKey(c));
+          targetBoard.grid[c.row][c.col] = CellState.Ship;
+          outcome.result = ShotResult.Miss;
+          outcome.sunkShip = undefined;
+        }
+      }
+    }
+  };
 
   let sonarShipDetected: boolean | undefined;
 
@@ -315,10 +343,9 @@ export function useAbility(
     case AbilityType.CannonBarrage: {
       const result = executeCannonBarrage(targetBoard, coord, player.abilities);
       if (!result) return { ok: false };
-      // After ability, switch turn
+      applyTraits(result.outcomes);
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
-      // Check win
       if (targetBoard.allShipsSunk()) {
         room.engine.phase = GamePhase.Finished;
         room.engine.winner = isPlayer1 ? 'player' : 'opponent';
@@ -350,6 +377,7 @@ export function useAbility(
     case AbilityType.ChainShot: {
       const result = executeChainShot(targetBoard, coord, player.abilities);
       if (!result) return { ok: false };
+      applyTraits(result.outcomes);
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
       if (targetBoard.allShipsSunk()) {
@@ -362,6 +390,7 @@ export function useAbility(
     case AbilityType.Spyglass: {
       const result = executeSpyglass(targetBoard, coord, player.abilities);
       if (!result) return { ok: false };
+      applyTraits([result.shotOutcome]);
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
       if (targetBoard.allShipsSunk()) {

@@ -205,10 +205,14 @@ describe('Board', () => {
       expect(ok).toBe(false);
     });
 
-    it('treats land as invalid target', () => {
+    it('treats land as valid target (opponent cannot see land — firing at it is a miss)', () => {
       const board = new Board();
       board.grid[5][5] = CellState.Land;
-      expect(board.isValidTarget({ row: 5, col: 5 })).toBe(false);
+      // Opponent can fire at land cells (they can't see them)
+      expect(board.isValidTarget({ row: 5, col: 5 })).toBe(true);
+      // Firing at land produces a miss
+      const outcome = board.receiveShot({ row: 5, col: 5 });
+      expect(outcome.result).toBe(ShotResult.Miss);
     });
   });
 });

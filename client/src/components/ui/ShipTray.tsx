@@ -18,7 +18,7 @@ export function ShipTray() {
   const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
 
   return (
-    <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-gradient-to-b from-[#1a0a0a]/95 to-[#0d0606]/95 border border-[#8b0000]/50 rounded p-4 w-56 shadow-xl shadow-[#8b0000]/20">
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-gradient-to-b from-[#221210]/95 to-[#150c0c]/95 border border-[#8b0000]/50 rounded p-4 w-56 shadow-xl shadow-[#8b0000]/20">
       <h3 className="text-[#c41e3a] font-bold text-base uppercase tracking-wider mb-3" style={{ fontFamily: "'Pirata One', serif", textShadow: '0 0 8px rgba(196, 30, 58, 0.4)' }}>
         Deploy Fleet
       </h3>
@@ -38,7 +38,7 @@ export function ShipTray() {
                   ? 'bg-[#5c0000]/30 text-[#c41e3a] cursor-default border-[#8b0000]/40'
                   : isSelected
                   ? 'bg-[#8b0000]/40 text-[#e8dcc8] border-[#c41e3a]'
-                  : 'bg-[#3d1f17]/40 text-[#d4c4a1] border-[#3d1f17] hover:bg-[#5c2820]/50'
+                  : 'bg-[#4d2e22]/40 text-[#d4c4a1] border-[#4d2e22] hover:bg-[#5c2820]/50'
               }`}
               style={labelStyle}
             >
@@ -66,7 +66,7 @@ export function ShipTray() {
       <div className="space-y-2">
         <button
           onClick={rotateShip}
-          className="w-full px-3 py-2 bg-[#3d1f17] text-[#e8dcc8] rounded text-sm hover:bg-[#5c2820] transition-colors border border-[#8b0000]/30"
+          className="w-full px-3 py-2 bg-[#4d2e22] text-[#e8dcc8] rounded text-sm hover:bg-[#5c2820] transition-colors border border-[#8b0000]/30"
           style={labelStyle}
         >
           Rotate [R] — {placingOrientation}
@@ -74,7 +74,7 @@ export function ShipTray() {
 
         <button
           onClick={autoPlaceShips}
-          className="w-full px-3 py-2 bg-[#2a1410] text-[#d4c4a1] rounded text-sm hover:bg-[#3d1f17] transition-colors border border-[#8b0000]/30"
+          className="w-full px-3 py-2 bg-[#2a1410] text-[#d4c4a1] rounded text-sm hover:bg-[#4d2e22] transition-colors border border-[#8b0000]/30"
           style={labelStyle}
         >
           Auto-Place
@@ -92,7 +92,7 @@ export function ShipTray() {
 
         {isWaitingForOpponent && (
           <div
-            className="w-full px-3 py-3 bg-[#3d1f17]/60 text-[#d4a040] text-sm rounded border border-[#a06820]/50 text-center italic animate-pulse"
+            className="w-full px-3 py-3 bg-[#4d2e22]/60 text-[#d4a040] text-sm rounded border border-[#a06820]/50 text-center italic animate-pulse"
             style={{ fontFamily: "'IM Fell English', serif" }}
           >
             Awaiting opponent...

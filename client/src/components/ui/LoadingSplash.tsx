@@ -17,7 +17,7 @@ export function LoadingSplash() {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-b from-[#0d0606] via-[#1a0a0a] to-[#2a1410] transition-opacity duration-700"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-b from-[#150c0c] via-[#221210] to-[#2a1410] transition-opacity duration-700"
       style={{ opacity: fading ? 0 : 1 }}
     >
       <h1
@@ -33,7 +33,7 @@ export function LoadingSplash() {
       <div className="text-[#a06820] text-sm tracking-[0.4em] uppercase" style={{ fontFamily: "'IM Fell English SC', serif" }}>
         Hoisting the colors...
       </div>
-      <div className="mt-8 w-64 h-1 bg-[#3d1f17] rounded overflow-hidden relative">
+      <div className="mt-8 w-64 h-1 bg-[#4d2e22] rounded overflow-hidden relative">
         <div
           className="h-full bg-gradient-to-r from-[#8b0000] to-[#c41e3a]"
           style={{ width: '100%', animation: 'shimmer 2s linear' }}

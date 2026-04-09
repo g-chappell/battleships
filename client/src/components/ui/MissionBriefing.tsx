@@ -30,7 +30,7 @@ export function MissionBriefing() {
 
   return (
     <div className="absolute inset-0 bg-black/85 flex items-center justify-center z-50 p-6">
-      <div className="bg-gradient-to-b from-[#1a0a0a] to-[#2a1410] border-2 border-[#8b0000] rounded p-6 max-w-2xl w-full panel-glow">
+      <div className="bg-gradient-to-b from-[#221210] to-[#2a1410] border-2 border-[#8b0000] rounded p-6 max-w-2xl w-full panel-glow">
         <div className="text-center mb-4">
           <div className="text-xs text-[#a06820] uppercase tracking-[0.3em]" style={labelStyle}>
             Mission {mission.id} of 15
@@ -49,13 +49,13 @@ export function MissionBriefing() {
           {panels.map((_, i) => (
             <div
               key={i}
-              className={`w-2 h-2 rounded-full ${i === panelIdx ? 'bg-[#c41e3a]' : 'bg-[#3d1f17]'}`}
+              className={`w-2 h-2 rounded-full ${i === panelIdx ? 'bg-[#c41e3a]' : 'bg-[#4d2e22]'}`}
             />
           ))}
         </div>
 
         {/* Mission objectives */}
-        <div className="bg-[#0d0606]/60 border border-[#8b0000]/40 rounded p-3 mb-4 text-sm">
+        <div className="bg-[#150c0c]/60 border border-[#8b0000]/40 rounded p-3 mb-4 text-sm">
           <div className="text-[#a06820] uppercase tracking-wider text-xs mb-1" style={labelStyle}>Star Goals</div>
           <div className="text-[#d4c4a1] grid grid-cols-3 gap-2 text-center" style={labelStyle}>
             <div>
@@ -137,7 +137,7 @@ export function MissionOutro() {
 
   return (
     <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-50 p-6">
-      <div className="bg-gradient-to-b from-[#1a0a0a] to-[#2a1410] border-2 border-[#d4a040] rounded p-6 max-w-2xl w-full panel-glow">
+      <div className="bg-gradient-to-b from-[#221210] to-[#2a1410] border-2 border-[#d4a040] rounded p-6 max-w-2xl w-full panel-glow">
         <div className="text-center mb-4">
           <div className="text-xs text-[#a06820] uppercase tracking-[0.3em]" style={labelStyle}>
             Mission Complete
@@ -147,7 +147,7 @@ export function MissionOutro() {
           </h1>
           <div className="text-3xl mt-2" style={{ animation: 'fadeInScale 0.6s ease-out' }}>
             {Array.from({ length: 3 }).map((_, i) => (
-              <span key={i} className={i < lastResult.stars ? 'text-[#d4a040]' : 'text-[#3d1f17]'}>★</span>
+              <span key={i} className={i < lastResult.stars ? 'text-[#d4a040]' : 'text-[#4d2e22]'}>★</span>
             ))}
           </div>
         </div>
@@ -158,7 +158,7 @@ export function MissionOutro() {
           {panels.map((_, i) => (
             <div
               key={i}
-              className={`w-2 h-2 rounded-full ${i === panelIdx ? 'bg-[#d4a040]' : 'bg-[#3d1f17]'}`}
+              className={`w-2 h-2 rounded-full ${i === panelIdx ? 'bg-[#d4a040]' : 'bg-[#4d2e22]'}`}
             />
           ))}
         </div>

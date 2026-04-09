@@ -122,51 +122,53 @@ export function Leaderboard() {
 
       {!loading && entries.length > 0 && (
         <Card variant="glow" padding="none" className="overflow-hidden">
-          <table className="w-full" style={FONT_STYLES.labelSC}>
-            <thead>
-              <tr className="bg-mahogany-light text-aged-gold text-xs uppercase tracking-wider">
-                <th className="px-4 py-3 text-left">Rank</th>
-                <th className="px-4 py-3 text-left">Captain</th>
-                <th className="px-4 py-3 text-right">Rating</th>
-                <th className="px-4 py-3 text-right">Wins</th>
-                <th className="px-4 py-3 text-right">Losses</th>
-                <th className="px-4 py-3 text-right">Win %</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((entry) => {
-                const isMe = user?.id === entry.userId;
-                return (
-                  <tr
-                    key={entry.userId}
-                    className={`border-t border-mahogany-light ${
-                      isMe ? 'bg-blood-dark/30' : 'hover:bg-mahogany-light/40'
-                    }`}
-                  >
-                    <td className="px-4 py-3">
-                      <span className={`text-lg font-bold ${
-                        entry.rank === 1 ? 'text-[#f5a845]' :
-                        entry.rank === 2 ? 'text-[#c0c0c0]' :
-                        entry.rank === 3 ? 'text-[#cd7f32]' :
-                        'text-parchment'
-                      }`} style={FONT_STYLES.pirate}>
-                        #{entry.rank}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`font-bold ${isMe ? 'text-blood-bright' : 'text-bone'}`}>
-                        {entry.username}{isMe && ' (you)'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-gold font-bold" style={FONT_STYLES.pirate}>{entry.rating}</td>
-                    <td className="px-4 py-3 text-right text-[#2ecc71]">{entry.wins}</td>
-                    <td className="px-4 py-3 text-right text-blood-bright">{entry.losses}</td>
-                    <td className="px-4 py-3 text-right text-parchment">{entry.winRate}%</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm md:text-base" style={FONT_STYLES.labelSC}>
+              <thead>
+                <tr className="bg-mahogany-light text-aged-gold text-xs uppercase tracking-wider">
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-left">Rank</th>
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-left">Captain</th>
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-right">Rating</th>
+                  <th className="px-2 md:px-4 py-2 md:py-3 text-right">Wins</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-right">Losses</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-right">Win %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((entry) => {
+                  const isMe = user?.id === entry.userId;
+                  return (
+                    <tr
+                      key={entry.userId}
+                      className={`border-t border-mahogany-light ${
+                        isMe ? 'bg-blood-dark/30' : 'hover:bg-mahogany-light/40'
+                      }`}
+                    >
+                      <td className="px-2 md:px-4 py-2 md:py-3">
+                        <span className={`text-base md:text-lg font-bold ${
+                          entry.rank === 1 ? 'text-[#f5a845]' :
+                          entry.rank === 2 ? 'text-[#c0c0c0]' :
+                          entry.rank === 3 ? 'text-[#cd7f32]' :
+                          'text-parchment'
+                        }`} style={FONT_STYLES.pirate}>
+                          #{entry.rank}
+                        </span>
+                      </td>
+                      <td className="px-2 md:px-4 py-2 md:py-3">
+                        <span className={`font-bold text-sm md:text-base ${isMe ? 'text-blood-bright' : 'text-bone'}`}>
+                          {entry.username}{isMe && ' (you)'}
+                        </span>
+                      </td>
+                      <td className="px-2 md:px-4 py-2 md:py-3 text-right text-gold font-bold" style={FONT_STYLES.pirate}>{entry.rating}</td>
+                      <td className="px-2 md:px-4 py-2 md:py-3 text-right text-[#2ecc71]">{entry.wins}</td>
+                      <td className="hidden md:table-cell px-4 py-3 text-right text-blood-bright">{entry.losses}</td>
+                      <td className="hidden md:table-cell px-4 py-3 text-right text-parchment">{entry.winRate}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
     </PageShell>
