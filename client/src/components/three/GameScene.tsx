@@ -1,8 +1,8 @@
 import { Suspense, useCallback, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Text } from '@react-three/drei';
-import { Ocean } from './Ocean';
 import { CoastalTerrain } from './CoastalTerrain';
+import { SCENE, COLORS } from '../../styles/tokens';
 import { BoardGrid } from './BoardGrid';
 import { ShipModel } from './ShipModel';
 import { KrakenTentacle, SeaSerpent, Mermaid } from './Creatures';
@@ -158,15 +158,14 @@ export function GameScene() {
         shadows
       >
         <Suspense fallback={null}>
-          <hemisphereLight args={['#5a2018', '#1a0606', 0.45]} />
+          <hemisphereLight args={[SCENE.hemisphereSkySide, SCENE.hemisphereGround, 0.45]} />
           <ambientLight intensity={0.4} />
-          <directionalLight position={[15, 22, 8]} intensity={1.3} color="#d4a060" castShadow />
-          <pointLight position={[-12, 10, -5]} intensity={0.6} color="#c41e3a" />
-          <pointLight position={[12, 10, -5]} intensity={0.6} color="#d4a040" />
-          <pointLight position={[0, 14, 8]} intensity={0.55} color="#e8a060" />
-          <fog attach="fog" args={['#1a0a08', 38, 85]} />
+          <directionalLight position={[15, 22, 8]} intensity={1.3} color={SCENE.directionalColor} castShadow />
+          <pointLight position={[-12, 10, -5]} intensity={0.6} color={SCENE.pointRed} />
+          <pointLight position={[12, 10, -5]} intensity={0.6} color={SCENE.pointGold} />
+          <pointLight position={[0, 14, 8]} intensity={0.55} color={SCENE.pointWarm} />
+          <fog attach="fog" args={[SCENE.fogColor, 38, 85]} />
 
-          <Ocean />
           <CoastalTerrain />
 
           {/* Player board (left) */}
@@ -177,10 +176,10 @@ export function GameScene() {
                 position={[0, 0.5, -5.5]}
                 rotation={[-Math.PI / 2, 0, 0]}
                 fontSize={0.7}
-                color={isPlayerTurn ? '#e8dcc8' : '#a06820'}
+                color={isPlayerTurn ? COLORS.bone : COLORS.agedGold}
                 anchorX="center"
                 outlineWidth={0.02}
-                outlineColor="#0d0606"
+                outlineColor={COLORS.pitch}
               >
                 YOUR FLEET
               </Text>
@@ -189,7 +188,7 @@ export function GameScene() {
             {isPlaying && !isPlayerTurn && (
               <mesh position={[0, -0.2, 0]}>
                 <boxGeometry args={[11, 0.05, 11]} />
-                <meshStandardMaterial color="#8b0000" emissive="#c41e3a" emissiveIntensity={0.4} transparent opacity={0.2} />
+                <meshStandardMaterial color={COLORS.blood} emissive={COLORS.bloodBright} emissiveIntensity={0.4} transparent opacity={0.2} />
               </mesh>
             )}
             <BoardGrid
@@ -217,10 +216,10 @@ export function GameScene() {
                 position={[0, 0.5, -5.5]}
                 rotation={[-Math.PI / 2, 0, 0]}
                 fontSize={0.7}
-                color={isPlayerTurn ? '#c41e3a' : '#a06820'}
+                color={isPlayerTurn ? COLORS.bloodBright : COLORS.agedGold}
                 anchorX="center"
                 outlineWidth={0.02}
-                outlineColor="#0d0606"
+                outlineColor={COLORS.pitch}
               >
                 ENEMY FLEET
               </Text>
@@ -228,7 +227,7 @@ export function GameScene() {
               {isPlaying && isPlayerTurn && (
                 <mesh position={[0, -0.2, 0]}>
                   <boxGeometry args={[11, 0.05, 11]} />
-                  <meshStandardMaterial color="#c41e3a" emissive="#c41e3a" emissiveIntensity={0.4} transparent opacity={0.2} />
+                  <meshStandardMaterial color={COLORS.bloodBright} emissive={COLORS.bloodBright} emissiveIntensity={0.4} transparent opacity={0.2} />
                 </mesh>
               )}
               <BoardGrid

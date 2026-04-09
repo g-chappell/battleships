@@ -120,7 +120,7 @@ export function Shop() {
               <div
                 className="w-full h-24 rounded-lg mb-3 flex items-center justify-center border border-mahogany-light"
                 style={{
-                  background: `linear-gradient(135deg, ${def.previewColor}, #0d0606)`,
+                  background: `linear-gradient(135deg, ${def.previewColor}, #150c0c)`,
                   boxShadow: `inset 0 0 20px ${def.previewColor}40`,
                 }}
               >

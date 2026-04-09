@@ -111,7 +111,7 @@ export function MultiplayerLobby() {
   const elapsed = createdAt ? Math.floor((Date.now() - createdAt) / 1000) + elapsedTick * 0 : 0;
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0d0606] via-[#1a0a0a] to-[#2a1410] p-8 pt-24">
+    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-pitch via-coal to-mahogany px-6 py-8 md:px-12 pt-24 overflow-y-auto">
       <div className="text-center mb-8">
         <h1 className="text-5xl text-[#c41e3a] mb-2" style={{ ...pirateStyle, textShadow: '0 0 20px rgba(196,30,58,0.4)' }}>
           Multiplayer
@@ -132,7 +132,7 @@ export function MultiplayerLobby() {
       {mode === 'choice' && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl w-full mb-6">
-            <div className="bg-[#1a0a0a]/80 border border-[#8b0000]/60 rounded p-6 panel-glow">
+            <div className="bg-[#221210]/80 border border-[#8b0000]/60 rounded p-6 panel-glow">
               <h2 className="text-2xl text-[#c41e3a] mb-2" style={pirateStyle}>Quick Match</h2>
               <p className="text-[#d4c4a1]/70 text-sm mb-4 italic" style={{ fontFamily: "'IM Fell English', serif" }}>
                 Find a random opponent of similar skill. Ranked match.
@@ -147,7 +147,7 @@ export function MultiplayerLobby() {
               </button>
             </div>
 
-            <div className="bg-[#1a0a0a]/80 border border-[#8b0000]/60 rounded p-6 panel-glow">
+            <div className="bg-[#221210]/80 border border-[#8b0000]/60 rounded p-6 panel-glow">
               <h2 className="text-2xl text-[#c41e3a] mb-2" style={pirateStyle}>Private Match</h2>
               <p className="text-[#d4c4a1]/70 text-sm mb-4 italic" style={{ fontFamily: "'IM Fell English', serif" }}>
                 Play with a friend using an invite code. Unranked.
@@ -155,7 +155,7 @@ export function MultiplayerLobby() {
               <button
                 onClick={handleCreatePrivate}
                 disabled={status !== 'connected' || selectedAbilities.length !== 2}
-                className="w-full px-4 py-2 bg-[#3d1f17] text-[#e8dcc8] font-bold rounded border border-[#8b0000]/40 hover:bg-[#5c2820] mb-2"
+                className="w-full px-4 py-2 bg-[#4d2e22] text-[#e8dcc8] font-bold rounded border border-[#8b0000]/40 hover:bg-[#5c2820] mb-2"
                 style={pirateStyle}
               >
                 Create Room
@@ -167,13 +167,13 @@ export function MultiplayerLobby() {
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                   placeholder="CODE"
                   maxLength={6}
-                  className="flex-1 px-3 py-2 bg-[#0d0606] border border-[#8b0000]/40 rounded text-[#e8dcc8] uppercase tracking-widest text-center"
+                  className="flex-1 px-3 py-2 bg-[#150c0c] border border-[#8b0000]/40 rounded text-[#e8dcc8] uppercase tracking-widest text-center"
                   style={pirateStyle}
                 />
                 <button
                   onClick={handleJoinPrivate}
                   disabled={status !== 'connected' || joinCode.length < 4 || selectedAbilities.length !== 2}
-                  className="px-4 py-2 bg-[#3d1f17] text-[#e8dcc8] font-bold rounded border border-[#8b0000]/40 hover:bg-[#5c2820] disabled:opacity-50"
+                  className="px-4 py-2 bg-[#4d2e22] text-[#e8dcc8] font-bold rounded border border-[#8b0000]/40 hover:bg-[#5c2820] disabled:opacity-50"
                   style={pirateStyle}
                 >
                   Join
@@ -199,7 +199,7 @@ export function MultiplayerLobby() {
                     className={`px-3 py-2 text-left rounded border transition-colors ${
                       isSelected
                         ? 'bg-[#5c0000]/40 border-[#c41e3a]/60 text-[#c41e3a]'
-                        : 'bg-[#1a0a0a]/40 border-[#3d1f17] text-[#d4c4a1]/60 hover:bg-[#3d1f17]/40'
+                        : 'bg-[#221210]/40 border-[#4d2e22] text-[#d4c4a1]/60 hover:bg-[#4d2e22]/40'
                     }`}
                     style={labelStyle}
                   >
@@ -220,7 +220,7 @@ export function MultiplayerLobby() {
 
       {/* Quick match queueing */}
       {mode === 'quick' && matchmakingState === 'queueing' && (
-        <div className="text-center bg-[#1a0a0a]/80 border border-[#8b0000]/60 rounded p-8 panel-glow">
+        <div className="text-center bg-[#221210]/80 border border-[#8b0000]/60 rounded p-8 panel-glow">
           <div className="text-[#c41e3a] text-2xl mb-2 animate-pulse" style={pirateStyle}>
             Searching the seas...
           </div>
@@ -229,7 +229,7 @@ export function MultiplayerLobby() {
           </div>
           <button
             onClick={handleCancelQuick}
-            className="px-4 py-2 bg-[#3d1f17] text-[#d4c4a1] rounded border border-[#8b0000]/40 hover:bg-[#5c2820]"
+            className="px-4 py-2 bg-[#4d2e22] text-[#d4c4a1] rounded border border-[#8b0000]/40 hover:bg-[#5c2820]"
             style={pirateStyle}
           >
             Cancel
@@ -239,7 +239,7 @@ export function MultiplayerLobby() {
 
       {/* Private match created — waiting for opponent */}
       {mode === 'private_create' && privateCode && !opponent && (
-        <div className="text-center bg-[#1a0a0a]/80 border border-[#8b0000]/60 rounded p-8 panel-glow">
+        <div className="text-center bg-[#221210]/80 border border-[#8b0000]/60 rounded p-8 panel-glow">
           <p className="text-[#a06820] text-sm uppercase tracking-widest mb-2" style={labelStyle}>
             Share this code with yer mate
           </p>
@@ -248,7 +248,7 @@ export function MultiplayerLobby() {
           </div>
           <button
             onClick={() => navigator.clipboard.writeText(privateCode)}
-            className="px-4 py-2 bg-[#3d1f17] text-[#e8dcc8] rounded border border-[#8b0000]/40 hover:bg-[#5c2820] mb-2"
+            className="px-4 py-2 bg-[#4d2e22] text-[#e8dcc8] rounded border border-[#8b0000]/40 hover:bg-[#5c2820] mb-2"
             style={pirateStyle}
           >
             Copy Code
@@ -302,7 +302,7 @@ function WatchLiveSection() {
         {expanded ? '▾ Hide live matches' : '▸ Watch live matches'}
       </button>
       {expanded && (
-        <div className="bg-[#1a0a0a]/60 border border-[#8b0000]/30 rounded p-4">
+        <div className="bg-[#221210]/60 border border-[#8b0000]/30 rounded p-4">
           {rooms.length === 0 ? (
             <p className="text-[#d4c4a1]/40 text-sm text-center italic" style={{ fontFamily: "'IM Fell English', serif" }}>
               No live matches right now
@@ -310,7 +310,7 @@ function WatchLiveSection() {
           ) : (
             <div className="space-y-2">
               {rooms.map((r) => (
-                <div key={r.roomId} className="flex items-center justify-between bg-[#3d1f17]/40 rounded p-3 border border-[#8b0000]/20">
+                <div key={r.roomId} className="flex items-center justify-between bg-[#4d2e22]/40 rounded p-3 border border-[#8b0000]/20">
                   <div>
                     <span className="text-[#e8dcc8] text-sm" style={spectPirateStyle}>
                       {r.player1} vs {r.player2}

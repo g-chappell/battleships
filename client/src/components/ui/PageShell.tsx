@@ -42,7 +42,7 @@ export function PageShell({
 }: PageShellProps) {
   return (
     <div
-      className={`w-full h-full overflow-y-auto p-8 ${
+      className={`w-full h-full overflow-y-auto px-6 py-8 md:px-12 ${
         noTopNav ? 'pt-8' : 'pt-24'
       } bg-gradient-to-b from-pitch via-coal to-mahogany ${className}`}
     >

@@ -37,7 +37,7 @@ export function ChatPanel() {
     return (
       <button
         onClick={() => setCollapsed(false)}
-        className="absolute top-20 right-4 z-30 px-3 py-2 bg-[#1a0a0a]/90 border border-[#8b0000]/60 rounded text-[#c41e3a] hover:bg-[#3d1f17] transition-colors panel-glow"
+        className="absolute top-20 right-2 sm:right-4 z-30 px-3 py-2 bg-[#221210]/90 border border-[#8b0000]/60 rounded text-[#c41e3a] hover:bg-[#4d2e22] transition-colors panel-glow"
         style={labelStyle}
       >
         Chat ({messages.length})
@@ -46,7 +46,7 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="absolute top-20 right-4 w-72 h-80 bg-gradient-to-b from-[#0d0606]/95 to-[#1a0a0a]/95 border border-[#8b0000]/60 rounded flex flex-col z-30 panel-glow">
+    <div className="absolute top-20 right-2 sm:right-4 w-[calc(100vw-1rem)] sm:w-72 max-w-sm h-80 bg-gradient-to-b from-[#150c0c]/95 to-[#221210]/95 border border-[#8b0000]/60 rounded flex flex-col z-30 panel-glow">
       <div className="flex items-center justify-between px-3 py-2 border-b border-[#8b0000]/40">
         <h3 className="text-[#c41e3a] text-sm font-bold uppercase tracking-wider" style={labelStyle}>
           Parley
@@ -80,7 +80,7 @@ export function ChatPanel() {
               <div className={`inline-block max-w-[85%] px-2 py-1 rounded ${
                 isOwn
                   ? 'bg-[#5c0000]/40 text-[#e8dcc8] border border-[#8b0000]/40'
-                  : 'bg-[#3d1f17]/60 text-[#d4a040] border border-[#a06820]/30'
+                  : 'bg-[#4d2e22]/60 text-[#d4a040] border border-[#a06820]/30'
               }`}>
                 <div className="text-xs opacity-60" style={labelStyle}>{msg.fromUsername}</div>
                 <div>{msg.text}</div>
@@ -97,7 +97,7 @@ export function ChatPanel() {
           onChange={(e) => setText(e.target.value)}
           maxLength={200}
           placeholder="Type a message..."
-          className="flex-1 px-2 py-1 bg-[#0d0606] border border-[#8b0000]/40 rounded text-[#e8dcc8] text-sm focus:border-[#c41e3a] focus:outline-none"
+          className="flex-1 px-2 py-1 bg-[#150c0c] border border-[#8b0000]/40 rounded text-[#e8dcc8] text-sm focus:border-[#c41e3a] focus:outline-none"
           style={bodyStyle}
         />
         <button

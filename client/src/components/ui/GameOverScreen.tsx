@@ -10,7 +10,7 @@ const GRID = 10;
 const CELL_PX = 18;
 
 function MiniBoard({ ships, label }: { ships: SerializedShip[]; label: string }) {
-  const grid: string[][] = Array.from({ length: GRID }, () => Array(GRID).fill('#0d0606'));
+  const grid: string[][] = Array.from({ length: GRID }, () => Array(GRID).fill('#150c0c'));
   for (const ship of ships) {
     for (const cell of ship.cells) {
       const isHit = ship.hits.includes(`${cell.row},${cell.col}`);
@@ -103,7 +103,7 @@ export function GameOverScreen() {
 
   return (
     <div className="absolute inset-0 bg-black/85 flex items-center justify-center z-50 overflow-y-auto py-4">
-      <div className="bg-gradient-to-b from-[#1a0a0a] to-[#2a1410] border-2 border-[#8b0000] rounded p-8 text-center max-w-lg shadow-2xl shadow-[#8b0000]/40">
+      <div className="bg-gradient-to-b from-[#221210] to-[#2a1410] border-2 border-[#8b0000] rounded p-8 text-center max-w-lg shadow-2xl shadow-[#8b0000]/40">
         <h1
           className={`text-6xl mb-2 ${isVictory ? 'text-[#c41e3a]' : 'text-[#6b6b6b]'}`}
           style={{ ...pirateStyle, textShadow: isVictory ? '0 0 20px rgba(196, 30, 58, 0.6)' : '0 0 20px rgba(0,0,0,0.8)' }}
@@ -123,21 +123,21 @@ export function GameOverScreen() {
         )}
 
         <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
-          <div className="bg-[#3d1f17]/60 rounded p-3 border border-[#8b0000]/30">
+          <div className="bg-[#4d2e22]/60 rounded p-3 border border-[#8b0000]/30">
             <div className="text-[#a06820] text-xs uppercase tracking-wider" style={labelStyle}>Turns</div>
             <div className="text-2xl font-bold text-[#e8dcc8]" style={pirateStyle}>{engine.turnCount}</div>
           </div>
-          <div className="bg-[#3d1f17]/60 rounded p-3 border border-[#8b0000]/30">
+          <div className="bg-[#4d2e22]/60 rounded p-3 border border-[#8b0000]/30">
             <div className="text-[#a06820] text-xs uppercase tracking-wider" style={labelStyle}>Accuracy</div>
             <div className="text-2xl font-bold text-[#e8dcc8]" style={pirateStyle}>{accuracy}%</div>
           </div>
-          <div className="bg-[#3d1f17]/60 rounded p-3 border border-[#8b0000]/30">
+          <div className="bg-[#4d2e22]/60 rounded p-3 border border-[#8b0000]/30">
             <div className="text-[#a06820] text-xs uppercase tracking-wider" style={labelStyle}>Ships Sunk</div>
             <div className="text-2xl font-bold text-[#c41e3a]" style={pirateStyle}>
               {engine.getSunkShipTypes(engine.opponentBoard).length}
             </div>
           </div>
-          <div className="bg-[#3d1f17]/60 rounded p-3 border border-[#8b0000]/30">
+          <div className="bg-[#4d2e22]/60 rounded p-3 border border-[#8b0000]/30">
             <div className="text-[#a06820] text-xs uppercase tracking-wider" style={labelStyle}>Ships Lost</div>
             <div className="text-2xl font-bold text-[#8b0000]" style={pirateStyle}>
               {engine.getSunkShipTypes(engine.playerBoard).length}
@@ -154,13 +154,13 @@ export function GameOverScreen() {
 
         {/* Abilities used */}
         {abilitiesUsed && Object.keys(abilitiesUsed).length > 0 && (
-          <div className="mb-4 bg-[#3d1f17]/40 rounded p-3 border border-[#8b0000]/20">
+          <div className="mb-4 bg-[#4d2e22]/40 rounded p-3 border border-[#8b0000]/20">
             <div className="text-[#a06820] text-xs uppercase tracking-wider mb-2" style={labelStyle}>Abilities Used</div>
             <div className="flex flex-wrap gap-2 justify-center">
               {Object.entries(abilitiesUsed).map(([type, count]) => {
                 const def = ABILITY_DEFS[type as keyof typeof ABILITY_DEFS];
                 return (
-                  <span key={type} className="text-xs text-[#d4c4a1]/80 bg-[#1a0a0a]/60 rounded px-2 py-1">
+                  <span key={type} className="text-xs text-[#d4c4a1]/80 bg-[#221210]/60 rounded px-2 py-1">
                     {def?.name ?? type} x{count}
                   </span>
                 );
@@ -183,7 +183,7 @@ export function GameOverScreen() {
               </button>
               <button
                 onClick={handleMpExit}
-                className="flex-1 px-4 py-3 bg-[#3d1f17] text-[#d4c4a1] font-bold rounded border border-[#8b0000]/40 hover:bg-[#5c2820] transition-colors"
+                className="flex-1 px-4 py-3 bg-[#4d2e22] text-[#d4c4a1] font-bold rounded border border-[#8b0000]/40 hover:bg-[#5c2820] transition-colors"
                 style={pirateStyle}
               >
                 Main Menu
@@ -211,7 +211,7 @@ export function GameOverScreen() {
             </button>
             <button
               onClick={resetGame}
-              className="flex-1 px-4 py-3 bg-[#3d1f17] text-[#d4c4a1] font-bold rounded border border-[#8b0000]/40 hover:bg-[#5c2820] transition-colors"
+              className="flex-1 px-4 py-3 bg-[#4d2e22] text-[#d4c4a1] font-bold rounded border border-[#8b0000]/40 hover:bg-[#5c2820] transition-colors"
               style={pirateStyle}
             >
               Main Menu
@@ -223,7 +223,7 @@ export function GameOverScreen() {
         <div className="flex gap-3 mt-3">
           <button
             onClick={handleShare}
-            className="flex-1 px-3 py-2 bg-[#1a0a0a]/60 text-[#d4c4a1]/70 text-sm rounded border border-[#8b0000]/20 hover:text-[#e8dcc8] hover:border-[#8b0000]/40 transition-colors"
+            className="flex-1 px-3 py-2 bg-[#221210]/60 text-[#d4c4a1]/70 text-sm rounded border border-[#8b0000]/20 hover:text-[#e8dcc8] hover:border-[#8b0000]/40 transition-colors"
             style={labelStyle}
           >
             Share Result
@@ -231,7 +231,7 @@ export function GameOverScreen() {
           {matchSummary?.matchId && (
             <button
               onClick={handleReplay}
-              className="flex-1 px-3 py-2 bg-[#1a0a0a]/60 text-[#d4c4a1]/70 text-sm rounded border border-[#8b0000]/20 hover:text-[#e8dcc8] hover:border-[#8b0000]/40 transition-colors"
+              className="flex-1 px-3 py-2 bg-[#221210]/60 text-[#d4c4a1]/70 text-sm rounded border border-[#8b0000]/20 hover:text-[#e8dcc8] hover:border-[#8b0000]/40 transition-colors"
               style={labelStyle}
             >
               Watch Replay

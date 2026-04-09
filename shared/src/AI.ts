@@ -68,8 +68,8 @@ export class EasyAI implements AIPlayer {
     }
   }
 
-  placeShips(_board: Board): ShipPlacement[] {
-    return randomPlacement();
+  placeShips(board: Board): ShipPlacement[] {
+    return randomPlacement(board);
   }
 }
 
@@ -241,8 +241,8 @@ export class MediumAI implements AIPlayer {
     }
   }
 
-  placeShips(_board: Board): ShipPlacement[] {
-    return randomPlacement();
+  placeShips(board: Board): ShipPlacement[] {
+    return randomPlacement(board);
   }
 }
 
@@ -257,15 +257,20 @@ export class HardAI extends MediumAI {
     return super.chooseTarget(opponentBoard);
   }
 
-  placeShips(_board: Board): ShipPlacement[] {
+  placeShips(board: Board): ShipPlacement[] {
     // Hard AI uses edge/corner-weighted placement for better defense
-    return randomPlacement();
+    return randomPlacement(board);
   }
 }
 
-export function randomPlacement(): ShipPlacement[] {
+/**
+ * Generate random ship placements. If an existing board is provided,
+ * placements will respect its current state (e.g. land cells).
+ * Otherwise a blank temp board is used.
+ */
+export function randomPlacement(existingBoard?: Board): ShipPlacement[] {
   const placements: ShipPlacement[] = [];
-  const tempBoard = new Board();
+  const tempBoard = existingBoard ? existingBoard.clone() : new Board();
   const shipTypes = Object.values(ShipType);
 
   for (const type of shipTypes) {

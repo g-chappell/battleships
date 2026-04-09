@@ -22,11 +22,11 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary:
     'bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8] border-2 border-[#c41e3a] hover:from-[#e74c3c] hover:to-[#c41e3a] hover:scale-105 active:scale-95 shadow-lg shadow-[#8b0000]/30',
   secondary:
-    'bg-[#3d1f17] text-[#e8dcc8] border border-[#8b0000]/60 hover:bg-[#5c2820] hover:border-[#c41e3a]',
+    'bg-[#4d2e22] text-[#e8dcc8] border border-[#8b0000]/60 hover:bg-[#5c2820] hover:border-[#c41e3a]',
   pill:
-    'bg-[#1a0a0a]/85 text-[#e8dcc8] border border-[#8b0000]/60 hover:bg-[#3d1f17]/90 hover:border-[#c41e3a]/80 backdrop-blur-md',
+    'bg-[#221210]/85 text-[#e8dcc8] border border-[#8b0000]/60 hover:bg-[#4d2e22]/90 hover:border-[#c41e3a]/80 backdrop-blur-md',
   ghost:
-    'bg-transparent text-[#d4c4a1]/70 hover:text-[#e8dcc8] hover:bg-[#3d1f17]/40',
+    'bg-transparent text-[#d4c4a1]/70 hover:text-[#e8dcc8] hover:bg-[#4d2e22]/40',
   danger:
     'bg-gradient-to-b from-[#8b0000] to-[#5c0000] text-[#e8dcc8] border border-[#c41e3a]/50 hover:from-[#c41e3a] hover:to-[#8b0000]',
 };

@@ -2,25 +2,26 @@ import { useRef, useState, useCallback } from 'react';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import type { Group, Mesh } from 'three';
 import { GRID_SIZE, CellState, type CellGrid, type Coordinate } from '@shared/types';
+import { SCENE } from '../../styles/tokens';
 
 const CELL_SIZE = 1;
 const GRID_OFFSET = -(GRID_SIZE * CELL_SIZE) / 2 + CELL_SIZE / 2;
 
 function cellColor(state: CellState, isHovered: boolean, isPlacementPreview: boolean, isValidPlacement: boolean): string {
   if (isPlacementPreview) {
-    return isValidPlacement ? '#d4a040' : '#c41e3a';
+    return isValidPlacement ? SCENE.cellPlacementValid : SCENE.cellPlacementInvalid;
   }
   switch (state) {
     case CellState.Hit:
-      return '#bb1a1a';
+      return SCENE.cellHit;
     case CellState.Miss:
-      return '#3a607a';
+      return SCENE.cellMiss;
     case CellState.Ship:
-      return '#8a5e44';
+      return SCENE.cellShip;
     case CellState.Land:
-      return '#7a5838';
+      return SCENE.cellLand;
     default:
-      return isHovered ? '#5a2828' : '#2d1a2d';
+      return isHovered ? SCENE.cellEmptyHover : SCENE.cellEmpty;
   }
 }
 
@@ -85,19 +86,19 @@ export function BoardGrid({
       {/* Board base — dark mahogany */}
       <mesh position={[0, -0.15, 0]}>
         <boxGeometry args={[GRID_SIZE * CELL_SIZE + 0.4, 0.3, GRID_SIZE * CELL_SIZE + 0.4]} />
-        <meshStandardMaterial color="#3a1f1a" roughness={0.85} />
+        <meshStandardMaterial color={SCENE.boardBase} roughness={0.85} />
       </mesh>
       {/* Board frame trim */}
       <mesh position={[0, -0.05, 0]}>
         <boxGeometry args={[GRID_SIZE * CELL_SIZE + 0.6, 0.08, GRID_SIZE * CELL_SIZE + 0.6]} />
-        <meshStandardMaterial color="#5a3328" roughness={0.7} metalness={0.25} />
+        <meshStandardMaterial color={SCENE.boardTrim} roughness={0.7} metalness={0.25} />
       </mesh>
       {/* Glowing copper outline ring — makes board pop from sea */}
       <mesh position={[0, 0.0, 0]}>
         <boxGeometry args={[GRID_SIZE * CELL_SIZE + 0.85, 0.04, GRID_SIZE * CELL_SIZE + 0.85]} />
         <meshStandardMaterial
-          color="#d4a040"
-          emissive="#c41e3a"
+          color={SCENE.boardOutline}
+          emissive={SCENE.boardOutlineEmissive}
           emissiveIntensity={0.45}
           transparent
           opacity={0.55}
@@ -136,7 +137,7 @@ export function BoardGrid({
               <meshStandardMaterial
                 color={color}
                 transparent
-                opacity={displayState === CellState.Empty && !isPreview ? 0.78 : 0.95}
+                opacity={displayState === CellState.Empty && !isPreview ? 0.92 : 0.95}
               />
             </mesh>
           );
@@ -148,18 +149,18 @@ export function BoardGrid({
         <group key={`line-${i}`}>
           <mesh position={[GRID_OFFSET + i * CELL_SIZE - CELL_SIZE / 2, 0.02, 0]}>
             <boxGeometry args={[0.02, 0.02, GRID_SIZE * CELL_SIZE]} />
-            <meshStandardMaterial color="#d4a040" opacity={0.7} transparent />
+            <meshStandardMaterial color={SCENE.gridLine} opacity={0.7} transparent />
           </mesh>
           <mesh position={[0, 0.02, GRID_OFFSET + i * CELL_SIZE - CELL_SIZE / 2]}>
             <boxGeometry args={[GRID_SIZE * CELL_SIZE, 0.02, 0.02]} />
-            <meshStandardMaterial color="#d4a040" opacity={0.7} transparent />
+            <meshStandardMaterial color={SCENE.gridLine} opacity={0.7} transparent />
           </mesh>
         </group>
       ))}
 
       {/* Sonar zone overlays */}
       {sonarZones.map((zone, idx) => {
-        const color = zone.shipDetected ? '#e74c3c' : '#2ecc71';
+        const color = zone.shipDetected ? SCENE.sonarShipDetected : SCENE.sonarClear;
         return (
           <group key={`sonar-${idx}`}>
             {/* 3x3 area highlight */}
@@ -260,19 +261,19 @@ function IslandCell({ row, col }: { row: number; col: number }) {
       {/* Sandy base — flattened sphere */}
       <mesh position={[0, 0.05, 0]}>
         <sphereGeometry args={[0.42, 8, 6]} />
-        <meshStandardMaterial color="#8a6a44" roughness={0.95} />
+        <meshStandardMaterial color={SCENE.terrainSand} roughness={0.95} />
       </mesh>
       {/* Rocky core (lower, darker) */}
       <mesh position={[0, 0.12 + heightVariation * 0.5, 0]} scale={[1, heightVariation * 4, 1]}>
         <icosahedronGeometry args={[0.22, 0]} />
-        <meshStandardMaterial color="#5a4030" roughness={0.85} />
+        <meshStandardMaterial color={SCENE.terrainDirt} roughness={0.85} />
       </mesh>
       {/* Optional palm tree */}
       {hasPalm && (
         <group position={[0.1, 0.2, -0.05]}>
           <mesh position={[0, 0.18, 0]}>
             <cylinderGeometry args={[0.025, 0.035, 0.36, 6]} />
-            <meshStandardMaterial color="#3d2818" roughness={0.9} />
+            <meshStandardMaterial color={SCENE.terrainRock} roughness={0.9} />
           </mesh>
           {/* Palm fronds */}
           {[0, 1, 2, 3, 4].map((i) => {
@@ -284,7 +285,7 @@ function IslandCell({ row, col }: { row: number; col: number }) {
                 rotation={[Math.PI / 5, ang, 0]}
               >
                 <boxGeometry args={[0.18, 0.01, 0.05]} />
-                <meshStandardMaterial color="#3a6028" roughness={0.8} />
+                <meshStandardMaterial color={SCENE.terrainGrass} roughness={0.8} />
               </mesh>
             );
           })}
@@ -295,11 +296,11 @@ function IslandCell({ row, col }: { row: number; col: number }) {
         <>
           <mesh position={[-0.15, 0.15, 0.1]}>
             <icosahedronGeometry args={[0.08, 0]} />
-            <meshStandardMaterial color="#4a3a2a" roughness={0.95} />
+            <meshStandardMaterial color={SCENE.terrainPlanks} roughness={0.95} />
           </mesh>
           <mesh position={[0.18, 0.12, -0.12]}>
             <icosahedronGeometry args={[0.06, 0]} />
-            <meshStandardMaterial color="#3a2a1a" roughness={0.95} />
+            <meshStandardMaterial color={SCENE.terrainPlanksDark} roughness={0.95} />
           </mesh>
         </>
       )}
@@ -324,17 +325,17 @@ function HitMarker({ position }: { position: [number, number, number] }) {
       {/* Base glow */}
       <mesh position={[0, 0, 0]}>
         <cylinderGeometry args={[0.3, 0.35, 0.1, 12]} />
-        <meshStandardMaterial color="#e74c3c" emissive="#ff4444" emissiveIntensity={0.8} transparent opacity={0.6} />
+        <meshStandardMaterial color={SCENE.hitFlame} emissive={SCENE.hitFlameEmissive} emissiveIntensity={0.8} transparent opacity={0.6} />
       </mesh>
       {/* Fire column */}
       <mesh ref={flameRef} position={[0, 0.3, 0]}>
         <coneGeometry args={[0.2, 0.6, 8]} />
-        <meshStandardMaterial color="#ff6600" emissive="#ff4400" emissiveIntensity={1} transparent opacity={0.8} />
+        <meshStandardMaterial color={SCENE.hitCore} emissive={SCENE.hitCoreEmissive} emissiveIntensity={1} transparent opacity={0.8} />
       </mesh>
       {/* Inner flame */}
       <mesh position={[0, 0.35, 0]}>
         <coneGeometry args={[0.1, 0.4, 6]} />
-        <meshStandardMaterial color="#ffcc00" emissive="#ffaa00" emissiveIntensity={1.2} transparent opacity={0.7} />
+        <meshStandardMaterial color={SCENE.hitCenter} emissive={SCENE.hitCenterEmissive} emissiveIntensity={1.2} transparent opacity={0.7} />
       </mesh>
       {/* Smoke wisps */}
       <SmokePuff position={[0, 0.6, 0]} />
@@ -374,7 +375,7 @@ function DebrisParticle({ origin, angle, delay }: { origin: [number, number, num
   return (
     <mesh ref={meshRef}>
       <sphereGeometry args={[0.04, 4, 4]} />
-      <meshStandardMaterial color="#8b4513" emissive="#ff6600" emissiveIntensity={0.5} />
+      <meshStandardMaterial color={SCENE.hitDebris} emissive={SCENE.hitDebrisEmissive} emissiveIntensity={0.5} />
     </mesh>
   );
 }
@@ -394,7 +395,7 @@ function SmokePuff({ position, delay = 0 }: { position: [number, number, number]
   return (
     <mesh ref={meshRef} position={position}>
       <sphereGeometry args={[0.15, 6, 6]} />
-      <meshStandardMaterial color="#555555" transparent opacity={0.3} />
+      <meshStandardMaterial color={SCENE.missSplashRing} transparent opacity={0.3} />
     </mesh>
   );
 }
@@ -405,20 +406,20 @@ function MissMarker({ position }: { position: [number, number, number] }) {
       {/* Splash ring */}
       <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.2, 0.35, 16]} />
-        <meshStandardMaterial color="#5dade2" transparent opacity={0.5} />
+        <meshStandardMaterial color={SCENE.missDroplet} transparent opacity={0.5} />
       </mesh>
       {/* Water droplets */}
       <mesh position={[0, 0.1, 0]}>
         <sphereGeometry args={[0.12, 8, 8]} />
-        <meshStandardMaterial color="#3498db" transparent opacity={0.5} />
+        <meshStandardMaterial color={SCENE.missDropletAlt} transparent opacity={0.5} />
       </mesh>
       <mesh position={[0.15, 0.05, 0.1]}>
         <sphereGeometry args={[0.06, 6, 6]} />
-        <meshStandardMaterial color="#5dade2" transparent opacity={0.4} />
+        <meshStandardMaterial color={SCENE.missDroplet} transparent opacity={0.4} />
       </mesh>
       <mesh position={[-0.12, 0.05, -0.08]}>
         <sphereGeometry args={[0.05, 6, 6]} />
-        <meshStandardMaterial color="#5dade2" transparent opacity={0.4} />
+        <meshStandardMaterial color={SCENE.missDroplet} transparent opacity={0.4} />
       </mesh>
     </group>
   );

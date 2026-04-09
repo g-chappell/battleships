@@ -9,11 +9,11 @@
   --color-blood-dark: #5c0000;
   --color-blood-bright: #c41e3a;
   --color-crimson: #6b0a0a;
-  --color-mahogany: #2a1410;
-  --color-mahogany-light: #3d1f17;
-  --color-mahogany-mid: #4a2820;
-  --color-pitch: #0d0606;
-  --color-coal: #1a0a0a;
+  --color-mahogany: #3a1e18;
+  --color-mahogany-light: #4d2e22;
+  --color-mahogany-mid: #5a3828;
+  --color-pitch: #150c0c;
+  --color-coal: #221210;
   --color-copper: #b87333;
   --color-aged-gold: #a06820;
   --color-gold: #d4a040;
@@ -36,11 +36,11 @@
   --color-blood-dark: #5c0000;
   --color-blood-bright: #c41e3a;
   --color-crimson: #6b0a0a;
-  --color-mahogany: #2a1410;
-  --color-mahogany-light: #3d1f17;
-  --color-mahogany-mid: #4a2820;
-  --color-black-pitch: #0d0606;
-  --color-coal: #1a0a0a;
+  --color-mahogany: #3a1e18;
+  --color-mahogany-light: #4d2e22;
+  --color-mahogany-mid: #5a3828;
+  --color-black-pitch: #150c0c;
+  --color-coal: #221210;
   --color-copper: #b87333;
   --color-aged-gold: #a06820;
   --color-bone: #e8dcc8;
@@ -59,6 +59,7 @@ html, body, #root {
   height: 100%;
   overflow: hidden;
   font-family: 'IM Fell English', 'Times New Roman', serif;
+  font-size: 17px;
   background-color: var(--color-black-pitch);
   color: var(--color-bone);
 }

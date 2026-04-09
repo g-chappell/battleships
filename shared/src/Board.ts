@@ -117,7 +117,8 @@ export class Board {
     const { row, col } = coord;
     if (row < 0 || row >= this.size || col < 0 || col >= this.size) return false;
     const state = this.grid[row][col];
-    return state !== CellState.Hit && state !== CellState.Miss && state !== CellState.Land;
+    // Land is a valid target (opponent can't see it — firing at land yields a miss)
+    return state !== CellState.Hit && state !== CellState.Miss;
   }
 
   /**

@@ -25,7 +25,7 @@ export function OpponentDisconnectOverlay() {
 
   return (
     <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-40 pointer-events-none">
-      <div className="bg-[#1a0a0a]/95 border-2 border-[#8b0000] rounded p-6 text-center panel-glow">
+      <div className="bg-[#221210]/95 border-2 border-[#8b0000] rounded p-6 text-center panel-glow">
         <h2 className="text-2xl text-[#c41e3a] mb-2 animate-pulse" style={pirateStyle}>
           Opponent Lost at Sea
         </h2>

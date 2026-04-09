@@ -26,7 +26,7 @@ export function PageHeader({
   subtitle,
   actions,
   titleColorClass = 'text-blood-bright',
-  titleSizeClass = 'text-5xl',
+  titleSizeClass = 'text-4xl md:text-5xl',
 }: PageHeaderProps) {
   return (
     <header className="flex items-start justify-between gap-4 mb-8">
@@ -41,7 +41,7 @@ export function PageHeader({
           {title}
         </h1>
         {subtitle && (
-          <p className="text-aged-gold text-sm tracking-widest uppercase mt-1" style={FONT_STYLES.labelSC}>
+          <p className="text-aged-gold text-sm md:text-base tracking-widest uppercase mt-1" style={FONT_STYLES.labelSC}>
             {subtitle}
           </p>
         )}

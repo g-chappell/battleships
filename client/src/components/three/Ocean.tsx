@@ -73,11 +73,11 @@ const fragmentShader = `
   }
 
   void main() {
-    // Multi-zone palette — base crimson sea, then tinted by uBaseTint
-    vec3 deepColor    = vec3(0.04, 0.01, 0.02) + uBaseTint * 0.3;
-    vec3 midColor     = vec3(0.18, 0.05, 0.07) + uBaseTint * 0.5;
-    vec3 shallowColor = vec3(0.42, 0.10, 0.14) + uBaseTint * 0.7;
-    vec3 foamColor    = vec3(0.85, 0.30, 0.32) + uBaseTint * 0.4;
+    // Multi-zone palette — deep blue sea, then tinted by uBaseTint
+    vec3 deepColor    = vec3(0.02, 0.05, 0.12) + uBaseTint * 0.3;
+    vec3 midColor     = vec3(0.06, 0.14, 0.25) + uBaseTint * 0.5;
+    vec3 shallowColor = vec3(0.12, 0.25, 0.38) + uBaseTint * 0.7;
+    vec3 foamColor    = vec3(0.45, 0.58, 0.68) + uBaseTint * 0.4;
     vec3 sparkColor   = vec3(1.0, 0.55, 0.35);
 
     // Blend zones by elevation
@@ -99,7 +99,7 @@ const fragmentShader = `
     // Fresnel rim (slightly brighter at glancing angles)
     vec3 viewDir = normalize(uCameraPos - vWorldPos);
     float fresnel = pow(1.0 - max(0.0, viewDir.y), 3.0);
-    color += vec3(0.15, 0.04, 0.06) * fresnel;
+    color += vec3(0.06, 0.12, 0.20) * fresnel;
 
     gl_FragColor = vec4(color, 1.0);
   }

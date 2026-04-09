@@ -20,7 +20,7 @@ export function AbilityBar() {
   const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
 
   return (
-    <div className="mx-4 mb-4 h-14 bg-[#1a0a0a]/85 backdrop-blur-md border border-[#8b0000]/60 rounded-full flex items-center px-6 gap-3 shrink-0 panel-glow">
+    <div className="mx-2 sm:mx-4 mb-4 h-16 bg-[#221210]/90 backdrop-blur-md border border-[#8b0000]/60 rounded-full flex flex-nowrap items-center px-3 sm:px-6 gap-2 sm:gap-3 shrink-0 panel-glow overflow-x-auto">
       {playerAbilities && engine.phase === GamePhase.Playing && (
         <>
           {playerAbilities.abilityStates.map((ability) => {
@@ -35,7 +35,7 @@ export function AbilityBar() {
                 key={ability.type}
                 onClick={() => usable && setActiveAbility(isActive ? null : ability.type)}
                 disabled={!usable}
-                className={`relative h-10 px-4 rounded-full border transition-all flex items-center gap-2 text-xs ${
+                className={`relative h-11 px-3 sm:px-4 rounded-full border transition-all flex items-center gap-2 text-sm whitespace-nowrap shrink-0 ${
                   isActive
                     ? 'bg-[#8b0000]/40 border-[#c41e3a] text-[#c41e3a]'
                     : usable

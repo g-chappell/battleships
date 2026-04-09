@@ -75,7 +75,7 @@ export function TopNav() {
       {/* Floating centered pill navbar */}
       <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
         <div
-          className="flex items-center gap-1 px-3 py-2 bg-[#1a0a0a]/85 border border-[#8b0000]/60 rounded-full backdrop-blur-md"
+          className="flex items-center gap-1 px-3 py-2 bg-[#221210]/85 border border-[#8b0000]/60 rounded-full backdrop-blur-md"
           style={{
             boxShadow:
               '0 0 24px rgba(196, 30, 58, 0.25), inset 0 0 12px rgba(196, 30, 58, 0.12), 0 4px 20px rgba(0,0,0,0.6)',
@@ -84,7 +84,7 @@ export function TopNav() {
           {/* Logo */}
           <button
             onClick={() => setScreen('menu')}
-            className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-[#3d1f17]/60 transition-colors"
+            className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-[#4d2e22]/60 transition-colors"
             title="Home"
           >
             <div
@@ -110,7 +110,7 @@ export function TopNav() {
                 className={`px-3 py-1.5 rounded-full text-xs lg:text-sm transition-all ${
                   active
                     ? 'bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8] shadow-md shadow-[#c41e3a]/30'
-                    : 'text-[#d4c4a1]/80 hover:bg-[#3d1f17]/60 hover:text-[#e8dcc8]'
+                    : 'text-[#d4c4a1]/80 hover:bg-[#4d2e22]/60 hover:text-[#e8dcc8]'
                 }`}
                 style={labelStyle}
               >
@@ -123,7 +123,7 @@ export function TopNav() {
           {isMobile && (
             <button
               onClick={() => setMobileMenuOpen((o) => !o)}
-              className="px-3 py-1.5 rounded-full text-[#d4c4a1] hover:bg-[#3d1f17]/60 transition-colors"
+              className="px-3 py-1.5 rounded-full text-[#d4c4a1] hover:bg-[#4d2e22]/60 transition-colors"
               title="Menu"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -153,7 +153,7 @@ export function TopNav() {
           {user ? (
             <button
               onClick={() => setScreen('dashboard')}
-              className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-b from-[#3d1f17] to-[#1a0a0a] border border-[#8b0000]/60 hover:border-[#c41e3a] transition-colors"
+              className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-b from-[#4d2e22] to-[#221210] border border-[#8b0000]/60 hover:border-[#c41e3a] transition-colors"
               style={labelStyle}
             >
               <div
@@ -179,7 +179,7 @@ export function TopNav() {
       {/* Mobile dropdown menu */}
       {isMobile && mobileMenuOpen && (
         <div
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-40 bg-[#1a0a0a]/95 border border-[#8b0000]/60 rounded-2xl backdrop-blur-md p-2 flex flex-col gap-1 min-w-[200px] panel-glow"
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-40 bg-[#221210]/95 border border-[#8b0000]/60 rounded-2xl backdrop-blur-md p-2 flex flex-col gap-1 min-w-[200px] panel-glow"
           style={{
             boxShadow: '0 0 24px rgba(196, 30, 58, 0.25), 0 4px 20px rgba(0,0,0,0.7)',
           }}
@@ -196,7 +196,7 @@ export function TopNav() {
                 className={`px-4 py-2 rounded-full text-sm text-left transition-all ${
                   active
                     ? 'bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8]'
-                    : 'text-[#d4c4a1] hover:bg-[#3d1f17]/60'
+                    : 'text-[#d4c4a1] hover:bg-[#4d2e22]/60'
                 }`}
                 style={labelStyle}
               >
