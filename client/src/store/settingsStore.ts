@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { setVolume, setMuted } from '../services/audio';
+import { setVolume, setMuted, setSfxVolume as setAudioSfxVolume, setMusicVolume as setAudioMusicVolume, startAmbientLoop, stopAmbientLoop } from '../services/audio';
 
 const STORAGE_KEY = 'battleships_settings';
 
@@ -37,11 +37,13 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
 
   setSfxVolume: (v) => {
     set({ sfxVolume: v });
+    setAudioSfxVolume(v);
     persist({ ...get(), sfxVolume: v });
   },
 
   setMusicVolume: (v) => {
     set({ musicVolume: v });
+    setAudioMusicVolume(v);
     persist({ ...get(), musicVolume: v });
   },
 
@@ -55,6 +57,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   toggleMusic: () => {
     const musicEnabled = !get().musicEnabled;
     set({ musicEnabled });
+    if (musicEnabled) startAmbientLoop();
+    else stopAmbientLoop();
     persist({ ...get(), musicEnabled });
   },
 
@@ -65,6 +69,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         const data = JSON.parse(raw);
         set(data);
         setVolume(data.masterVolume ?? 0.45);
+        setAudioSfxVolume(data.sfxVolume ?? 1.0);
+        setAudioMusicVolume(data.musicVolume ?? 0.6);
         setMuted(data.muted ?? false);
       }
     } catch {}

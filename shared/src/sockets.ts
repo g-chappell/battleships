@@ -76,6 +76,40 @@ export interface MatchSummary {
   selfShipsSunk: number;
   opponentShipsSunk: number;
   ratingDelta?: number; // only for ranked matches
+  opponentShips?: SerializedShip[]; // full board reveal post-game
+  abilitiesUsed?: Record<string, number>; // ability type → usage count
+  matchId?: string; // for replay link
+}
+
+// === Spectator types ===
+
+export interface SpectatorGameState {
+  roomId: string;
+  phase: 'placement' | 'playing' | 'finished';
+  currentTurn: 'player1' | 'player2';
+  turnCount: number;
+  winner: 'player1' | 'player2' | null;
+  player1: { username: string; rating: number };
+  player2: { username: string; rating: number };
+  // Fog-of-war: spectators see both boards as opponent-view (hits/misses/sinks only)
+  board1: PublicBoardView;
+  board2: PublicBoardView;
+  spectatorCount: number;
+}
+
+export interface SpectatorChatMessage {
+  id: string;
+  username: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface SpectatableRoom {
+  roomId: string;
+  player1: string;
+  player2: string;
+  turnCount: number;
+  spectatorCount: number;
 }
 
 // === Client → Server events ===
@@ -105,6 +139,12 @@ export interface ClientToServerEvents {
 
   // Clan chat
   'clan:chat:send': (payload: { text: string }) => void;
+
+  // Spectator
+  'spectator:join': (payload: { roomId: string }, ack: (res: { ok: true } | { error: string }) => void) => void;
+  'spectator:leave': () => void;
+  'spectator:chat': (payload: { text: string }) => void;
+  'spectator:list': (ack: (rooms: SpectatableRoom[]) => void) => void;
 }
 
 // === Server → Client events ===
@@ -139,6 +179,12 @@ export interface ServerToClientEvents {
 
   // Gold awards (shown as a toast)
   'gold:awarded': (payload: { amount: number; reason: string; newBalance: number }) => void;
+
+  // Spectator
+  'spectator:state': (payload: SpectatorGameState) => void;
+  'spectator:chat': (payload: SpectatorChatMessage) => void;
+  'spectator:count': (payload: { count: number }) => void;
+  'spectator:ended': (payload: { winnerId: string }) => void;
 
   // Errors
   'error': (payload: { code: string; message: string }) => void;

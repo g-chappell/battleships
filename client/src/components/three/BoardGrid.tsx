@@ -186,8 +186,8 @@ export function BoardGrid({
               })
             )}
             {/* Center marker */}
-            <mesh position={[GRID_OFFSET + zone.center.col * CELL_SIZE, 0.12, GRID_OFFSET + zone.center.row * CELL_SIZE]}>
-              <ringGeometry args={[0.15, 0.25, 16]} rotation={[-Math.PI / 2, 0, 0]} />
+            <mesh position={[GRID_OFFSET + zone.center.col * CELL_SIZE, 0.12, GRID_OFFSET + zone.center.row * CELL_SIZE]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.15, 0.25, 16]} />
               <meshStandardMaterial
                 color={color}
                 emissive={color}

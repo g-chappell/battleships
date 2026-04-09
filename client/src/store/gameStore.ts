@@ -1,11 +1,10 @@
 import { create } from 'zustand';
+import { playAbilityActivate } from '../services/audio';
 import {
   GameEngine,
   GamePhase,
   ShipType,
   Orientation,
-  SHIP_LENGTHS,
-  GRID_SIZE,
   CellState,
   ShotResult,
   EasyAI,
@@ -13,7 +12,6 @@ import {
   HardAI,
   randomPlacement,
   AbilityType,
-  ABILITY_DEFS,
   createAbilitySystemState,
   canUseAbility,
   tickCooldowns,
@@ -24,7 +22,6 @@ import {
   executeChainShot,
   executeSpyglass,
   executeBoardingParty,
-  isCellSmoked,
   createTraitState,
   initNimbleCells,
   processIronclad,
@@ -42,7 +39,7 @@ import type {
   SonarPingResult,
 } from '@shared/index';
 
-export type AppScreen = 'menu' | 'game' | 'dashboard' | 'lobby' | 'leaderboard' | 'campaign' | 'friends' | 'settings' | 'shop' | 'tournaments' | 'clans' | 'replay';
+export type AppScreen = 'menu' | 'game' | 'dashboard' | 'lobby' | 'leaderboard' | 'campaign' | 'friends' | 'settings' | 'shop' | 'tournaments' | 'clans' | 'replay' | 'spectate' | 'multiplayer';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type GameMode = 'ai' | 'multiplayer' | 'campaign';
 
@@ -438,10 +435,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   useAbility: (type, coord) => {
-    const { engine, isAnimating, playerAbilities, opponentAbilities } = get();
+    const { engine, isAnimating, playerAbilities } = get();
     if (isAnimating || !playerAbilities) return;
     if (engine.phase !== GamePhase.Playing || engine.currentTurn !== 'player') return;
     if (!canUseAbility(playerAbilities, type)) return;
+    playAbilityActivate();
 
     switch (type) {
       case AbilityType.CannonBarrage: {

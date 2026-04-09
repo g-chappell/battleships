@@ -19,6 +19,13 @@ import {
   buildPublicState,
   handleDisconnect,
   deleteRoom,
+  trackAbilityUsed,
+  serializeShip,
+  addSpectator,
+  removeSpectator,
+  getSpectatingRoom,
+  buildSpectatorState,
+  listSpectatableRooms,
   type RoomPlayer,
 } from '../services/rooms.js';
 import {
@@ -234,6 +241,7 @@ export function setupGameSocket(io: Server<ClientToServerEvents, ServerToClientE
         socket.emit('error', { code: 'ABILITY_FAILED', message: 'Cannot use ability' });
         return;
       }
+      trackAbilityUsed(room, socket.data.userId, ability);
       const opponentSocketId = room.players.find((p) => p && p.id !== socket.data.userId)?.socketId;
       if (opponentSocketId) {
         io.to(opponentSocketId).emit('game:opponent_action', {
@@ -286,11 +294,54 @@ export function setupGameSocket(io: Server<ClientToServerEvents, ServerToClientE
       }
     });
 
+    // === SPECTATOR ===
+
+    socket.on('spectator:join', ({ roomId }, ack) => {
+      const room = getRoom(roomId);
+      if (!room) return ack({ error: 'Match not found' });
+      if (room.engine.phase === GamePhase.Finished) return ack({ error: 'Match already ended' });
+      const result = addSpectator(room, socket.id, socket.data.username ?? 'Spectator');
+      if ('error' in result) return ack(result);
+      socket.join(`${roomId}:spectators`);
+      ack({ ok: true });
+      const state = buildSpectatorState(room);
+      if (state) socket.emit('spectator:state', state);
+      io.to(`${roomId}:spectators`).emit('spectator:count', { count: room.spectators.size });
+    });
+
+    socket.on('spectator:leave', () => {
+      const room = getSpectatingRoom(socket.id);
+      if (!room) return;
+      socket.leave(`${room.id}:spectators`);
+      removeSpectator(socket.id);
+      io.to(`${room.id}:spectators`).emit('spectator:count', { count: room.spectators.size });
+    });
+
+    socket.on('spectator:chat', ({ text }) => {
+      const room = getSpectatingRoom(socket.id);
+      if (!room) return;
+      if (text.length > 200) return;
+      const msg = {
+        id: Math.random().toString(36).slice(2),
+        username: socket.data.username ?? 'Spectator',
+        text,
+        timestamp: Date.now(),
+      };
+      room.spectatorChat.push(msg);
+      if (room.spectatorChat.length > 100) room.spectatorChat.shift();
+      io.to(`${room.id}:spectators`).emit('spectator:chat', msg);
+    });
+
+    socket.on('spectator:list', (ack) => {
+      ack(listSpectatableRooms());
+    });
+
     // === DISCONNECT ===
 
     socket.on('disconnect', () => {
       console.log(`[socket] disconnected ${socket.data.username}`);
       leaveQueueBySocket(socket.id);
+      removeSpectator(socket.id); // Clean up if they were spectating
       const room = handleDisconnect(socket.id);
       if (room) {
         const opponentSocketId = room.players.find((p) => p && p.socketId !== socket.id)?.socketId;
@@ -321,6 +372,11 @@ function sendStateToBoth(io: Server<ClientToServerEvents, ServerToClientEvents, 
     const state = buildPublicState(room, player.id);
     if (state) io.to(player.socketId).emit('game:state', state);
   }
+  // Also update spectators
+  if (room.spectators.size > 0) {
+    const specState = buildSpectatorState(room);
+    if (specState) io.to(`${roomId}:spectators`).emit('spectator:state', specState);
+  }
 }
 
 async function checkGameEnd(io: Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>, roomId: string): Promise<void> {
@@ -346,11 +402,23 @@ async function checkGameEnd(io: Server<ClientToServerEvents, ServerToClientEvent
     isRanked: room.isRanked,
     turns: room.engine.turnCount,
     durationMs,
-    p1Accuracy: 0, // TODO: track per-player accuracy
-    p2Accuracy: 0,
+    p1Accuracy: room.engine.playerShotCount > 0
+      ? room.engine.opponentBoard.ships.reduce((s, ship) => s + ship.hits.size, 0) / room.engine.playerShotCount
+      : 0,
+    p2Accuracy: room.engine.opponentShotCount > 0
+      ? room.engine.playerBoard.ships.reduce((s, ship) => s + ship.hits.size, 0) / room.engine.opponentShotCount
+      : 0,
     p1ShipsSunk: room.engine.opponentBoard.ships.filter((s) => s.hits.size === s.cells.length).length,
     p2ShipsSunk: room.engine.playerBoard.ships.filter((s) => s.hits.size === s.cells.length).length,
   });
+
+  // Compute per-player accuracy
+  const p1Acc = room.engine.playerShotCount > 0
+    ? room.engine.opponentBoard.ships.reduce((s, ship) => s + ship.hits.size, 0) / room.engine.playerShotCount
+    : 0;
+  const p2Acc = room.engine.opponentShotCount > 0
+    ? room.engine.playerBoard.ships.reduce((s, ship) => s + ship.hits.size, 0) / room.engine.opponentShotCount
+    : 0;
 
   // Send match summary to both
   for (let i = 0; i < 2; i++) {
@@ -361,8 +429,8 @@ async function checkGameEnd(io: Server<ClientToServerEvents, ServerToClientEvent
       winnerId,
       turns: room.engine.turnCount,
       durationMs,
-      selfAccuracy: 0,
-      opponentAccuracy: 0,
+      selfAccuracy: isP1 ? p1Acc : p2Acc,
+      opponentAccuracy: isP1 ? p2Acc : p1Acc,
       selfShipsSunk: isP1
         ? room.engine.opponentBoard.ships.filter((s) => s.hits.size === s.cells.length).length
         : room.engine.playerBoard.ships.filter((s) => s.hits.size === s.cells.length).length,
@@ -370,7 +438,15 @@ async function checkGameEnd(io: Server<ClientToServerEvents, ServerToClientEvent
         ? room.engine.playerBoard.ships.filter((s) => s.hits.size === s.cells.length).length
         : room.engine.opponentBoard.ships.filter((s) => s.hits.size === s.cells.length).length,
       ratingDelta: persistResult?.ratingDelta ? (isP1 ? persistResult.ratingDelta.p1 : persistResult.ratingDelta.p2) : undefined,
+      opponentShips: (isP1 ? room.engine.opponentBoard : room.engine.playerBoard).ships.map(serializeShip),
+      abilitiesUsed: room.abilitiesUsed[player.id] ?? {},
+      matchId: persistResult?.matchId,
     });
+  }
+
+  // Notify spectators
+  if (room.spectators.size > 0) {
+    io.to(`${room.id}:spectators`).emit('spectator:ended', { winnerId });
   }
 }
 

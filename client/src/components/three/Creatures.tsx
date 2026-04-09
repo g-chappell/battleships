@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group, Mesh } from 'three';
 import type { Coordinate } from '@shared/index';
@@ -32,7 +32,6 @@ export function KrakenTentacle({
     const elapsed = (state.clock.elapsedTime * 1000 - spawnedAt) / 1000;
     // Emerge: rises in first 0.6s, sustains, sinks in last 0.6s
     const lifetime = attack ? 1.6 : 6;
-    const t = elapsed / lifetime;
     let height = 0;
     if (elapsed < 0.6) height = elapsed / 0.6;
     else if (elapsed > lifetime - 0.6) height = Math.max(0, (lifetime - elapsed) / 0.6);

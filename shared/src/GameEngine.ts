@@ -1,9 +1,9 @@
 import { Board } from './Board';
 import {
   GamePhase,
-  ShipPlacement,
-  Coordinate,
-  ShotOutcome,
+  type ShipPlacement,
+  type Coordinate,
+  type ShotOutcome,
   ShotResult,
   ShipType,
 } from './types';
@@ -97,22 +97,10 @@ export class GameEngine {
 
   getPlayerShotAccuracy(): number {
     if (this.playerShotCount === 0) return 0;
-    const hits = this.shotHistory.filter(
-      (s) => s.result !== ShotResult.Miss
-    ).length;
-    // Approximate: player hits out of player shots
-    // We track separately now
-    const playerHits = this.shotHistory.reduce((count, shot, i) => {
-      // We can't easily tell which shots are player's from history alone,
-      // so use the dedicated counter
-      return count;
-    }, 0);
-    // Simple: count non-miss shots that happened on opponent board
-    // Use shotCount directly
     const opponentBoardHits = this.opponentBoard.ships.reduce(
       (sum, s) => sum + s.hits.size, 0
     );
-    return this.playerShotCount > 0 ? opponentBoardHits / this.playerShotCount : 0;
+    return opponentBoardHits / this.playerShotCount;
   }
 
   getSunkShipTypes(board: Board): ShipType[] {

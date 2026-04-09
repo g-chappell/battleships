@@ -44,6 +44,8 @@ import type {
   PlayerView,
   ChatMessage,
   SerializedShip,
+  SpectatorGameState,
+  SpectatableRoom,
 } from '../../../shared/src/sockets.ts';
 
 export interface RoomPlayer {
@@ -72,11 +74,16 @@ export interface GameRoom {
   endedAt?: number;
   lastActivityAt: number;
   rematchRequests: Set<string>; // player IDs that requested rematch
+  abilitiesUsed: Record<string, Record<string, number>>; // playerId -> abilityType -> count
+  spectators: Map<string, { socketId: string; username: string }>; // socketId -> info
+  spectatorChat: Array<{ id: string; username: string; text: string; timestamp: number }>;
 }
 
+const MAX_SPECTATORS = 20;
 const rooms = new Map<string, GameRoom>();
 const codeToRoom = new Map<string, string>(); // private room code -> roomId
 const socketToRoom = new Map<string, string>(); // socket ID -> roomId
+const spectatorSocketToRoom = new Map<string, string>(); // spectator socketId -> roomId
 
 export function getRoom(roomId: string): GameRoom | undefined {
   return rooms.get(roomId);
@@ -131,6 +138,9 @@ export function createRoom(
     createdAt: Date.now(),
     lastActivityAt: Date.now(),
     rematchRequests: new Set(),
+    abilitiesUsed: {},
+    spectators: new Map(),
+    spectatorChat: [],
   };
   if (isPrivate) {
     let code = generatePrivateCode();
@@ -453,7 +463,12 @@ export function buildPublicState(room: GameRoom, playerId: string): PublicGameSt
   };
 }
 
-function serializeShip(ship: Ship): SerializedShip {
+export function trackAbilityUsed(room: GameRoom, playerId: string, abilityType: string): void {
+  if (!room.abilitiesUsed[playerId]) room.abilitiesUsed[playerId] = {};
+  room.abilitiesUsed[playerId][abilityType] = (room.abilitiesUsed[playerId][abilityType] ?? 0) + 1;
+}
+
+export function serializeShip(ship: Ship): SerializedShip {
   return {
     type: ship.type,
     cells: ship.cells.map((c) => ({ row: c.row, col: c.col })),
@@ -528,6 +543,65 @@ export function handleReconnect(playerId: string, newSocketId: string): GameRoom
     }
   }
   return null;
+}
+
+// ═══════════════════════════════════════════════════
+// Spectator management
+// ═══════════════════════════════════════════════════
+
+export function addSpectator(room: GameRoom, socketId: string, username: string): { ok: true } | { error: string } {
+  if (room.spectators.size >= MAX_SPECTATORS) return { error: 'Spectator limit reached' };
+  room.spectators.set(socketId, { socketId, username });
+  spectatorSocketToRoom.set(socketId, room.id);
+  return { ok: true };
+}
+
+export function removeSpectator(socketId: string): void {
+  const roomId = spectatorSocketToRoom.get(socketId);
+  if (!roomId) return;
+  const room = rooms.get(roomId);
+  if (room) room.spectators.delete(socketId);
+  spectatorSocketToRoom.delete(socketId);
+}
+
+export function getSpectatingRoom(socketId: string): GameRoom | undefined {
+  const roomId = spectatorSocketToRoom.get(socketId);
+  return roomId ? rooms.get(roomId) : undefined;
+}
+
+export function buildSpectatorState(room: GameRoom): SpectatorGameState | null {
+  if (!room.players[0] || !room.players[1]) return null;
+  return {
+    roomId: room.id,
+    phase: room.engine.phase === GamePhase.Placement ? 'placement'
+      : room.engine.phase === GamePhase.Finished ? 'finished' : 'playing',
+    currentTurn: room.engine.currentTurn === 'player' ? 'player1' : 'player2',
+    turnCount: room.engine.turnCount,
+    winner: room.engine.winner === 'player' ? 'player1'
+      : room.engine.winner === 'opponent' ? 'player2' : null,
+    player1: { username: room.players[0].username, rating: room.players[0].rating },
+    player2: { username: room.players[1].username, rating: room.players[1].rating },
+    board1: serializePublicBoard(room.engine.playerBoard),
+    board2: serializePublicBoard(room.engine.opponentBoard),
+    spectatorCount: room.spectators.size,
+  };
+}
+
+export function listSpectatableRooms(): SpectatableRoom[] {
+  const result: SpectatableRoom[] = [];
+  for (const room of rooms.values()) {
+    if (room.engine.phase !== GamePhase.Playing) continue;
+    if (!room.players[0] || !room.players[1]) continue;
+    if (room.isPrivate) continue;
+    result.push({
+      roomId: room.id,
+      player1: room.players[0].username,
+      player2: room.players[1].username,
+      turnCount: room.engine.turnCount,
+      spectatorCount: room.spectators.size,
+    });
+  }
+  return result;
 }
 
 // Garbage collection: rooms inactive for >10 minutes are cleaned up

@@ -1,8 +1,7 @@
 import { Board } from './Board';
 import {
-  Coordinate,
-  ShotResult,
-  ShotOutcome,
+  type Coordinate,
+  type ShotOutcome,
   CellState,
   coordKey,
   GRID_SIZE,

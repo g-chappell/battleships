@@ -13,7 +13,7 @@ function pick(arr: string[]) { return arr[Math.floor(Math.random() * arr.length)
 
 export function GameHUD() {
   const engine = useGameStore((s) => s.engine);
-  const _tick = useGameStore((s) => s.tick);
+  useGameStore((s) => s.tick); // subscribe for re-renders
   const isAnimating = useGameStore((s) => s.isAnimating);
   const lastOutcome = useGameStore((s) => s.lastShotOutcome);
 

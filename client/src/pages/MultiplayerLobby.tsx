@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useSocketStore } from '../store/socketStore';
 import { useAuthStore } from '../store/authStore';
+import { useSpectatorStore } from '../store/spectatorStore';
 import { AbilityType, ABILITY_DEFS } from '@shared/index';
 
 const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
@@ -18,14 +19,12 @@ export function MultiplayerLobby() {
 
   const status = useSocketStore((s) => s.status);
   const matchmakingState = useSocketStore((s) => s.matchmakingState);
-  const queueElapsed = useSocketStore((s) => s.queueElapsed);
   const roomId = useSocketStore((s) => s.roomId);
   const privateCode = useSocketStore((s) => s.privateCode);
   const opponent = useSocketStore((s) => s.opponent);
   const errorMessage = useSocketStore((s) => s.errorMessage);
 
   const connect = useSocketStore((s) => s.connect);
-  const disconnect = useSocketStore((s) => s.disconnect);
   const joinMatchmaking = useSocketStore((s) => s.joinMatchmaking);
   const leaveMatchmaking = useSocketStore((s) => s.leaveMatchmaking);
   const createPrivateRoom = useSocketStore((s) => s.createPrivateRoom);
@@ -213,6 +212,9 @@ export function MultiplayerLobby() {
               })}
             </div>
           </div>
+
+          {/* Watch live matches */}
+          <WatchLiveSection />
         </>
       )}
 
@@ -266,6 +268,76 @@ export function MultiplayerLobby() {
         >
           ← Back to Menu
         </button>
+      )}
+    </div>
+  );
+}
+
+const spectLabelStyle = { fontFamily: "'IM Fell English SC', serif" };
+const spectPirateStyle = { fontFamily: "'Pirata One', serif" };
+
+function WatchLiveSection() {
+  const fetchRooms = useSpectatorStore((s) => s.fetchRooms);
+  const rooms = useSpectatorStore((s) => s.spectatableRooms);
+  const joinAsSpectator = useSpectatorStore((s) => s.joinAsSpectator);
+  const setScreen = useGameStore((s) => s.setScreen);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (expanded) fetchRooms();
+  }, [expanded, fetchRooms]);
+
+  const handleWatch = async (roomId: string) => {
+    const res = await joinAsSpectator(roomId);
+    if ('ok' in res) setScreen('spectate');
+  };
+
+  return (
+    <div className="max-w-3xl w-full">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full text-center text-[#a06820] text-sm hover:text-[#d4a040] transition-colors py-2"
+        style={spectLabelStyle}
+      >
+        {expanded ? '▾ Hide live matches' : '▸ Watch live matches'}
+      </button>
+      {expanded && (
+        <div className="bg-[#1a0a0a]/60 border border-[#8b0000]/30 rounded p-4">
+          {rooms.length === 0 ? (
+            <p className="text-[#d4c4a1]/40 text-sm text-center italic" style={{ fontFamily: "'IM Fell English', serif" }}>
+              No live matches right now
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {rooms.map((r) => (
+                <div key={r.roomId} className="flex items-center justify-between bg-[#3d1f17]/40 rounded p-3 border border-[#8b0000]/20">
+                  <div>
+                    <span className="text-[#e8dcc8] text-sm" style={spectPirateStyle}>
+                      {r.player1} vs {r.player2}
+                    </span>
+                    <span className="text-[#d4c4a1]/50 text-xs ml-2" style={spectLabelStyle}>
+                      Turn {r.turnCount} · {r.spectatorCount} watching
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleWatch(r.roomId)}
+                    className="px-3 py-1 bg-[#5c2820] text-[#e8dcc8] text-sm rounded border border-[#8b0000]/40 hover:bg-[#7a3828] transition-colors"
+                    style={spectLabelStyle}
+                  >
+                    Watch
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={fetchRooms}
+            className="mt-2 w-full text-center text-[#a06820]/60 text-xs hover:text-[#a06820] transition-colors"
+            style={spectLabelStyle}
+          >
+            Refresh
+          </button>
+        </div>
       )}
     </div>
   );

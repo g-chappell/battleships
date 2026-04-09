@@ -13,6 +13,33 @@ import type {
 import { awardGold } from './gold.ts';
 import { GOLD_REWARDS } from '../../../shared/src/cosmetics.ts';
 
+/* ── Local Prisma result-shape types ── */
+
+interface TournamentWithCount {
+  id: string; name: string; status: string; maxPlayers: number;
+  createdBy: string; createdAt: Date; startedAt: Date | null;
+  finishedAt: Date | null; winnerId: string | null;
+  _count: { entries: number };
+}
+
+interface TournamentEntryRow {
+  id: string; tournamentId: string; userId: string;
+  seed: number; eliminated: boolean; joinedAt: Date;
+}
+
+interface TournamentMatchRow {
+  id: string; tournamentId: string; round: number; bracketIdx: number;
+  p1UserId: string | null; p2UserId: string | null;
+  winnerUserId: string | null; matchId: string | null; status: string;
+}
+
+interface UserIdUsername { id: string; username: string }
+
+interface TournamentWinGroupBy {
+  winnerId: string | null;
+  _count: { _all: number };
+}
+
 let dbWarned = false;
 async function safeDb<T>(label: string, fn: () => Promise<T>): Promise<T | null> {
   try {
@@ -35,7 +62,7 @@ export async function listTournaments(): Promise<TournamentSummary[]> {
       include: { _count: { select: { entries: true } } },
     })
   );
-  return (rows ?? []).map((r: any) => ({
+  return (rows ?? []).map((r: TournamentWithCount) => ({
     id: r.id,
     name: r.name,
     status: r.status,
@@ -62,8 +89,8 @@ export async function getTournamentDetail(id: string): Promise<TournamentDetail 
 
     // Resolve usernames for entries and match players
     const userIds = new Set<string>();
-    t.entries.forEach((e: any) => userIds.add(e.userId));
-    t.matches.forEach((m: any) => {
+    t.entries.forEach((e: TournamentEntryRow) => userIds.add(e.userId));
+    t.matches.forEach((m: TournamentMatchRow) => {
       if (m.p1UserId) userIds.add(m.p1UserId);
       if (m.p2UserId) userIds.add(m.p2UserId);
     });
@@ -71,16 +98,16 @@ export async function getTournamentDetail(id: string): Promise<TournamentDetail 
       where: { id: { in: Array.from(userIds) } },
       select: { id: true, username: true },
     });
-    const nameOf = new Map(users.map((u: any) => [u.id, u.username]));
+    const nameOf = new Map(users.map((u: UserIdUsername) => [u.id, u.username]));
 
-    const entries = t.entries.map((e: any) => ({
+    const entries = t.entries.map((e: TournamentEntryRow) => ({
       userId: e.userId,
       username: nameOf.get(e.userId) ?? 'Unknown',
       seed: e.seed,
       eliminated: e.eliminated,
     }));
 
-    const matches: TournamentBracketMatch[] = t.matches.map((m: any) => ({
+    const matches: TournamentBracketMatch[] = t.matches.map((m: TournamentMatchRow) => ({
       id: m.id,
       round: m.round,
       bracketIdx: m.bracketIdx,
@@ -96,7 +123,7 @@ export async function getTournamentDetail(id: string): Promise<TournamentDetail 
     return {
       id: t.id,
       name: t.name,
-      status: t.status as any,
+      status: t.status as TournamentDetail['status'],
       maxPlayers: t.maxPlayers,
       playerCount: entries.length,
       createdBy: t.createdBy,
@@ -137,7 +164,7 @@ export async function joinTournament(
     if (!t) return { error: 'Tournament not found' };
     if (t.status !== 'lobby') return { error: 'Tournament already started' };
     if (t.entries.length >= t.maxPlayers) return { error: 'Tournament full' };
-    if (t.entries.some((e: any) => e.userId === userId)) return { error: 'Already joined' };
+    if (t.entries.some((e: TournamentEntryRow) => e.userId === userId)) return { error: 'Already joined' };
 
     await prisma.tournamentEntry.create({
       data: {
@@ -166,7 +193,7 @@ async function startTournamentInternal(tournamentId: string): Promise<void> {
 
   // Sort entries by rating (descending) for seeding
   const entries = await Promise.all(
-    t.entries.map(async (e: any) => {
+    t.entries.map(async (e: TournamentEntryRow) => {
       const stats = await prisma.playerStats.findUnique({ where: { userId: e.userId } });
       return { userId: e.userId, rating: stats?.rating ?? 1200 };
     })
@@ -264,7 +291,7 @@ export async function onTournamentMatchComplete(
       where: { tournamentId: tm.tournamentId, round: nextRound, bracketIdx: nextBracketIdx },
     });
     if (nextMatch) {
-      const updateData: any = {};
+      const updateData: { p1UserId?: string; p2UserId?: string; status?: string } = {};
       if (slot === 'p1') updateData.p1UserId = winnerUserId;
       else updateData.p2UserId = winnerUserId;
 
@@ -316,11 +343,11 @@ export async function getTournamentLeaderboard(): Promise<
       take: 20,
     });
     const users = await prisma.user.findMany({
-      where: { id: { in: wins.map((w: any) => w.winnerId!).filter(Boolean) } },
+      where: { id: { in: wins.map((w: TournamentWinGroupBy) => w.winnerId!).filter(Boolean) } },
       select: { id: true, username: true },
     });
-    const nameOf = new Map(users.map((u: any) => [u.id, u.username]));
-    return wins.map((w: any) => ({
+    const nameOf = new Map(users.map((u: UserIdUsername) => [u.id, u.username]));
+    return wins.map((w: TournamentWinGroupBy) => ({
       userId: w.winnerId!,
       username: nameOf.get(w.winnerId!) ?? 'Unknown',
       wins: w._count._all,

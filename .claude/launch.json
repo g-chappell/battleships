@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "client",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["-e", "setTimeout(() => {}, 999999999)"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace=client"],
       "port": 5173
     }
   ]
