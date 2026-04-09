@@ -18,6 +18,11 @@ export class GameEngine {
   shotHistory: ShotOutcome[] = [];
   playerShotCount: number = 0;
   opponentShotCount: number = 0;
+  // Accuracy tracking: counts every action (shots + abilities) and hits
+  totalPlayerActions: number = 0;
+  totalPlayerHits: number = 0;
+  totalOpponentActions: number = 0;
+  totalOpponentHits: number = 0;
 
   constructor() {
     this.playerBoard = new Board();
@@ -96,11 +101,19 @@ export class GameEngine {
   }
 
   getPlayerShotAccuracy(): number {
-    if (this.playerShotCount === 0) return 0;
-    const opponentBoardHits = this.opponentBoard.ships.reduce(
-      (sum, s) => sum + s.hits.size, 0
-    );
-    return opponentBoardHits / this.playerShotCount;
+    if (this.totalPlayerActions === 0) return 0;
+    return this.totalPlayerHits / this.totalPlayerActions;
+  }
+
+  /** Record an action (shot or ability) for accuracy tracking. Call AFTER trait processing. */
+  recordPlayerAction(didHit: boolean): void {
+    this.totalPlayerActions++;
+    if (didHit) this.totalPlayerHits++;
+  }
+
+  recordOpponentAction(didHit: boolean): void {
+    this.totalOpponentActions++;
+    if (didHit) this.totalOpponentHits++;
   }
 
   getSunkShipTypes(board: Board): ShipType[] {

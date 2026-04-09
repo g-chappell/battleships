@@ -3,6 +3,7 @@ import {
   type Coordinate,
   type ShotOutcome,
   CellState,
+  ShotResult,
   coordKey,
   GRID_SIZE,
 } from './types';
@@ -353,4 +354,39 @@ export function executeBoardingParty(
     hitsTaken: ship.hits.size,
     totalCells: ship.cells.length,
   };
+}
+
+/**
+ * Fix stale Sink outcomes after trait processing.
+ * Traits can revert hits, making a Sink outcome invalid. This function:
+ * 1. Downgrades stale Sink outcomes (ship no longer fully hit)
+ * 2. Upgrades missed sinks (ship now fully hit but no Sink outcome)
+ */
+export function fixStaleOutcomes(outcomes: ShotOutcome[], board: Board): void {
+  // Downgrade stale Sinks
+  for (const outcome of outcomes) {
+    if (outcome.result === ShotResult.Sink && outcome.sunkShip) {
+      const ship = board.ships.find(s => s.type === outcome.sunkShip);
+      if (ship && ship.hits.size < ship.cells.length) {
+        outcome.result = ShotResult.Hit;
+        outcome.sunkShip = undefined;
+      }
+    }
+  }
+  // Upgrade missed sinks (ship fully hit but no Sink recorded)
+  for (const ship of board.ships) {
+    if (ship.hits.size === ship.cells.length) {
+      const hasSink = outcomes.some(o => o.sunkShip === ship.type);
+      if (!hasSink) {
+        const lastHit = [...outcomes].reverse().find(o => {
+          const key = coordKey(o.coordinate);
+          return ship.cells.some(c => coordKey(c) === key) && o.result === ShotResult.Hit;
+        });
+        if (lastHit) {
+          lastHit.result = ShotResult.Sink;
+          lastHit.sunkShip = ship.type;
+        }
+      }
+    }
+  }
 }

@@ -6,6 +6,7 @@ export enum CellState {
   Hit = 'hit',
   Miss = 'miss',
   Land = 'land',
+  LandRevealed = 'land_revealed',
 }
 
 export enum ShipType {

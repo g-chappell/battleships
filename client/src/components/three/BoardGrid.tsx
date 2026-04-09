@@ -20,6 +20,8 @@ function cellColor(state: CellState, isHovered: boolean, isPlacementPreview: boo
       return SCENE.cellShip;
     case CellState.Land:
       return SCENE.cellLand;
+    case CellState.LandRevealed:
+      return SCENE.cellLandRevealed;
     default:
       return isHovered ? SCENE.cellEmptyHover : SCENE.cellEmpty;
   }
@@ -112,7 +114,11 @@ export function BoardGrid({
           const isHovered = hoveredCell === key;
           const isPreview = previewSet.has(key);
           const showShip = showShips && cell === CellState.Ship;
-          const displayState = showShip ? cell : cell === CellState.Ship ? CellState.Empty : cell;
+          // On opponent board (showShips=false): hide Ship and unrevealed Land as Empty
+          const displayState = showShip ? cell
+            : cell === CellState.Ship ? CellState.Empty
+            : (!showShips && cell === CellState.Land) ? CellState.Empty
+            : cell;
           const color = cellColor(displayState, isHovered, isPreview, isValidPlacement);
 
           return (
@@ -229,13 +235,29 @@ export function BoardGrid({
               />
             );
           }
-          if (cell === CellState.Land) {
+          if (cell === CellState.Land && showShips) {
+            // Only show land islands on player's own board (fog-of-war)
             return (
               <IslandCell
                 key={`land-${rowIdx}-${colIdx}`}
                 row={rowIdx}
                 col={colIdx}
               />
+            );
+          }
+          if (cell === CellState.LandRevealed) {
+            // Land that was fired upon — show island + miss overlay
+            return (
+              <group key={`landrev-${rowIdx}-${colIdx}`}>
+                <IslandCell row={rowIdx} col={colIdx} />
+                <MissMarker
+                  position={[
+                    GRID_OFFSET + colIdx * CELL_SIZE,
+                    0.1,
+                    GRID_OFFSET + rowIdx * CELL_SIZE,
+                  ]}
+                />
+              </group>
             );
           }
           return null;

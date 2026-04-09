@@ -28,6 +28,7 @@ import {
   executeChainShot,
   executeSpyglass,
   executeBoardingParty,
+  fixStaleOutcomes,
   type AbilitySystemState,
 } from '../../../shared/src/abilities.ts';
 import {
@@ -280,6 +281,13 @@ export function fireShot(
     }
   }
 
+  // Record action for accuracy (after trait processing)
+  if (isPlayer1) {
+    room.engine.recordPlayerAction(outcome.result === ShotResult.Hit || outcome.result === ShotResult.Sink);
+  } else {
+    room.engine.recordOpponentAction(outcome.result === ShotResult.Hit || outcome.result === ShotResult.Sink);
+  }
+
   // Tick own ability cooldowns
   const self = room.players[playerIdx]!;
   if (self.abilities) tickCooldowns(self.abilities);
@@ -344,6 +352,9 @@ export function useAbility(
       const result = executeCannonBarrage(targetBoard, coord, player.abilities);
       if (!result) return { ok: false };
       applyTraits(result.outcomes);
+      fixStaleOutcomes(result.outcomes, targetBoard);
+      const didHit = result.outcomes.some(o => o.result === ShotResult.Hit || o.result === ShotResult.Sink);
+      if (isPlayer1) room.engine.recordPlayerAction(didHit); else room.engine.recordOpponentAction(didHit);
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
       if (targetBoard.allShipsSunk()) {
@@ -357,12 +368,14 @@ export function useAbility(
       const result = executeSonarPing(targetBoard, coord, player.abilities);
       if (!result) return { ok: false };
       sonarShipDetected = result.shipDetected;
+      if (isPlayer1) room.engine.recordPlayerAction(result.shipDetected); else room.engine.recordOpponentAction(result.shipDetected);
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
       break;
     }
     case AbilityType.SmokeScreen: {
       if (!executeSmokeScreen(coord, player.abilities)) return { ok: false };
+      if (isPlayer1) room.engine.recordPlayerAction(false); else room.engine.recordOpponentAction(false);
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
       break;
@@ -370,6 +383,7 @@ export function useAbility(
     case AbilityType.RepairKit: {
       const result = executeRepairKit(ownBoard, coord, player.abilities);
       if (!result) return { ok: false };
+      if (isPlayer1) room.engine.recordPlayerAction(false); else room.engine.recordOpponentAction(false);
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
       break;
@@ -378,6 +392,9 @@ export function useAbility(
       const result = executeChainShot(targetBoard, coord, player.abilities);
       if (!result) return { ok: false };
       applyTraits(result.outcomes);
+      fixStaleOutcomes(result.outcomes, targetBoard);
+      const csHit = result.outcomes.some(o => o.result === ShotResult.Hit || o.result === ShotResult.Sink);
+      if (isPlayer1) room.engine.recordPlayerAction(csHit); else room.engine.recordOpponentAction(csHit);
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
       if (targetBoard.allShipsSunk()) {
@@ -391,6 +408,9 @@ export function useAbility(
       const result = executeSpyglass(targetBoard, coord, player.abilities);
       if (!result) return { ok: false };
       applyTraits([result.shotOutcome]);
+      fixStaleOutcomes([result.shotOutcome], targetBoard);
+      const sgHit = result.shotOutcome.result === ShotResult.Hit || result.shotOutcome.result === ShotResult.Sink;
+      if (isPlayer1) room.engine.recordPlayerAction(sgHit); else room.engine.recordOpponentAction(sgHit);
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
       if (targetBoard.allShipsSunk()) {
@@ -401,7 +421,8 @@ export function useAbility(
       break;
     }
     case AbilityType.BoardingParty: {
-      executeBoardingParty(targetBoard, coord, player.abilities);
+      const bpResult = executeBoardingParty(targetBoard, coord, player.abilities);
+      if (isPlayer1) room.engine.recordPlayerAction(bpResult !== null); else room.engine.recordOpponentAction(bpResult !== null);
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
       break;
@@ -511,6 +532,8 @@ function serializeOwnBoard(board: Board): OwnBoardView {
       if (c === CellState.Hit) return 'hit' as const;
       if (c === CellState.Miss) return 'miss' as const;
       if (c === CellState.Ship) return 'ship' as const;
+      if (c === CellState.Land) return 'land' as const;
+      if (c === CellState.LandRevealed) return 'land_revealed' as const;
       return 'empty' as const;
     })
   );
@@ -527,7 +550,8 @@ function serializePublicBoard(board: Board): PublicBoardView {
     row.map((c) => {
       if (c === CellState.Hit) return 'hit' as const;
       if (c === CellState.Miss) return 'miss' as const;
-      // Hide ship cells
+      if (c === CellState.LandRevealed) return 'land_revealed' as const;
+      // Hide ship and unrevealed land cells
       return 'empty' as const;
     })
   );

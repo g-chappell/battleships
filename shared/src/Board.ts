@@ -89,7 +89,7 @@ export class Board {
     }
 
     const currentState = this.grid[row][col];
-    if (currentState === CellState.Hit || currentState === CellState.Miss) {
+    if (currentState === CellState.Hit || currentState === CellState.Miss || currentState === CellState.LandRevealed) {
       throw new Error(`Cell already targeted: (${row}, ${col})`);
     }
 
@@ -105,6 +105,12 @@ export class Board {
       return { result: ShotResult.Hit, coordinate: coord };
     }
 
+    // Land cells become LandRevealed (distinct from Miss visually)
+    if (currentState === CellState.Land) {
+      this.grid[row][col] = CellState.LandRevealed;
+      return { result: ShotResult.Miss, coordinate: coord };
+    }
+
     this.grid[row][col] = CellState.Miss;
     return { result: ShotResult.Miss, coordinate: coord };
   }
@@ -118,7 +124,8 @@ export class Board {
     if (row < 0 || row >= this.size || col < 0 || col >= this.size) return false;
     const state = this.grid[row][col];
     // Land is a valid target (opponent can't see it — firing at land yields a miss)
-    return state !== CellState.Hit && state !== CellState.Miss;
+    // LandRevealed is already targeted, can't fire again
+    return state !== CellState.Hit && state !== CellState.Miss && state !== CellState.LandRevealed;
   }
 
   /**

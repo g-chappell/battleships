@@ -39,7 +39,8 @@ export const SCENE = {
   cellHit: '#bb1a1a',         // bright red
   cellMiss: '#4a7090',        // steel blue-gray
   cellShip: '#8a5e44',        // tan/wood
-  cellLand: '#7a5838',        // darker tan
+  cellLand: '#7a5838',
+  cellLandRevealed: '#6a4828',        // darker tan
   cellPlacementValid: '#d4a040',
   cellPlacementInvalid: '#c41e3a',
 
@@ -84,7 +85,7 @@ export const SCENE = {
   pointRed: '#c41e3a',
   pointGold: '#d4a040',
   pointWarm: '#e8a060',
-  fogColor: '#0e1520',
+  fogColor: '#0a1825',
 } as const;
 
 export type ColorToken = keyof typeof COLORS;

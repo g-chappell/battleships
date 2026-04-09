@@ -22,6 +22,7 @@ import {
   executeChainShot,
   executeSpyglass,
   executeBoardingParty,
+  fixStaleOutcomes,
   createTraitState,
   initNimbleCells,
   processIronclad,
@@ -435,6 +436,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }
 
+    // Record action for accuracy tracking (after trait processing)
+    engine.recordPlayerAction(outcome.result === ShotResult.Hit || outcome.result === ShotResult.Sink);
+
     if (playerAbilities) {
       tickCooldowns(playerAbilities);
     }
@@ -482,6 +486,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const result = executeCannonBarrage(engine.opponentBoard, coord, playerAbilities);
         if (result && result.outcomes.length > 0) {
           applyTraits(result.outcomes);
+          fixStaleOutcomes(result.outcomes, engine.opponentBoard);
+          const didHit = result.outcomes.some(o => o.result === ShotResult.Hit || o.result === ShotResult.Sink);
+          engine.recordPlayerAction(didHit);
           const lastOutcome = result.outcomes[result.outcomes.length - 1];
           engine.currentTurn = 'opponent';
           if (engine.opponentBoard.allShipsSunk()) {
@@ -495,6 +502,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case AbilityType.SonarPing: {
         const result = executeSonarPing(engine.opponentBoard, coord, playerAbilities);
         if (result) {
+          engine.recordPlayerAction(result.shipDetected);
           engine.currentTurn = 'opponent';
           set((s) => ({
             sonarResult: result,
@@ -508,6 +516,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case AbilityType.SmokeScreen: {
         if (playerAbilities) {
           executeSmokeScreen(coord, playerAbilities);
+          engine.recordPlayerAction(false);
           engine.currentTurn = 'opponent';
           set((s) => ({ isAnimating: true, tick: s.tick + 1 }));
         }
@@ -516,6 +525,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case AbilityType.RepairKit: {
         const result = executeRepairKit(engine.playerBoard, coord, playerAbilities);
         if (result) {
+          engine.recordPlayerAction(false);
           engine.currentTurn = 'opponent';
           set((s) => ({ isAnimating: true, tick: s.tick + 1 }));
         }
@@ -525,6 +535,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const result = executeChainShot(engine.opponentBoard, coord, playerAbilities);
         if (result && result.outcomes.length > 0) {
           applyTraits(result.outcomes);
+          fixStaleOutcomes(result.outcomes, engine.opponentBoard);
+          const didHit = result.outcomes.some(o => o.result === ShotResult.Hit || o.result === ShotResult.Sink);
+          engine.recordPlayerAction(didHit);
           const lastOutcome = result.outcomes[result.outcomes.length - 1];
           engine.currentTurn = 'opponent';
           if (engine.opponentBoard.allShipsSunk()) {
@@ -539,6 +552,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const result = executeSpyglass(engine.opponentBoard, coord, playerAbilities);
         if (result) {
           applyTraits([result.shotOutcome]);
+          fixStaleOutcomes([result.shotOutcome], engine.opponentBoard);
+          const didHit = result.shotOutcome.result === ShotResult.Hit || result.shotOutcome.result === ShotResult.Sink;
+          engine.recordPlayerAction(didHit);
           engine.currentTurn = 'opponent';
           if (engine.opponentBoard.allShipsSunk()) {
             engine.phase = GamePhase.Finished;
@@ -555,6 +571,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       case AbilityType.BoardingParty: {
         const result = executeBoardingParty(engine.opponentBoard, coord, playerAbilities);
+        engine.recordPlayerAction(result !== null);
         engine.currentTurn = 'opponent';
         set((s) => ({
           boardingPartyResult: result,
@@ -712,6 +729,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           cell === 'hit' ? CellState.Hit :
           cell === 'miss' ? CellState.Miss :
           cell === 'ship' ? CellState.Ship :
+          cell === 'land' ? CellState.Land :
+          cell === 'land_revealed' ? CellState.LandRevealed :
           CellState.Empty;
       }
     }
@@ -729,6 +748,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         engine.opponentBoard.grid[r][c] =
           cell === 'hit' ? CellState.Hit :
           cell === 'miss' ? CellState.Miss :
+          cell === 'land_revealed' ? CellState.LandRevealed :
           CellState.Empty;
       }
     }
