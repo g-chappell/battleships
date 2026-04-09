@@ -164,7 +164,13 @@ export function GameScene() {
           <pointLight position={[-12, 10, -5]} intensity={0.6} color={SCENE.pointRed} />
           <pointLight position={[12, 10, -5]} intensity={0.6} color={SCENE.pointGold} />
           <pointLight position={[0, 14, 8]} intensity={0.55} color={SCENE.pointWarm} />
-          <fog attach="fog" args={[SCENE.fogColor, 38, 85]} />
+          <fog attach="fog" args={[SCENE.fogColor, 45, 100]} />
+
+          {/* Ocean floor — fills void beyond terrain with blue */}
+          <mesh position={[0, -1.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[300, 300]} />
+            <meshStandardMaterial color={SCENE.cellEmpty} roughness={0.9} />
+          </mesh>
 
           <CoastalTerrain />
 

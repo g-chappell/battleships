@@ -53,6 +53,7 @@ export {
   executeChainShot,
   executeSpyglass,
   executeBoardingParty,
+  fixStaleOutcomes,
 } from './abilities';
 export type {
   AbilityDef,

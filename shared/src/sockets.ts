@@ -27,7 +27,7 @@ export interface PublicBoardView {
   // - ship cells masked as empty
   width: number;
   height: number;
-  cells: Array<Array<'empty' | 'hit' | 'miss'>>;
+  cells: Array<Array<'empty' | 'hit' | 'miss' | 'land_revealed'>>;
   sunkShips: SerializedShip[]; // sunk ships are revealed
 }
 
@@ -35,7 +35,7 @@ export interface OwnBoardView {
   // What the PLAYER sees of their own board (full info)
   width: number;
   height: number;
-  cells: Array<Array<'empty' | 'ship' | 'hit' | 'miss'>>;
+  cells: Array<Array<'empty' | 'ship' | 'hit' | 'miss' | 'land' | 'land_revealed'>>;
   ships: SerializedShip[];
 }
 

@@ -98,10 +98,10 @@ function heightAt(x: number, z: number): number {
 }
 
 function vertexColor(h: number): [number, number, number] {
-  // Multi-zone palette matching Ocean shader
-  if (h < -0.3) return [0.04, 0.01, 0.02];        // deep water
-  if (h < 0.0) return [0.18, 0.05, 0.07];         // mid water
-  if (h < 0.3) return [0.42, 0.10, 0.14];         // shallow / shore wash
+  // Multi-zone palette — blue ocean, sandy shores, green-brown highlands
+  if (h < -0.3) return [0.04, 0.08, 0.14];        // deep water (dark navy)
+  if (h < 0.0) return [0.08, 0.18, 0.30];         // mid water (ocean blue)
+  if (h < 0.3) return [0.12, 0.28, 0.42];         // shallow / shore wash (lighter blue)
   if (h < 0.5) return [0.55, 0.40, 0.25];         // wet sand
   if (h < 1.5) return [0.62, 0.48, 0.30];         // dry sand
   if (h < 3.0) return [0.32, 0.22, 0.14];         // earth / soil

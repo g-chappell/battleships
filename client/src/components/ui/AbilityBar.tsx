@@ -20,7 +20,7 @@ export function AbilityBar() {
   const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
 
   return (
-    <div className="mx-2 sm:mx-4 mb-4 h-16 bg-[#221210]/90 backdrop-blur-md border border-[#8b0000]/60 rounded-full flex flex-nowrap items-center px-3 sm:px-6 gap-2 sm:gap-3 shrink-0 panel-glow overflow-x-auto">
+    <div className="mx-2 sm:mx-4 mb-4 h-16 bg-[#221210]/95 backdrop-blur-lg border border-[#c41e3a]/70 rounded-full flex flex-nowrap items-center px-3 sm:px-6 gap-2 sm:gap-3 shrink-0 panel-glow overflow-x-auto shadow-[0_0_14px_rgba(196,30,58,0.3)]">
       {playerAbilities && engine.phase === GamePhase.Playing && (
         <>
           {playerAbilities.abilityStates.map((ability) => {
@@ -37,10 +37,10 @@ export function AbilityBar() {
                 disabled={!usable}
                 className={`relative h-11 px-3 sm:px-4 rounded-full border transition-all flex items-center gap-2 text-sm whitespace-nowrap shrink-0 ${
                   isActive
-                    ? 'bg-[#8b0000]/40 border-[#c41e3a] text-[#c41e3a]'
+                    ? 'bg-[#8b0000]/70 border-[#c41e3a] text-[#e8dcc8]'
                     : usable
-                    ? 'bg-[#3d1f17]/70 border-[#8b0000]/40 text-[#e8dcc8] hover:bg-[#5c0000]/40 hover:border-[#c41e3a]/60'
-                    : 'bg-[#1a0a0a]/60 border-[#3d1f17]/40 text-[#d4c4a1]/25 cursor-not-allowed'
+                    ? 'bg-[#4d2e22]/80 border-[#8b0000]/60 text-[#e8dcc8] hover:bg-[#5c0000]/60 hover:border-[#c41e3a]/80'
+                    : 'bg-[#221210]/60 border-[#4d2e22]/40 text-[#d4c4a1]/50 cursor-not-allowed'
                 }`}
                 style={labelStyle}
               >
