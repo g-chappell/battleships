@@ -18,11 +18,15 @@ import {
   playHitExplosion,
   playWaterSplash,
   playShipSinking,
+  startAmbientLoop,
+  stopAmbientLoop,
+  isAmbientRunning,
 } from '../services/audio';
+import { useSettingsStore } from '../store/settingsStore';
 
 export function GamePage() {
   const engine = useGameStore((s) => s.engine);
-  const _tick = useGameStore((s) => s.tick);
+  useGameStore((s) => s.tick); // subscribe for re-renders
   const lastOutcome = useGameStore((s) => s.lastShotOutcome);
   const isAnimating = useGameStore((s) => s.isAnimating);
   const rotateShip = useGameStore((s) => s.rotateShip);
@@ -37,8 +41,18 @@ export function GamePage() {
   const token = useAuthStore((s) => s.token);
   const addGold = useCosmeticsStore((s) => s.addGold);
 
+  const musicEnabled = useSettingsStore((s) => s.musicEnabled);
+
   const isPlacing = engine.phase === GamePhase.Placement;
   const isFinished = engine.phase === GamePhase.Finished;
+
+  // Start/stop ambient soundtrack
+  useEffect(() => {
+    if (musicEnabled && !isAmbientRunning()) {
+      startAmbientLoop();
+    }
+    return () => { stopAmbientLoop(); };
+  }, [musicEnabled]);
 
   // Evaluate achievements once when the game ends
   useEffect(() => {
@@ -75,7 +89,7 @@ export function GamePage() {
     }
 
     // === Gold award ===
-    let goldAmount = GOLD_REWARDS.LOSS_CONSOLATION;
+    let goldAmount: number = GOLD_REWARDS.LOSS_CONSOLATION;
     if (won) {
       if (gameMode === 'multiplayer') goldAmount = GOLD_REWARDS.WIN_MP_RANKED;
       else if (gameMode === 'campaign') goldAmount = GOLD_REWARDS.WIN_CAMPAIGN;

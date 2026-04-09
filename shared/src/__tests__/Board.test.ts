@@ -5,7 +5,7 @@ import {
   Orientation,
   CellState,
   ShotResult,
-  ShipPlacement,
+  type ShipPlacement,
 } from '../types';
 
 describe('Board', () => {

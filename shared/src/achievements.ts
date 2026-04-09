@@ -5,7 +5,6 @@
  */
 
 import type { AbilityType } from './abilities';
-import type { ShipType } from './types';
 
 export type AchievementCategory = 'combat' | 'volume' | 'campaign' | 'multiplayer' | 'abilities' | 'misc';
 

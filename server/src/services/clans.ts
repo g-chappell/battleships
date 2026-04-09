@@ -5,6 +5,24 @@
 import { prisma } from './db.ts';
 import type { ClanDetail, ClanMember, ClanSummary } from '../../../shared/src/clans.ts';
 
+/* ── Local Prisma result-shape types ── */
+
+interface ClanWithCount {
+  id: string; name: string; tag: string; description: string | null;
+  createdBy: string; createdAt: Date; totalWins: number; totalLosses: number;
+  _count: { members: number };
+}
+
+interface MemberWithStats {
+  id: string; username: string; clanRole: string | null;
+  stats: { rating: number; wins: number; losses: number } | null;
+}
+
+interface ChatMessageRow {
+  id: string; clanId: string; userId: string;
+  username: string; text: string; createdAt: Date;
+}
+
 let dbWarned = false;
 async function safeDb<T>(label: string, fn: () => Promise<T>): Promise<T | null> {
   try {
@@ -29,7 +47,7 @@ export async function listClans(search?: string): Promise<ClanSummary[]> {
       include: { _count: { select: { members: true } } },
     })
   );
-  return (rows ?? []).map((r: any) => ({
+  return (rows ?? []).map((r: ClanWithCount) => ({
     id: r.id,
     name: r.name,
     tag: r.tag,
@@ -51,13 +69,13 @@ export async function getClanDetail(clanId: string): Promise<ClanDetail | null> 
       },
     });
     if (!clan) return null;
-    const members: ClanMember[] = clan.members.map((m: any) => ({
+    const members: ClanMember[] = clan.members.map((m: MemberWithStats) => ({
       userId: m.id,
       username: m.username,
       rating: m.stats?.rating ?? 1200,
       wins: m.stats?.wins ?? 0,
       losses: m.stats?.losses ?? 0,
-      role: (m.clanRole ?? 'member') as any,
+      role: (m.clanRole ?? 'member') as ClanMember['role'],
     }));
     return {
       id: clan.id,
@@ -69,7 +87,7 @@ export async function getClanDetail(clanId: string): Promise<ClanDetail | null> 
       totalLosses: clan.totalLosses,
       createdAt: clan.createdAt.toISOString(),
       members,
-      recentChat: clan.chat.reverse().map((c: any) => ({
+      recentChat: clan.chat.reverse().map((c: ChatMessageRow) => ({
         id: c.id,
         clanId: c.clanId,
         userId: c.userId,

@@ -1,9 +1,9 @@
 import { useGameStore } from '../../store/gameStore';
-import { AbilityType, ABILITY_DEFS, canUseAbility, GamePhase } from '@shared/index';
+import { ABILITY_DEFS, canUseAbility, GamePhase } from '@shared/index';
 
 export function AbilityBar() {
   const engine = useGameStore((s) => s.engine);
-  const _tick = useGameStore((s) => s.tick);
+  useGameStore((s) => s.tick); // subscribe for re-renders
   const playerAbilities = useGameStore((s) => s.playerAbilities);
   const activeAbility = useGameStore((s) => s.activeAbility);
   const setActiveAbility = useGameStore((s) => s.setActiveAbility);

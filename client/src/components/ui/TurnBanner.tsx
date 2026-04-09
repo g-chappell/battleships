@@ -51,7 +51,7 @@ function pick(arr: string[]): string {
 export function TurnBanner() {
   const engine = useGameStore((s) => s.engine);
   const lastOutcome = useGameStore((s) => s.lastShotOutcome);
-  const _tick = useGameStore((s) => s.tick);
+  useGameStore((s) => s.tick); // subscribe for re-renders
   const isAnimating = useGameStore((s) => s.isAnimating);
 
   const [banner, setBanner] = useState<{

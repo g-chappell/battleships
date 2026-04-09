@@ -1,8 +1,8 @@
 import { Board } from './Board';
 import {
-  Coordinate,
+  type Coordinate,
   GRID_SIZE,
-  ShipPlacement,
+  type ShipPlacement,
   ShipType,
   Orientation,
   SHIP_LENGTHS,
@@ -18,7 +18,6 @@ export interface AIPlayer {
 }
 
 export class EasyAI implements AIPlayer {
-  private lastHit: Coordinate | null = null;
   private huntQueue: Coordinate[] = [];
   private targeted: Set<string> = new Set();
 
@@ -51,7 +50,6 @@ export class EasyAI implements AIPlayer {
 
   notifyResult(coord: Coordinate, result: ShotResult): void {
     if (result === ShotResult.Hit) {
-      this.lastHit = coord;
       // Add adjacent cells to hunt queue
       const adjacents: Coordinate[] = [
         { row: coord.row - 1, col: coord.col },
@@ -66,7 +64,6 @@ export class EasyAI implements AIPlayer {
       }
     } else if (result === ShotResult.Sink) {
       // Ship sunk, clear hunt state
-      this.lastHit = null;
       this.huntQueue = [];
     }
   }
@@ -221,7 +218,7 @@ export class MediumAI implements AIPlayer {
     return density;
   }
 
-  private getRemainingShipLengths(board: Board): number[] {
+  private getRemainingShipLengths(_board: Board): number[] {
     // We don't know which ships are sunk from the AI's perspective
     // Use the known sunk ships to determine remaining lengths
     const allLengths = Object.values(ShipType).map((t) => SHIP_LENGTHS[t]);

@@ -11,7 +11,6 @@ import {
 import {
   ShipType,
   Orientation,
-  CellState,
   ShotResult,
   coordKey,
 } from '../types';

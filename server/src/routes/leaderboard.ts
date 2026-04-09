@@ -2,6 +2,18 @@ import { Router } from 'express';
 import { prisma } from '../services/db.js';
 import { getActiveSeason } from '../services/seasons.ts';
 
+/* ── Local Prisma result-shape types ── */
+
+interface StatsWithUser {
+  rating: number; wins: number; losses: number;
+  user: { id: string; username: string; clanId: string | null; clan: { tag: string } | null };
+}
+
+interface SeasonStatsWithUser {
+  rating: number; wins: number; losses: number; peakRating: number;
+  user: { id: string; username: string; clan: { tag: string } | null };
+}
+
 export const leaderboardRouter = Router();
 
 // Get leaderboard — supports ?seasonId=xxx, ?seasonId=active, ?seasonId=lifetime
@@ -21,7 +33,7 @@ leaderboardRouter.get('/', async (req, res) => {
       });
       res.json({
         scope: 'lifetime',
-        leaderboard: entries.map((entry: any, index: number) => ({
+        leaderboard: entries.map((entry: StatsWithUser, index: number) => ({
           rank: index + 1,
           userId: entry.user.id,
           username: entry.user.username,
@@ -59,7 +71,7 @@ leaderboardRouter.get('/', async (req, res) => {
     res.json({
       scope: 'season',
       seasonId,
-      leaderboard: entries.map((entry: any, index: number) => ({
+      leaderboard: entries.map((entry: SeasonStatsWithUser, index: number) => ({
         rank: index + 1,
         userId: entry.user.id,
         username: entry.user.username,

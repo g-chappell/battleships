@@ -72,8 +72,8 @@ export function ShipModel({ type, start, orientation, isSunk = false }: ShipMode
       </mesh>
 
       {/* Bow (pointed front) */}
-      <mesh position={[hullLen / 2, 0, 0]} rotation={[0, 0, 0]}>
-        <coneGeometry args={[CELL_SIZE * 0.28, 0.5, 4]} rotation={[0, 0, -Math.PI / 2]} />
+      <mesh position={[hullLen / 2, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+        <coneGeometry args={[CELL_SIZE * 0.28, 0.5, 4]} />
         <meshStandardMaterial color={isSunk ? sunkColor : colors.hull} roughness={0.7} metalness={0.2} />
       </mesh>
 
@@ -174,15 +174,15 @@ function SubmarineDetails({ length, isSunk }: { length: number; isSunk: boolean 
         <meshStandardMaterial color={isSunk ? '#333' : '#a0aec0'} metalness={0.8} roughness={0.2} />
       </mesh>
       {/* Propeller housing */}
-      <mesh position={[-length / 2, 0, 0]}>
-        <cylinderGeometry args={[0.12, 0.08, 0.15, 8]} rotation={[0, 0, Math.PI / 2]} />
+      <mesh position={[-length / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.12, 0.08, 0.15, 8]} />
         <meshStandardMaterial color={isSunk ? '#333' : '#b5882c'} metalness={0.7} roughness={0.3} />
       </mesh>
     </>
   );
 }
 
-function SteamComponents({ length, isSunk, colors, type }: { length: number; isSunk: boolean; colors: { hull: string; accent: string }; type: ShipType }) {
+function SteamComponents({ length, isSunk, type }: { length: number; isSunk: boolean; colors: { hull: string; accent: string }; type: ShipType }) {
   const stackCount = type === ShipType.Destroyer ? 2 : type === ShipType.Submarine ? 0 : 1;
   if (stackCount === 0) return null;
 
@@ -250,8 +250,8 @@ function Cannons({ length, isSunk, colors, count }: { length: number; isSunk: bo
         return [1, -1].map((side) => (
           <group key={`cannon-${side}-${i}`} position={[xPos, 0.12, side * 0.3]}>
             {/* Cannon barrel */}
-            <mesh rotation={[0, 0, Math.PI / 2 * side * -0.1]}>
-              <cylinderGeometry args={[0.025, 0.03, 0.2, 6]} rotation={[Math.PI / 2, 0, 0]} />
+            <mesh rotation={[Math.PI / 2, 0, Math.PI / 2 * side * -0.1]}>
+              <cylinderGeometry args={[0.025, 0.03, 0.2, 6]} />
               <meshStandardMaterial color={isSunk ? '#333' : '#2c2c2c'} metalness={0.6} roughness={0.4} />
             </mesh>
             {/* Cannon base */}

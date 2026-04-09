@@ -14,18 +14,40 @@ function getContext(): AudioContext {
 }
 
 let masterVolume = 0.45;
+let sfxVolume = 1;
+let musicVolume = 0.5;
 let muted = false;
 
 export function setVolume(v: number) {
   masterVolume = Math.max(0, Math.min(1, v));
+  updateAmbientGain();
+}
+
+export function setSfxVolume(v: number) {
+  sfxVolume = Math.max(0, Math.min(1, v));
+}
+
+export function setMusicVolume(v: number) {
+  musicVolume = Math.max(0, Math.min(1, v));
+  updateAmbientGain();
 }
 
 export function setMuted(m: boolean) {
   muted = m;
+  updateAmbientGain();
 }
 
+function sfxVol(): number {
+  return muted ? 0 : masterVolume * sfxVolume;
+}
+
+function musicVol(): number {
+  return muted ? 0 : masterVolume * musicVolume;
+}
+
+// Keep backward compat
 function vol(): number {
-  return muted ? 0 : masterVolume;
+  return sfxVol();
 }
 
 function makeNoiseBuffer(ctx: AudioContext, duration: number, decay = 1): AudioBuffer {
@@ -398,4 +420,172 @@ export function playAbilityActivate() {
   osc.connect(gain);
   osc.start(now);
   osc.stop(now + 0.5);
+}
+
+// ═══════════════════════════════════════════════════
+// PROCEDURAL AMBIENT SOUNDTRACK
+// Ocean waves, wind, mechanical clanking, creaking wood
+// ═══════════════════════════════════════════════════
+
+let ambientGain: GainNode | null = null;
+let ambientNodes: AudioNode[] = [];
+let ambientTimers: ReturnType<typeof setInterval>[] = [];
+let ambientRunning = false;
+
+function updateAmbientGain() {
+  if (ambientGain && audioCtx) {
+    ambientGain.gain.setTargetAtTime(musicVol(), audioCtx.currentTime, 0.1);
+  }
+}
+
+export function startAmbientLoop() {
+  if (ambientRunning) return;
+  const ctx = getContext();
+  ambientRunning = true;
+
+  // Master ambient gain
+  ambientGain = ctx.createGain();
+  ambientGain.gain.value = musicVol();
+  ambientGain.connect(ctx.destination);
+
+  // --- Ocean waves: filtered noise with slow LFO amplitude ---
+  const waveNoise = ctx.createBufferSource();
+  const waveBuf = ctx.createBuffer(1, ctx.sampleRate * 8, ctx.sampleRate);
+  const waveData = waveBuf.getChannelData(0);
+  for (let i = 0; i < waveData.length; i++) waveData[i] = Math.random() * 2 - 1;
+  waveNoise.buffer = waveBuf;
+  waveNoise.loop = true;
+
+  const waveBP = ctx.createBiquadFilter();
+  waveBP.type = 'bandpass';
+  waveBP.frequency.value = 350;
+  waveBP.Q.value = 0.5;
+
+  const waveGain = ctx.createGain();
+  waveGain.gain.value = 0.15;
+
+  // Slow amplitude modulation for wave rhythm
+  const waveLFO = ctx.createOscillator();
+  waveLFO.type = 'sine';
+  waveLFO.frequency.value = 0.15; // ~7s cycle
+  const waveLFOGain = ctx.createGain();
+  waveLFOGain.gain.value = 0.06;
+  waveLFO.connect(waveLFOGain);
+  waveLFOGain.connect(waveGain.gain);
+  waveLFO.start();
+
+  waveNoise.connect(waveBP);
+  waveBP.connect(waveGain);
+  waveGain.connect(ambientGain);
+  waveNoise.start();
+
+  ambientNodes.push(waveNoise, waveBP, waveGain, waveLFO, waveLFOGain);
+
+  // --- Wind: higher bandpass noise ---
+  const windNoise = ctx.createBufferSource();
+  const windBuf = ctx.createBuffer(1, ctx.sampleRate * 6, ctx.sampleRate);
+  const windData = windBuf.getChannelData(0);
+  for (let i = 0; i < windData.length; i++) windData[i] = Math.random() * 2 - 1;
+  windNoise.buffer = windBuf;
+  windNoise.loop = true;
+
+  const windBP = ctx.createBiquadFilter();
+  windBP.type = 'bandpass';
+  windBP.frequency.value = 1200;
+  windBP.Q.value = 0.8;
+
+  const windGain = ctx.createGain();
+  windGain.gain.value = 0.05;
+
+  const windLFO = ctx.createOscillator();
+  windLFO.type = 'sine';
+  windLFO.frequency.value = 0.08;
+  const windLFOGain = ctx.createGain();
+  windLFOGain.gain.value = 0.03;
+  windLFO.connect(windLFOGain);
+  windLFOGain.connect(windGain.gain);
+  windLFO.start();
+
+  windNoise.connect(windBP);
+  windBP.connect(windGain);
+  windGain.connect(ambientGain);
+  windNoise.start();
+
+  ambientNodes.push(windNoise, windBP, windGain, windLFO, windLFOGain);
+
+  // --- Mechanical clanking: periodic metallic tones ---
+  const clankTimer = setInterval(() => {
+    if (!ambientRunning || !ambientGain) return;
+    const now = ctx.currentTime;
+    const g = ctx.createGain();
+    g.connect(ambientGain);
+    g.gain.setValueAtTime(0.08, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+    const o = ctx.createOscillator();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(250 + Math.random() * 150, now);
+    o.frequency.exponentialRampToValueAtTime(120, now + 0.2);
+    o.connect(g);
+    o.start(now);
+    o.stop(now + 0.3);
+  }, 4000 + Math.random() * 4000);
+  ambientTimers.push(clankTimer);
+
+  // --- Creaking wood: occasional low sawtooth with vibrato ---
+  const creakTimer = setInterval(() => {
+    if (!ambientRunning || !ambientGain) return;
+    const now = ctx.currentTime;
+    const g = ctx.createGain();
+    g.connect(ambientGain);
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.06, now + 0.2);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(55 + Math.random() * 30, now);
+    o.frequency.linearRampToValueAtTime(40, now + 1.0);
+    o.connect(g);
+
+    // Vibrato
+    const vib = ctx.createOscillator();
+    vib.type = 'sine';
+    vib.frequency.value = 3 + Math.random() * 2;
+    const vibG = ctx.createGain();
+    vibG.gain.value = 5;
+    vib.connect(vibG);
+    vibG.connect(o.frequency);
+    vib.start(now);
+    vib.stop(now + 1.2);
+
+    o.start(now);
+    o.stop(now + 1.2);
+  }, 10000 + Math.random() * 5000);
+  ambientTimers.push(creakTimer);
+}
+
+export function stopAmbientLoop() {
+  ambientRunning = false;
+  for (const timer of ambientTimers) clearInterval(timer);
+  ambientTimers = [];
+  for (const node of ambientNodes) {
+    try {
+      if (node instanceof AudioBufferSourceNode || node instanceof OscillatorNode) {
+        node.stop();
+      }
+      node.disconnect();
+    } catch {
+      // Already stopped/disconnected
+    }
+  }
+  ambientNodes = [];
+  if (ambientGain) {
+    try { ambientGain.disconnect(); } catch { /* ok */ }
+    ambientGain = null;
+  }
+}
+
+export function isAmbientRunning(): boolean {
+  return ambientRunning;
 }

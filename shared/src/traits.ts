@@ -2,9 +2,8 @@ import { Board } from './Board';
 import {
   ShipType,
   CellState,
-  Coordinate,
+  type Coordinate,
   ShotResult,
-  ShotOutcome,
   coordKey,
   GRID_SIZE,
 } from './types';
@@ -180,7 +179,6 @@ export function processSwift(
   }
 
   // Update cells
-  const oldHitKeys = new Set(cruiser.hits);
   cruiser.cells.length = 0;
   cruiser.hits.clear();
 

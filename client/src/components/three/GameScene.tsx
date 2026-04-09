@@ -21,7 +21,7 @@ const OPPONENT_POS: [number, number, number] = [BOARD_SPACING / 2, 0, 0];
 
 export function GameScene() {
   const engine = useGameStore((s) => s.engine);
-  const _tick = useGameStore((s) => s.tick);
+  useGameStore((s) => s.tick); // subscribe for re-renders
   const gameMode = useGameStore((s) => s.gameMode);
   const placingShipType = useGameStore((s) => s.placingShipType);
   const isAnimating = useGameStore((s) => s.isAnimating);
@@ -42,7 +42,6 @@ export function GameScene() {
   const mpGameState = useSocketStore((s) => s.gameState);
   const mpFire = useSocketStore((s) => s.fire);
   const mpUseAbility = useSocketStore((s) => s.useAbility);
-  const mpSubmitPlacement = useSocketStore((s) => s.submitPlacement);
 
   const mpPlacementSubmitted = useGameStore((s) => s.mpPlacementSubmitted);
 
