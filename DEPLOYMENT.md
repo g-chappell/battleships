@@ -54,8 +54,8 @@ Edit `.env` and fill in:
 ### 3. Build and start containers
 
 ```bash
-npm run docker:prod:build
-npm run docker:prod:up
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 This brings up four containers: `postgres`, `redis`, `server`, `client`. The client listens on host port 80 by default.
@@ -97,8 +97,8 @@ Because the client container already binds port 80, change `HOST_HTTP_PORT=8080`
 
 ```bash
 echo "HOST_HTTP_PORT=8080" >> .env
-npm run docker:prod:down
-npm run docker:prod:up
+docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 Then edit `/etc/caddy/Caddyfile`:
@@ -126,14 +126,14 @@ When you push new code and want to deploy:
 ```bash
 cd /opt/battleships
 git pull
-npm run docker:prod:build
-npm run docker:prod:up
+docker compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml up -d
 
 # Only if prisma/schema.prisma changed:
 docker compose -f docker-compose.prod.yml exec server npx prisma db push
 ```
 
-`docker compose up -d` with `--build` recreates changed containers with zero-downtime for the database volume.
+`docker compose up -d` recreates only changed containers. The database volume is preserved.
 
 ---
 
@@ -158,7 +158,7 @@ All variables live in the repo-root `.env` file, read by `docker-compose.prod.ym
 
 ```bash
 # Tail logs for all services
-npm run docker:prod:logs
+docker compose -f docker-compose.prod.yml logs -f
 
 # Tail logs for just the server
 docker compose -f docker-compose.prod.yml logs -f server
@@ -173,7 +173,7 @@ docker compose -f docker-compose.prod.yml exec server sh
 docker compose -f docker-compose.prod.yml exec postgres psql -U battleships
 
 # Stop everything (preserves volumes)
-npm run docker:prod:down
+docker compose -f docker-compose.prod.yml down
 ```
 
 ---
