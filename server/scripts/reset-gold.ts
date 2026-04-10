@@ -3,9 +3,7 @@
  * Run via: npx tsx server/scripts/reset-gold.ts
  * Or in Docker: docker compose exec server npx tsx scripts/reset-gold.ts
  */
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../src/services/db.ts';
 
 async function main() {
   const result = await prisma.user.updateMany({
