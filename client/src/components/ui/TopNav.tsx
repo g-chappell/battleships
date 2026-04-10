@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useAuthStore } from '../../store/authStore';
+import { useCosmeticsStore } from '../../store/cosmeticsStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { AuthPage } from '../../pages/AuthPage';
 import type { AppScreen } from '../../store/gameStore';
@@ -28,6 +29,7 @@ export function TopNav() {
   const screen = useGameStore((s) => s.screen);
   const setScreen = useGameStore((s) => s.setScreen);
   const user = useAuthStore((s) => s.user);
+  const gold = useCosmeticsStore((s) => s.gold);
   const { isMobile } = useBreakpoint();
 
   const [showAuth, setShowAuth] = useState(false);
@@ -92,6 +94,22 @@ export function TopNav() {
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
+          )}
+
+          {/* Gold pill — registered users only */}
+          {user && (
+            <>
+              <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />
+              <button
+                onClick={() => setScreen('shop')}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-b from-[#5c2010] to-[#3d1a08] border border-[#d4a040]/70 hover:border-[#d4a040] transition-colors"
+                style={pirateStyle}
+                title={`${gold} gold — click to visit shop`}
+              >
+                <span className="text-[#d4a040] text-sm leading-none">⛃</span>
+                <span className="text-[#e8dcc8] text-sm font-bold">{gold}</span>
+              </button>
+            </>
           )}
 
           <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />

@@ -8,7 +8,7 @@ export function MainMenu() {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center pt-24 overflow-y-auto bg-gradient-to-b from-pitch via-coal to-mahogany">
       {/* Hero title */}
-      <div className="text-center mb-16 px-4">
+      <div className="text-center mb-20 px-4">
         <p className="text-gold text-sm tracking-[0.4em] uppercase mb-3" style={FONT_STYLES.labelSC}>
           Welcome to
         </p>
