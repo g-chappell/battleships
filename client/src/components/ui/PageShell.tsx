@@ -42,9 +42,8 @@ export function PageShell({
 }: PageShellProps) {
   return (
     <div
-      className={`w-full h-full overflow-y-auto px-6 py-8 md:px-12 ${
-        noTopNav ? 'pt-8' : 'pt-24'
-      } bg-gradient-to-b from-pitch via-coal to-mahogany ${className}`}
+      className={`w-full h-full overflow-y-auto px-6 pb-8 md:px-12 bg-gradient-to-b from-pitch via-coal to-mahogany ${className}`}
+      style={{ paddingTop: noTopNav ? 32 : 80 }}
     >
       <div className={`${MAX_W[maxWidth]} mx-auto`}>{children}</div>
     </div>

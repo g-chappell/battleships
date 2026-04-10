@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useGameStore } from '../store/gameStore';
 import { useReplayStore, type ReplayBoardSnapshot } from '../store/replayStore';
 import { CellState } from '@shared/index';
 import { Button } from '../components/ui/Button';
@@ -7,7 +6,6 @@ import { IconButton } from '../components/ui/IconButton';
 import { FONT_STYLES } from '../styles/fonts';
 import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
-import { BackButton } from '../components/ui/BackButton';
 import { Card } from '../components/ui/Card';
 
 function cellClass(state: CellState): string {
@@ -53,7 +51,6 @@ function Mini2DBoard({ board, label }: { board: ReplayBoardSnapshot; label: stri
 }
 
 export function ReplayViewer() {
-  const setScreen = useGameStore((s) => s.setScreen);
   const replay = useReplayStore((s) => s.replay);
   const cursor = useReplayStore((s) => s.cursor);
   const playing = useReplayStore((s) => s.playing);
@@ -66,7 +63,6 @@ export function ReplayViewer() {
   const pause = useReplayStore((s) => s.pause);
   const seek = useReplayStore((s) => s.seek);
   const setSpeed = useReplayStore((s) => s.setSpeed);
-  const reset = useReplayStore((s) => s.reset);
 
   useEffect(() => {
     return () => {
@@ -81,14 +77,6 @@ export function ReplayViewer() {
       <PageHeader
         title="Replay"
         subtitle={replay ? `${replay.p1.username} vs ${replay.p2.username} · ${replay.mode}` : undefined}
-        actions={
-          <BackButton
-            onClick={() => {
-              reset();
-              setScreen('dashboard');
-            }}
-          />
-        }
       />
 
       {loading && <p className="text-parchment/60 italic" style={FONT_STYLES.body}>Loading replay...</p>}

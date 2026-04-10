@@ -5,7 +5,6 @@ import { FONT_STYLES } from '../styles/fonts';
 import { Button } from '../components/ui/Button';
 import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
-import { BackButton } from '../components/ui/BackButton';
 import { Card } from '../components/ui/Card';
 import { FormField } from '../components/ui/FormField';
 
@@ -80,7 +79,6 @@ export function Clans() {
       <PageHeader
         title="Clans"
         subtitle="Band together. Share the spoils."
-        actions={<BackButton />}
       />
 
       {feedback && (

@@ -24,7 +24,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   secondary:
     'bg-[#4d2e22] text-[#e8dcc8] border border-[#8b0000]/60 hover:bg-[#5c2820] hover:border-[#c41e3a]',
   pill:
-    'bg-[#221210]/85 text-[#e8dcc8] border border-[#8b0000]/60 hover:bg-[#4d2e22]/90 hover:border-[#c41e3a]/80 backdrop-blur-md',
+    'bg-[#2a1410]/90 text-[#e8dcc8] border-2 border-[#8b0000]/80 hover:bg-[#4d2e22] hover:border-[#c41e3a] hover:shadow-lg hover:shadow-[#c41e3a]/20 hover:scale-105 active:scale-95 backdrop-blur-md',
   ghost:
     'bg-transparent text-[#d4c4a1]/70 hover:text-[#e8dcc8] hover:bg-[#4d2e22]/40',
   danger:

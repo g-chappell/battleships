@@ -7,7 +7,6 @@ import { FONT_STYLES } from '../styles/fonts';
 import { Button } from '../components/ui/Button';
 import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
-import { BackButton } from '../components/ui/BackButton';
 import { Card } from '../components/ui/Card';
 
 const TABS: { kind: CosmeticKind; label: string }[] = [
@@ -58,28 +57,11 @@ export function Shop() {
     setFeedback(`Equipped ${def.name}`);
   };
 
-  const goldPill = (
-    <div
-      className="px-4 py-2 bg-blood-dark/40 border border-gold/60 rounded-full flex items-center gap-2"
-      style={FONT_STYLES.pirate}
-    >
-      <span className="text-gold text-2xl">⛃</span>
-      <span className="text-bone text-xl font-bold">{gold}</span>
-      <span className="text-gold text-xs tracking-wider">GOLD</span>
-    </div>
-  );
-
   return (
     <PageShell maxWidth="5xl">
       <PageHeader
         title="Ye Olde Shoppe"
         subtitle="Customize yer fleet with hard-earned gold"
-        actions={
-          <>
-            {goldPill}
-            <BackButton />
-          </>
-        }
       />
 
       {/* Tabs */}

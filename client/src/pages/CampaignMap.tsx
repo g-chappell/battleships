@@ -6,7 +6,6 @@ import { MissionBriefing } from '../components/ui/MissionBriefing';
 import { FONT_STYLES } from '../styles/fonts';
 import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
-import { BackButton } from '../components/ui/BackButton';
 
 export function CampaignMap() {
   const token = useAuthStore((s) => s.token);
@@ -28,7 +27,6 @@ export function CampaignMap() {
       <PageHeader
         title="Campaign"
         subtitle={`The pirate's saga · ${totalStars()}/${CAMPAIGN_MISSIONS.length * 3} stars earned`}
-        actions={<BackButton />}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

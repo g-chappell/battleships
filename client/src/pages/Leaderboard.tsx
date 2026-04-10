@@ -6,7 +6,6 @@ import { apiFetchSafe } from '../services/apiClient';
 import { FONT_STYLES } from '../styles/fonts';
 import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
-import { BackButton } from '../components/ui/BackButton';
 import { Card } from '../components/ui/Card';
 
 interface LeaderboardEntry {
@@ -62,7 +61,6 @@ export function Leaderboard() {
       <PageHeader
         title="Leaderboard"
         subtitle="The fiercest captains on the seas"
-        actions={<BackButton />}
       />
 
       {/* Season switcher + countdown */}

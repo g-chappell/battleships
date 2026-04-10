@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useAuthStore } from '../../store/authStore';
-import { useCosmeticsStore } from '../../store/cosmeticsStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { AuthPage } from '../../pages/AuthPage';
 import type { AppScreen } from '../../store/gameStore';
@@ -29,7 +28,6 @@ export function TopNav() {
   const screen = useGameStore((s) => s.screen);
   const setScreen = useGameStore((s) => s.setScreen);
   const user = useAuthStore((s) => s.user);
-  const gold = useCosmeticsStore((s) => s.gold);
   const { isMobile } = useBreakpoint();
 
   const [showAuth, setShowAuth] = useState(false);
@@ -49,18 +47,15 @@ export function TopNav() {
           {/* Logo */}
           <button
             onClick={() => setScreen('menu')}
-            className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-[#4d2e22]/60 transition-colors"
+            className="flex items-center px-2 py-1 rounded-full hover:bg-[#4d2e22]/60 transition-colors"
             title="Home"
           >
             <div
-              className="w-7 h-7 rounded-full bg-gradient-to-br from-[#c41e3a] to-[#5c0000] border border-[#c41e3a] flex items-center justify-center text-[#e8dcc8] text-xs font-bold"
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c41e3a] to-[#5c0000] border border-[#c41e3a] flex items-center justify-center text-[#e8dcc8] text-sm font-bold"
               style={{ ...pirateStyle, textShadow: '0 0 6px rgba(196,30,58,0.6)' }}
             >
               IW
             </div>
-            <span className="text-[#c41e3a] hidden md:block text-sm tracking-wide" style={pirateStyle}>
-              Ironclad
-            </span>
           </button>
 
           <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />
@@ -72,7 +67,7 @@ export function TopNav() {
               <button
                 key={link.screen}
                 onClick={() => setScreen(link.screen)}
-                className={`px-3 py-1.5 rounded-full text-xs lg:text-sm transition-all ${
+                className={`px-3 py-1.5 rounded-full text-sm transition-all ${
                   active
                     ? 'bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8] shadow-md shadow-[#c41e3a]/30'
                     : 'text-[#d4c4a1]/80 hover:bg-[#4d2e22]/60 hover:text-[#e8dcc8]'
@@ -100,23 +95,6 @@ export function TopNav() {
           )}
 
           <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />
-
-          {/* Gold pill — only for registered users */}
-          {user && (
-            <>
-              <button
-                onClick={() => setScreen('shop')}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-b from-[#5c2010] to-[#3d1a08] border border-[#d4a040]/70 hover:border-[#d4a040] transition-colors"
-                style={pirateStyle}
-                title={`${gold} gold — click to visit shop`}
-              >
-                <span className="text-[#d4a040] text-sm leading-none">⛃</span>
-                <span className="text-[#e8dcc8] text-sm font-bold">{gold}</span>
-              </button>
-              <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />
-            </>
-          )}
-          {!user && <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />}
 
           {/* User / Account */}
           {user ? (

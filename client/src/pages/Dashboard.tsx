@@ -8,7 +8,6 @@ import { apiFetchSafe } from '../services/apiClient';
 import { FONT_STYLES } from '../styles/fonts';
 import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
-import { BackButton } from '../components/ui/BackButton';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 
@@ -75,12 +74,9 @@ export function Dashboard() {
         title={user.username}
         subtitle={user.email}
         actions={
-          <>
-            <BackButton />
-            <Button variant="ghost" size="sm" onClick={logout}>
-              Logout
-            </Button>
-          </>
+          <Button variant="ghost" size="sm" onClick={logout}>
+            Logout
+          </Button>
         }
       />
 

@@ -7,7 +7,6 @@ import { FONT_STYLES } from '../styles/fonts';
 import { Button } from '../components/ui/Button';
 import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
-import { BackButton } from '../components/ui/BackButton';
 import { Card } from '../components/ui/Card';
 import { FormField } from '../components/ui/FormField';
 
@@ -73,14 +72,11 @@ export function Tournaments() {
         title="Tournaments"
         subtitle="Single-elimination brackets for ruthless captains"
         actions={
-          <>
-            {token && (
-              <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
-                Create
-              </Button>
-            )}
-            <BackButton />
-          </>
+          token ? (
+            <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
+              Create
+            </Button>
+          ) : undefined
         }
       />
 
