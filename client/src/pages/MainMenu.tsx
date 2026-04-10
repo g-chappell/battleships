@@ -8,7 +8,7 @@ export function MainMenu() {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center pt-24 overflow-y-auto bg-gradient-to-b from-pitch via-coal to-mahogany">
       {/* Hero title */}
-      <div className="text-center mb-20 px-4">
+      <div className="text-center px-4" style={{ marginBottom: 120 }}>
         <p className="text-gold text-sm tracking-[0.4em] uppercase mb-3" style={FONT_STYLES.labelSC}>
           Welcome to
         </p>
@@ -26,8 +26,8 @@ export function MainMenu() {
       </div>
 
       {/* Hero CTAs — large pills, side by side */}
-      <div className="flex gap-6 mb-10 flex-wrap justify-center">
-        <Button variant="primary" size="lg" onClick={() => setScreen('setup_ai')}>
+      <div className="flex gap-6 flex-wrap justify-center">
+        <Button variant="pill" size="lg" onClick={() => setScreen('setup_ai')}>
           ▶ Set Sail vs AI
         </Button>
         <Button variant="pill" size="lg" onClick={() => setScreen('campaign')}>
