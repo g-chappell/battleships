@@ -102,7 +102,9 @@ export function GamePage() {
             : GOLD_REWARDS.WIN_AI_HARD;
       }
     }
-    addGold(goldAmount);
+    if (token) {
+      addGold(goldAmount);
+    }
 
     // Campaign mission completion
     if (gameMode === 'campaign' && currentMission) {

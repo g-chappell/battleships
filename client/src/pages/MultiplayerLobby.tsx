@@ -3,7 +3,8 @@ import { useGameStore } from '../store/gameStore';
 import { useSocketStore } from '../store/socketStore';
 import { useAuthStore } from '../store/authStore';
 import { useSpectatorStore } from '../store/spectatorStore';
-import { AbilityType, ABILITY_DEFS } from '@shared/index';
+import { CAPTAIN_DEFS } from '@shared/index';
+import { CaptainPicker } from '../components/ui/CaptainPicker';
 
 const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
 const pirateStyle = { fontFamily: "'Pirata One', serif" };
@@ -11,8 +12,7 @@ const pirateStyle = { fontFamily: "'Pirata One', serif" };
 export function MultiplayerLobby() {
   const setScreen = useGameStore((s) => s.setScreen);
   const startMultiplayerGame = useGameStore((s) => s.startMultiplayerGame);
-  const selectedAbilities = useGameStore((s) => s.selectedAbilityTypes);
-  const toggleAbility = useGameStore((s) => s.toggleAbilitySelection);
+  const selectedCaptain = useGameStore((s) => s.selectedCaptain);
 
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
@@ -69,9 +69,11 @@ export function MultiplayerLobby() {
     }
   }, [roomId, opponent, mode, startMultiplayerGame]);
 
+  const captainAbilities = CAPTAIN_DEFS[selectedCaptain]?.abilities ?? [];
+
   const handleQuickMatch = () => {
     setMode('quick');
-    joinMatchmaking(selectedAbilities);
+    joinMatchmaking([...captainAbilities]);
   };
 
   const handleCancelQuick = () => {
@@ -81,7 +83,7 @@ export function MultiplayerLobby() {
 
   const handleCreatePrivate = async () => {
     setMode('private_create');
-    const res = await createPrivateRoom(selectedAbilities);
+    const res = await createPrivateRoom([...captainAbilities]);
     if ('error' in res) {
       setJoinError(res.error);
       setMode('choice');
@@ -91,7 +93,7 @@ export function MultiplayerLobby() {
   const handleJoinPrivate = async () => {
     setJoinError(null);
     if (!joinCode.trim()) return;
-    const res = await joinPrivateRoom(joinCode.trim().toUpperCase(), selectedAbilities);
+    const res = await joinPrivateRoom(joinCode.trim().toUpperCase(), [...captainAbilities]);
     if ('error' in res) {
       setJoinError(res.error);
     } else {
@@ -139,7 +141,7 @@ export function MultiplayerLobby() {
               </p>
               <button
                 onClick={handleQuickMatch}
-                disabled={status !== 'connected' || selectedAbilities.length !== 2}
+                disabled={status !== 'connected'}
                 className="w-full px-4 py-3 bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8] font-bold rounded border border-[#c41e3a] hover:from-[#e74c3c] hover:to-[#c41e3a] transition-colors disabled:opacity-50"
                 style={pirateStyle}
               >
@@ -154,7 +156,7 @@ export function MultiplayerLobby() {
               </p>
               <button
                 onClick={handleCreatePrivate}
-                disabled={status !== 'connected' || selectedAbilities.length !== 2}
+                disabled={status !== 'connected'}
                 className="w-full px-4 py-2 bg-[#4d2e22] text-[#e8dcc8] font-bold rounded border border-[#8b0000]/40 hover:bg-[#5c2820] mb-2"
                 style={pirateStyle}
               >
@@ -172,7 +174,7 @@ export function MultiplayerLobby() {
                 />
                 <button
                   onClick={handleJoinPrivate}
-                  disabled={status !== 'connected' || joinCode.length < 4 || selectedAbilities.length !== 2}
+                  disabled={status !== 'connected' || joinCode.length < 4}
                   className="px-4 py-2 bg-[#4d2e22] text-[#e8dcc8] font-bold rounded border border-[#8b0000]/40 hover:bg-[#5c2820] disabled:opacity-50"
                   style={pirateStyle}
                 >
@@ -183,34 +185,9 @@ export function MultiplayerLobby() {
             </div>
           </div>
 
-          {/* Ability selection (must pick 2 to play) */}
-          <div className="text-center max-w-md w-full mb-4">
-            <p className="text-[#a06820]/70 text-xs uppercase tracking-[0.2em] mb-2" style={labelStyle}>
-              Choose 2 Abilities ({selectedAbilities.length}/2)
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.values(AbilityType).map((type) => {
-                const def = ABILITY_DEFS[type];
-                const isSelected = selectedAbilities.includes(type);
-                return (
-                  <button
-                    key={type}
-                    onClick={() => toggleAbility(type)}
-                    className={`px-3 py-2 text-left rounded border transition-colors ${
-                      isSelected
-                        ? 'bg-[#5c0000]/40 border-[#c41e3a]/60 text-[#c41e3a]'
-                        : 'bg-[#221210]/40 border-[#4d2e22] text-[#d4c4a1]/60 hover:bg-[#4d2e22]/40'
-                    }`}
-                    style={labelStyle}
-                  >
-                    <div className="text-sm font-bold">{def.name}</div>
-                    <div className="text-xs opacity-70" style={{ fontFamily: "'IM Fell English', serif" }}>
-                      {def.description}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+          {/* Captain selection */}
+          <div className="max-w-3xl w-full mb-4">
+            <CaptainPicker />
           </div>
 
           {/* Watch live matches */}

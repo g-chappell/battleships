@@ -29,6 +29,8 @@ import {
   processSpotter,
   processNimble,
   coordKey,
+  CAPTAIN_DEFS,
+  DEFAULT_CAPTAIN,
 } from '@shared/index';
 import type {
   ShipPlacement,
@@ -40,7 +42,7 @@ import type {
   SonarPingResult,
 } from '@shared/index';
 
-export type AppScreen = 'menu' | 'game' | 'dashboard' | 'lobby' | 'leaderboard' | 'campaign' | 'friends' | 'settings' | 'shop' | 'tournaments' | 'clans' | 'replay' | 'spectate' | 'multiplayer';
+export type AppScreen = 'menu' | 'game' | 'setup_ai' | 'dashboard' | 'lobby' | 'leaderboard' | 'campaign' | 'friends' | 'settings' | 'shop' | 'tournaments' | 'clans' | 'replay' | 'spectate' | 'multiplayer';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type GameMode = 'ai' | 'multiplayer' | 'campaign';
 
@@ -78,7 +80,7 @@ interface GameStore {
   // Abilities
   playerAbilities: AbilitySystemState | null;
   opponentAbilities: AbilitySystemState | null;
-  selectedAbilityTypes: AbilityType[];
+  selectedCaptain: string;
   activeAbility: AbilityType | null; // ability being targeted this turn
   sonarResult: SonarPingResult | null;
   sonarHistory: { center: Coordinate; shipDetected: boolean }[];
@@ -103,8 +105,8 @@ interface GameStore {
   startMultiplayerGame: () => void;
   startCampaignMission: (mission: import('@shared/index').CampaignMission) => void;
 
-  // Ability selection (pre-match)
-  toggleAbilitySelection: (type: AbilityType) => void;
+  // Captain selection (pre-match)
+  setSelectedCaptain: (id: string) => void;
 
   // Placement actions
   selectShipToPlace: (type: ShipType) => void;
@@ -155,7 +157,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   playerAbilities: null,
   opponentAbilities: null,
-  selectedAbilityTypes: [AbilityType.CannonBarrage, AbilityType.SonarPing],
+  selectedCaptain: DEFAULT_CAPTAIN,
   activeAbility: null,
   sonarResult: null,
     sonarHistory: [],
@@ -200,9 +202,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       revealedCells: new Set(),
       playerTraits: null,
       opponentTraits: null,
-      selectedAbilityTypes: mission.modifiers.fixedAbilities && mission.modifiers.fixedAbilities.length === 2
-        ? mission.modifiers.fixedAbilities
-        : get().selectedAbilityTypes,
       tick: 0,
     });
   },
@@ -272,18 +271,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  toggleAbilitySelection: (type) => {
-    set((s) => {
-      const current = s.selectedAbilityTypes;
-      if (current.includes(type)) {
-        return { selectedAbilityTypes: current.filter((t) => t !== type) };
-      }
-      if (current.length >= 2) {
-        return { selectedAbilityTypes: [current[1], type] };
-      }
-      return { selectedAbilityTypes: [...current, type] };
-    });
-  },
+  setSelectedCaptain: (id) => set({ selectedCaptain: id }),
 
   selectShipToPlace: (type) => set({ placingShipType: type }),
 
@@ -341,7 +329,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   confirmPlacement: () => {
-    const { engine, ai, selectedAbilityTypes, gameMode } = get();
+    const { engine, ai, selectedCaptain, gameMode } = get();
     if (!engine.playerBoard.allShipsPlaced()) return false;
 
     if (gameMode === 'multiplayer') {
@@ -375,10 +363,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     playerTraits.nimbleFirstShotAdjacent = initNimbleCells(engine.playerBoard);
     opponentTraits.nimbleFirstShotAdjacent = initNimbleCells(engine.opponentBoard);
 
-    const playerAbilities = createAbilitySystemState(selectedAbilityTypes);
+    const captainAbilities = [...(CAPTAIN_DEFS[selectedCaptain]?.abilities ?? CAPTAIN_DEFS[DEFAULT_CAPTAIN].abilities)];
+    const playerAbilities = createAbilitySystemState(captainAbilities);
     const allAbilities = Object.values(AbilityType);
     const shuffled = allAbilities.sort(() => Math.random() - 0.5);
-    const opponentAbilities = createAbilitySystemState(shuffled.slice(0, 2));
+    const opponentAbilities = createAbilitySystemState(shuffled.slice(0, 3));
 
     const started = engine.startGame();
     if (started) {

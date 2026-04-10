@@ -15,7 +15,7 @@ const pirateStyle = { fontFamily: "'Pirata One', serif" };
 const sizeClasses: Record<ButtonSize, string> = {
   sm: 'h-8 px-4 text-xs',
   md: 'h-10 px-5 text-sm',
-  lg: 'h-14 px-8 text-lg',
+  lg: 'h-14 px-10 text-lg min-w-[160px]',
 };
 
 const variantClasses: Record<ButtonVariant, string> = {

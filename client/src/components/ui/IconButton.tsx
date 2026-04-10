@@ -24,7 +24,7 @@ export function IconButton({
     'flex items-center justify-center rounded-lg transition-all relative group cursor-pointer disabled:opacity-50 backdrop-blur-md';
   const styling = active
     ? 'bg-[#8b0000]/60 border border-[#c41e3a] text-[#c41e3a] shadow-md shadow-[#c41e3a]/30'
-    : 'bg-[#221210]/85 border border-[#8b0000]/40 text-[#d4c4a1]/70 hover:bg-[#4d2e22]/90 hover:border-[#c41e3a]/60 hover:text-[#e8dcc8]';
+    : 'bg-[#221210]/85 border border-[#8b0000]/70 text-[#d4c4a1]/70 hover:bg-[#4d2e22]/90 hover:border-[#c41e3a]/80 hover:text-[#e8dcc8]';
 
   return (
     <button

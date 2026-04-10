@@ -31,6 +31,7 @@ interface CosmeticsStore {
   buy: (id: string, price: number, token?: string | null) => Promise<'ok' | 'insufficient' | 'owned' | 'error'>;
   equip: (id: string, kind: CosmeticKind, token?: string | null) => void;
   addGold: (n: number) => void;
+  resetGoldForGuest: () => void;
 }
 
 function persist(state: { gold: number; owned: string[]; equipped: EquippedCosmetics }) {
@@ -63,6 +64,11 @@ export const useCosmeticsStore = create<CosmeticsStore>((set, get) => ({
         });
       }
     } catch {}
+  },
+
+  resetGoldForGuest: () => {
+    set({ gold: 0 });
+    persist({ gold: 0, owned: Array.from(get().owned), equipped: get().equipped });
   },
 
   loadFromServer: async (token) => {

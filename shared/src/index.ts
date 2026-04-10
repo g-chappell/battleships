@@ -108,6 +108,14 @@ export type {
   MatchSummary,
 } from './sockets';
 
+// Captains
+export {
+  CAPTAIN_DEFS,
+  CAPTAIN_IDS,
+  DEFAULT_CAPTAIN,
+} from './captains';
+export type { CaptainDef } from './captains';
+
 // Cosmetics
 export {
   COSMETIC_CATALOG,

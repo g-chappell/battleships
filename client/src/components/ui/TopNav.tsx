@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useAuthStore } from '../../store/authStore';
-import { useSettingsStore } from '../../store/settingsStore';
 import { useCosmeticsStore } from '../../store/cosmeticsStore';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { AuthPage } from '../../pages/AuthPage';
-import { SettingsModal } from './SettingsModal';
-import { IconButton } from './IconButton';
 import type { AppScreen } from '../../store/gameStore';
 
 const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
@@ -32,46 +29,14 @@ export function TopNav() {
   const screen = useGameStore((s) => s.screen);
   const setScreen = useGameStore((s) => s.setScreen);
   const user = useAuthStore((s) => s.user);
-  const muted = useSettingsStore((s) => s.muted);
-  const toggleMuted = useSettingsStore((s) => s.toggleMuted);
   const gold = useCosmeticsStore((s) => s.gold);
   const { isMobile } = useBreakpoint();
 
   const [showAuth, setShowAuth] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <>
-      {/* Top-left corner cluster: sound + settings icon buttons */}
-      <div className="fixed top-4 left-4 z-40 flex gap-2">
-        <IconButton
-          label={muted ? 'Unmute' : 'Mute'}
-          active={muted}
-          onClick={toggleMuted}
-        >
-          {muted ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <line x1="23" y1="9" x2="17" y2="15" />
-              <line x1="17" y1="9" x2="23" y2="15" />
-            </svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
-            </svg>
-          )}
-        </IconButton>
-
-        <IconButton label="Settings" onClick={() => setShowSettings(true)}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </IconButton>
-      </div>
-
       {/* Floating centered pill navbar */}
       <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-40">
         <div
@@ -136,18 +101,22 @@ export function TopNav() {
 
           <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />
 
-          {/* Gold pill */}
-          <button
-            onClick={() => setScreen('shop')}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-b from-[#5c2010] to-[#3d1a08] border border-[#d4a040]/70 hover:border-[#d4a040] transition-colors"
-            style={pirateStyle}
-            title={`${gold} gold — click to visit shop`}
-          >
-            <span className="text-[#d4a040] text-sm leading-none">⛃</span>
-            <span className="text-[#e8dcc8] text-sm font-bold">{gold}</span>
-          </button>
-
-          <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />
+          {/* Gold pill — only for registered users */}
+          {user && (
+            <>
+              <button
+                onClick={() => setScreen('shop')}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-b from-[#5c2010] to-[#3d1a08] border border-[#d4a040]/70 hover:border-[#d4a040] transition-colors"
+                style={pirateStyle}
+                title={`${gold} gold — click to visit shop`}
+              >
+                <span className="text-[#d4a040] text-sm leading-none">⛃</span>
+                <span className="text-[#e8dcc8] text-sm font-bold">{gold}</span>
+              </button>
+              <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />
+            </>
+          )}
+          {!user && <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />}
 
           {/* User / Account */}
           {user ? (
@@ -208,7 +177,6 @@ export function TopNav() {
       )}
 
       {showAuth && <AuthPage onClose={() => setShowAuth(false)} />}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </>
   );
 }

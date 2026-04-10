@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useCampaignStore } from '../../store/campaignStore';
 import { useGameStore } from '../../store/gameStore';
 import { ComicPanel } from './ComicPanel';
+import { CaptainPicker } from './CaptainPicker';
 import type { ComicPanel as ComicPanelType } from '@shared/index';
 
 const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
@@ -77,6 +78,13 @@ export function MissionBriefing() {
             </div>
           </div>
         </div>
+
+        {/* Captain picker — only on last panel before battle, if no fixed abilities */}
+        {isLast && !(mission.modifiers.fixedAbilities && mission.modifiers.fixedAbilities.length > 0) && (
+          <div className="mb-4">
+            <CaptainPicker />
+          </div>
+        )}
 
         <div className="flex justify-between gap-3">
           <button

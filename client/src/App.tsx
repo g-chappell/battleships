@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { MainMenu } from './pages/MainMenu';
+import { PreGameSetup } from './pages/PreGameSetup';
 import { GamePage } from './pages/GamePage';
 import { Dashboard } from './pages/Dashboard';
 import { MultiplayerLobby } from './pages/MultiplayerLobby';
@@ -12,6 +13,7 @@ import { Clans } from './pages/Clans';
 import { ReplayViewer } from './pages/ReplayViewer';
 import { SpectatorView } from './pages/SpectatorView';
 import { TopNav } from './components/ui/TopNav';
+import { GlobalControls } from './components/ui/GlobalControls';
 import { AchievementToast } from './components/ui/AchievementToast';
 import { LoadingSplash } from './components/ui/LoadingSplash';
 import { useGameStore } from './store/gameStore';
@@ -39,9 +41,16 @@ function App() {
     fetchActiveSeason();
   }, [loadFromStorage, loadAchievements, loadSettings, loadCosmeticsLocal, fetchActiveSeason]);
 
+  const resetGoldForGuest = useCosmeticsStore((s) => s.resetGoldForGuest);
+
   useEffect(() => {
-    if (token) loadCosmeticsServer(token);
-  }, [token, loadCosmeticsServer]);
+    if (token) {
+      loadCosmeticsServer(token);
+    } else {
+      // Guest users should not retain gold
+      resetGoldForGuest();
+    }
+  }, [token, loadCosmeticsServer, resetGoldForGuest]);
 
   // Hide nav during active game (in-game UI is its own thing)
   const showNav = screen !== 'game' && screen !== 'spectate';
@@ -49,8 +58,10 @@ function App() {
   return (
     <div className="w-full h-full relative">
       {showNav && <TopNav />}
+      <GlobalControls />
       <div className="w-full h-full">
         {screen === 'menu' && <MainMenu />}
+        {screen === 'setup_ai' && <PreGameSetup />}
         {screen === 'game' && <GamePage />}
         {screen === 'dashboard' && <Dashboard />}
         {screen === 'lobby' && <MultiplayerLobby />}
