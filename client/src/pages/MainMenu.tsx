@@ -1,9 +1,11 @@
 import { useGameStore } from '../store/gameStore';
+import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/ui/Button';
 import { FONT_STYLES } from '../styles/fonts';
 
 export function MainMenu() {
   const setScreen = useGameStore((s) => s.setScreen);
+  const user = useAuthStore((s) => s.user);
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center pt-24 overflow-y-auto bg-gradient-to-b from-pitch via-coal to-mahogany">
@@ -37,6 +39,20 @@ export function MainMenu() {
           Multiplayer
         </Button>
       </div>
+
+      {/* Guest registration prompt */}
+      {!user && (
+        <button
+          onClick={() => setScreen('guide')}
+          className="mt-12 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-coal/60 border border-blood/40 text-parchment/60 text-sm hover:border-blood hover:text-parchment/80 transition-all"
+          style={FONT_STYLES.labelSC}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="opacity-60">
+            <path d="M18 10V8A6 6 0 0 0 6 8v2H4v12h16V10h-2ZM8 8a4 4 0 0 1 8 0v2H8V8Z"/>
+          </svg>
+          Register to unlock Campaign, Tournaments, Clans & more
+        </button>
+      )}
     </div>
   );
 }

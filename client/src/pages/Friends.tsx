@@ -10,7 +10,6 @@ import { FormField } from '../components/ui/FormField';
 
 export function Friends() {
   const token = useAuthStore((s) => s.token);
-  const user = useAuthStore((s) => s.user);
 
   const friends = useFriendsStore((s) => s.friends);
   const incoming = useFriendsStore((s) => s.pendingIncoming);
@@ -48,14 +47,6 @@ export function Friends() {
         title="Friends"
         subtitle="Yer trusted crew"
       />
-
-      {!user && (
-        <Card variant="default" padding="md" className="!bg-blood-dark/30 !border-blood/60 mb-6">
-          <p className="text-parchment italic" style={FONT_STYLES.body}>
-            Sign in to use friends across devices. Local friends list is being used.
-          </p>
-        </Card>
-      )}
 
       {/* Add friend */}
       <Card variant="glow" padding="md" className="mb-6">

@@ -12,8 +12,10 @@ import { Tournaments } from './pages/Tournaments';
 import { Clans } from './pages/Clans';
 import { ReplayViewer } from './pages/ReplayViewer';
 import { SpectatorView } from './pages/SpectatorView';
+import { GuidePage } from './pages/GuidePage';
 import { TopNav } from './components/ui/TopNav';
 import { GlobalControls } from './components/ui/GlobalControls';
+import { AuthGate } from './components/ui/AuthGate';
 import { AchievementToast } from './components/ui/AchievementToast';
 import { LoadingSplash } from './components/ui/LoadingSplash';
 import { useGameStore } from './store/gameStore';
@@ -63,14 +65,15 @@ function App() {
         {screen === 'menu' && <MainMenu />}
         {screen === 'setup_ai' && <PreGameSetup />}
         {screen === 'game' && <GamePage />}
-        {screen === 'dashboard' && <Dashboard />}
+        {screen === 'guide' && <GuidePage />}
+        {screen === 'dashboard' && <AuthGate featureName="Dashboard"><Dashboard /></AuthGate>}
         {screen === 'lobby' && <MultiplayerLobby />}
-        {screen === 'leaderboard' && <Leaderboard />}
-        {screen === 'campaign' && <CampaignMap />}
-        {screen === 'friends' && <Friends />}
-        {screen === 'shop' && <Shop />}
-        {screen === 'tournaments' && <Tournaments />}
-        {screen === 'clans' && <Clans />}
+        {screen === 'leaderboard' && <AuthGate featureName="Leaderboard"><Leaderboard /></AuthGate>}
+        {screen === 'campaign' && <AuthGate featureName="Campaign"><CampaignMap /></AuthGate>}
+        {screen === 'friends' && <AuthGate featureName="Friends"><Friends /></AuthGate>}
+        {screen === 'shop' && <AuthGate featureName="Shop"><Shop /></AuthGate>}
+        {screen === 'tournaments' && <AuthGate featureName="Tournaments"><Tournaments /></AuthGate>}
+        {screen === 'clans' && <AuthGate featureName="Clans"><Clans /></AuthGate>}
         {screen === 'replay' && <ReplayViewer />}
         {screen === 'spectate' && <SpectatorView />}
         {screen === 'multiplayer' && <MultiplayerLobby />}

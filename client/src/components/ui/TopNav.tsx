@@ -12,18 +12,26 @@ const pirateStyle = { fontFamily: "'Pirata One', serif" };
 interface NavLink {
   label: string;
   screen: AppScreen;
+  requiresAuth?: boolean;
 }
 
 const NAV_LINKS: NavLink[] = [
   { label: 'Home', screen: 'menu' },
-  { label: 'Campaign', screen: 'campaign' },
+  { label: 'Guide', screen: 'guide' },
+  { label: 'Campaign', screen: 'campaign', requiresAuth: true },
   { label: 'Multiplayer', screen: 'lobby' },
-  { label: 'Tournaments', screen: 'tournaments' },
-  { label: 'Clans', screen: 'clans' },
-  { label: 'Shop', screen: 'shop' },
-  { label: 'Leaderboard', screen: 'leaderboard' },
-  { label: 'Friends', screen: 'friends' },
+  { label: 'Tournaments', screen: 'tournaments', requiresAuth: true },
+  { label: 'Clans', screen: 'clans', requiresAuth: true },
+  { label: 'Shop', screen: 'shop', requiresAuth: true },
+  { label: 'Leaderboard', screen: 'leaderboard', requiresAuth: true },
+  { label: 'Friends', screen: 'friends', requiresAuth: true },
 ];
+
+const LockIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" className="mr-0.5 opacity-70 inline-block">
+    <path d="M18 10V8A6 6 0 0 0 6 8v2H4v12h16V10h-2ZM8 8a4 4 0 0 1 8 0v2H8V8Z"/>
+  </svg>
+);
 
 export function TopNav() {
   const screen = useGameStore((s) => s.screen);
@@ -34,6 +42,35 @@ export function TopNav() {
 
   const [showAuth, setShowAuth] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const renderNavLink = (link: NavLink, isMobileMenu: boolean) => {
+    const active = screen === link.screen;
+    const locked = !user && link.requiresAuth;
+
+    return (
+      <button
+        key={link.screen}
+        onClick={() => {
+          setScreen(link.screen);
+          if (isMobileMenu) setMobileMenuOpen(false);
+        }}
+        className={`${isMobileMenu ? 'px-4 py-2' : 'px-3 py-1.5'} rounded-full text-sm transition-all ${
+          isMobileMenu ? 'text-left' : ''
+        } ${
+          active
+            ? 'bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8] shadow-md shadow-[#c41e3a]/30'
+            : locked
+            ? 'text-[#d4c4a1]/50 hover:bg-[#4d2e22]/40 hover:text-[#d4c4a1]/70'
+            : 'text-[#d4c4a1]/80 hover:bg-[#4d2e22]/60 hover:text-[#e8dcc8]'
+        }`}
+        style={labelStyle}
+        title={locked ? `Register to unlock ${link.label}` : undefined}
+      >
+        {locked && <LockIcon />}
+        {link.label}
+      </button>
+    );
+  };
 
   return (
     <>
@@ -63,23 +100,7 @@ export function TopNav() {
           <div className="w-px h-6 bg-[#8b0000]/40 mx-1" />
 
           {/* Nav links — desktop/tablet only */}
-          {!isMobile && NAV_LINKS.map((link) => {
-            const active = screen === link.screen;
-            return (
-              <button
-                key={link.screen}
-                onClick={() => setScreen(link.screen)}
-                className={`px-3 py-1.5 rounded-full text-sm transition-all ${
-                  active
-                    ? 'bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8] shadow-md shadow-[#c41e3a]/30'
-                    : 'text-[#d4c4a1]/80 hover:bg-[#4d2e22]/60 hover:text-[#e8dcc8]'
-                }`}
-                style={labelStyle}
-              >
-                {link.label}
-              </button>
-            );
-          })}
+          {!isMobile && NAV_LINKS.map((link) => renderNavLink(link, false))}
 
           {/* Mobile hamburger */}
           {isMobile && (
@@ -149,26 +170,7 @@ export function TopNav() {
             boxShadow: '0 0 24px rgba(196, 30, 58, 0.25), 0 4px 20px rgba(0,0,0,0.7)',
           }}
         >
-          {NAV_LINKS.map((link) => {
-            const active = screen === link.screen;
-            return (
-              <button
-                key={link.screen}
-                onClick={() => {
-                  setScreen(link.screen);
-                  setMobileMenuOpen(false);
-                }}
-                className={`px-4 py-2 rounded-full text-sm text-left transition-all ${
-                  active
-                    ? 'bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8]'
-                    : 'text-[#d4c4a1] hover:bg-[#4d2e22]/60'
-                }`}
-                style={labelStyle}
-              >
-                {link.label}
-              </button>
-            );
-          })}
+          {NAV_LINKS.map((link) => renderNavLink(link, true))}
         </div>
       )}
 

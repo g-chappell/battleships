@@ -4,8 +4,8 @@ import { FONT_STYLES } from '../styles/fonts';
 import { FormField } from '../components/ui/FormField';
 import { Button } from '../components/ui/Button';
 
-export function AuthPage({ onClose }: { onClose: () => void }) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => void; initialMode?: 'login' | 'register' }) {
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');

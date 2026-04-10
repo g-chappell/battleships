@@ -42,7 +42,7 @@ import type {
   SonarPingResult,
 } from '@shared/index';
 
-export type AppScreen = 'menu' | 'game' | 'setup_ai' | 'dashboard' | 'lobby' | 'leaderboard' | 'campaign' | 'friends' | 'settings' | 'shop' | 'tournaments' | 'clans' | 'replay' | 'spectate' | 'multiplayer';
+export type AppScreen = 'menu' | 'game' | 'setup_ai' | 'guide' | 'dashboard' | 'lobby' | 'leaderboard' | 'campaign' | 'friends' | 'settings' | 'shop' | 'tournaments' | 'clans' | 'replay' | 'spectate' | 'multiplayer';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export type GameMode = 'ai' | 'multiplayer' | 'campaign';
 
