@@ -9,6 +9,16 @@
 
 <!-- Agent appends entries below this line -->
 
+### Run [2026-04-13 13:49]
+- **Task:** TASK-004 — Add seasons helper unit tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/7
+- **Test counts:** shared 139 (+16), server 37, client 15
+- **Files changed:** `shared/src/__tests__/seasons.test.ts` (created)
+- **Lessons learned:** `getSeasonTimeRemaining` uses `Date.now()` internally, so tests must use `vi.setSystemTime()` (fake timers) to get deterministic results. Use `afterEach(() => vi.useRealTimers())` to restore. The function accepts both `string` (ISO) and `Date` object — tests should cover both. `ended` is only `true` when `total_ms === 0` (i.e., past or exactly-now dates).
+- **Self-improvements:** none
+- **New tasks discovered:** none
+
 ### Run [2026-04-13 12:45]
 - **Task:** TASK-002 — Add tournament bracket unit tests
 - **Outcome:** success
