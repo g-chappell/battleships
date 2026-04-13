@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type-check
+        run: cd client && npx tsc --noEmit
+
+      - name: Test shared
+        run: npm run test --workspace=shared
+
+      - name: Test server
+        run: npm run test --workspace=server
+
+      - name: Test client
+        run: npm run test --workspace=client
+
+      - name: Build client
+        run: npm run build --workspace=client
