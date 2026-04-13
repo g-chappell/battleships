@@ -170,11 +170,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-015
 - **title:** Add server tournament service tests
-- **status:** in-progress
+- **status:** done
 - **priority:** 15
 - **workspaces:** server
 - **complexity:** medium
 - **description:** Add tests for `server/src/services/tournaments.ts` — bracket generation via `seedPairings`, match advancement via `nextBracketSlot`, winner determination, gold rewards on tournament completion. Will need Prisma mocking pattern.
+- **pr:** https://github.com/g-chappell/battleships/pull/18
+- **completed:** 2026-04-13
 
 #### TASK-016
 - **title:** Add server clans service tests
