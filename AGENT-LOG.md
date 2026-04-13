@@ -19,6 +19,16 @@
 - **Self-improvements:** none
 - **New tasks discovered:** none
 
+### Run [2026-04-13 13:40]
+- **Task:** TASK-003 — Add replay schema unit tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/6
+- **Test counts:** shared 123, server 37, client 15
+- **Files changed:** `shared/src/__tests__/replay.test.ts` (created)
+- **Lessons learned:** `replay.ts` is entirely type-based with one constant (`MAX_REPLAY_EVENTS = 500`). Since TypeScript types are erased at runtime, tests validate structural contracts by constructing objects conforming to interfaces and asserting field values. `ShotResult` enum and `ShipType` enum are imported from `types.ts` for use in `ShotOutcome` and `ShipPlacement` fixtures. TASK-002 tournaments.test.ts appears not to have been merged to main (PR #5 opened but unmerged) — shared test count was 123, not 128 as expected from AGENT-LOG.
+- **Self-improvements:** none
+- **New tasks discovered:** none
+
 ### Run [2026-04-13 12:21]
 - **Task:** TASK-001 — Add campaign module unit tests
 - **Outcome:** success

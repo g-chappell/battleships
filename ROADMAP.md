@@ -39,11 +39,13 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-003
 - **title:** Add replay schema unit tests
-- **status:** in-progress
+- **status:** done
 - **priority:** 3
 - **workspaces:** shared
 - **complexity:** small
 - **description:** Add tests for `replay.ts` — verify `MAX_REPLAY_EVENTS` is a sensible constant, validate `ReplayData` structure can be constructed and serialized, test that replay event types cover all game actions (shot, ability, trait trigger). Ensure type exports are usable.
+- **pr:** https://github.com/g-chappell/battleships/pull/6
+- **completed:** 2026-04-13
 
 ### TASK-004
 - **title:** Add seasons helper unit tests
