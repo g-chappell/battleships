@@ -59,11 +59,13 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-005
 - **title:** Add cosmetics catalog validation tests
-- **status:** ready
+- **status:** done
 - **priority:** 5
 - **workspaces:** shared
 - **complexity:** small
 - **description:** Add tests for `cosmetics.ts` — verify all `COSMETIC_CATALOG` entries have valid IDs (no duplicates), prices > 0, valid rarity and kind fields. Test `getCosmetic` returns correct item or undefined. Test `getCosmeticsByKind` filters correctly. Verify `GOLD_REWARDS` has entries for all reward reasons.
+- **pr:** https://github.com/g-chappell/battleships/pull/8
+- **completed:** 2026-04-13
 
 ### TASK-006
 - **title:** Add clans type validation tests
