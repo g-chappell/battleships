@@ -216,11 +216,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-018
 - **title:** Add post-game match summary enhancement
-- **status:** ready
+- **status:** done
 - **priority:** 18
 - **workspaces:** client, shared
 - **complexity:** medium
 - **description:** After game ends, enhance GameOverScreen to show full board reveal with both sides visible, shot accuracy stats, abilities used, and total turns taken. Add the data to the existing game-over flow.
+- **pr:** https://github.com/g-chappell/battleships/pull/22
+- **completed:** 2026-04-13
 
 #### TASK-019
 - **title:** Add rematch functionality
