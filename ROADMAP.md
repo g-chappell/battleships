@@ -59,7 +59,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-005
 - **title:** Add cosmetics catalog validation tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 5
 - **workspaces:** shared
 - **complexity:** small
