@@ -122,3 +122,13 @@
 - **Lessons learned:** `tournamentsStore` uses `apiFetchSafe` (returns null on failure) for `fetchList`/`fetchOne` and `apiFetch` (throws ApiError) for `create`/`join`. The `create` action calls `fetchList()` after success, and `join` calls `fetchOne(id)` — both require two mock calls in sequence (one for the mutating action, one for the refresh). The `error` message differs between actions: fetchList/fetchOne use different strings ('Tournaments unavailable offline' vs 'Tournament not found'), so tests must match exactly. Non-ApiError exceptions in `create`/`join` are caught and produce the offline message.
 - **Self-improvements:** none
 - **New tasks discovered:** none
+
+### Run [2026-04-13 19:45]
+- **Task:** TASK-013 — Add replayStore unit tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/17
+- **Test counts:** shared 231, server 37, client 184 (+40)
+- **Files changed:** `client/src/__tests__/replayStore.test.ts` (created)
+- **Lessons learned:** `replayStore` uses `apiFetchSafe` (returns null on failure) for API path. It also checks `localStorage` first via `localStorage.getItem('battleships_replay_${matchId}')` — tests must mock `localStorage` (using `localStorage.clear()` in beforeEach). The `seek` action rebuilds boards from scratch by replaying all events from index 0 to the target — so seeking backwards works correctly. Fire events apply to the OPPOSITE side's board (p1 fires → p2 board, p2 fires → p1 board). Placement events apply to the NAMED side's board. `play()` uses `setInterval` — must use `vi.useFakeTimers()` with `vi.advanceTimersByTime()` to test interval behavior, and `vi.useRealTimers()` in afterEach. The `playInterval` module-level variable is cleared when `load()` is called again, so testing that a new load stops the previous interval works by checking cursor stays 0.
+- **Self-improvements:** none
+- **New tasks discovered:** none
