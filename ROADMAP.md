@@ -19,11 +19,13 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-001
 - **title:** Add campaign module unit tests
-- **status:** in-progress
+- **status:** done
 - **priority:** 1
 - **workspaces:** shared
 - **complexity:** small
 - **description:** Add tests for `campaign.ts` — mission data integrity (all 15 missions have valid IDs, star requirements, difficulty settings), `calculateStars` logic with various turn/accuracy/ship inputs, `getMission` lookup, and comic panel definitions. This is a documented coverage gap in CLAUDE.md.
+- **pr:** https://github.com/g-chappell/battleships/pull/4
+- **completed:** 2026-04-13
 
 ### TASK-002
 - **title:** Add tournament bracket unit tests
