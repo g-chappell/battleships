@@ -87,7 +87,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-008
 - **title:** Add settingsStore unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 8
 - **workspaces:** client
 - **complexity:** small
