@@ -1,33 +1,48 @@
 # ROADMAP — Ironclad Waters
 
 > This file is the task backlog for the autonomous development agent.
-> **Human** controls: adding tasks, setting priorities, writing descriptions, removing tasks.
-> **Agent** can: change status (ready/in-progress/done/blocked), append discovered tasks, add pr/completed/blocked_reason fields.
+> **Human** controls: adding epics/stories/tasks, setting priorities, writing descriptions, removing tasks.
+> **Agent** can: change task status (ready/in-progress/done/blocked), append discovered tasks, add pr/completed/blocked_reason/depends_on fields.
 
 ## Statuses
-- **ready** — Available for the agent to pick up
-- **in-progress** — Currently being implemented
-- **done** — Completed with PR opened
+- **ready** — Available for the agent (subject to dependency and open-PR checks)
+- **in-progress** — Currently being implemented on a feature branch
+- **done** — PR merged into main
 - **blocked** — Implementation attempted but failed
 
-## Priority
-Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
+## Task selection rules
+The agent always picks the lowest-priority-numbered `ready` task that satisfies ALL of:
+1. No open PR exists for its branch (`auto/TASK-XXX-*`)
+2. Every task listed in `depends_on` has `status: done`
+
+## Schema
+Each task entry uses these fields (agent-writable fields marked †):
+- **title**, **priority**, **workspaces**, **complexity**, **description** — set by human, never changed by agent
+- **depends_on** — optional list of TASK IDs that must be `done` first; set by human or appended by agent on discovery
+- **status** † — ready / in-progress / done / blocked
+- **pr** † — PR URL, added on completion
+- **completed** † — ISO date, added on completion
+- **blocked_reason** † — brief description, added on failure
 
 ---
 
-## Tasks
+## Epic: Test Coverage
+> Comprehensive automated tests across all three workspaces before significant feature work begins. A green test suite is the safety net that lets the agent work autonomously with confidence.
 
-### TASK-001
+### Story: Shared Module Tests
+> Unit tests for every module in `shared/src/`. Provides a regression harness for the game engine, abilities, traits, campaign, and supporting utilities.
+
+#### TASK-001
 - **title:** Add campaign module unit tests
 - **status:** done
 - **priority:** 1
 - **workspaces:** shared
 - **complexity:** small
-- **description:** Add tests for `campaign.ts` — mission data integrity (all 15 missions have valid IDs, star requirements, difficulty settings), `calculateStars` logic with various turn/accuracy/ship inputs, `getMission` lookup, and comic panel definitions. This is a documented coverage gap in CLAUDE.md.
+- **description:** Add tests for `campaign.ts` — mission data integrity (all 15 missions have valid IDs, star requirements, difficulty settings), `calculateStars` logic with various turn/accuracy/ship inputs, `getMission` lookup, and comic panel definitions.
 - **pr:** https://github.com/g-chappell/battleships/pull/4
 - **completed:** 2026-04-13
 
-### TASK-002
+#### TASK-002
 - **title:** Add tournament bracket unit tests
 - **status:** done
 - **priority:** 2
@@ -37,7 +52,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **pr:** https://github.com/g-chappell/battleships/pull/5
 - **completed:** 2026-04-13
 
-### TASK-003
+#### TASK-003
 - **title:** Add replay schema unit tests
 - **status:** done
 - **priority:** 3
@@ -47,7 +62,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **pr:** https://github.com/g-chappell/battleships/pull/6
 - **completed:** 2026-04-13
 
-### TASK-004
+#### TASK-004
 - **title:** Add seasons helper unit tests
 - **status:** done
 - **priority:** 4
@@ -57,7 +72,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **pr:** https://github.com/g-chappell/battleships/pull/7
 - **completed:** 2026-04-13
 
-### TASK-005
+#### TASK-005
 - **title:** Add cosmetics catalog validation tests
 - **status:** done
 - **priority:** 5
@@ -67,7 +82,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **pr:** https://github.com/g-chappell/battleships/pull/8
 - **completed:** 2026-04-13
 
-### TASK-006
+#### TASK-006
 - **title:** Add clans type validation tests
 - **status:** done
 - **priority:** 6
@@ -77,7 +92,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **pr:** https://github.com/g-chappell/battleships/pull/9
 - **completed:** 2026-04-13
 
-### TASK-007
+#### TASK-007
 - **title:** Add captains definition tests
 - **status:** done
 - **priority:** 7
@@ -87,7 +102,10 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **pr:** https://github.com/g-chappell/battleships/pull/10
 - **completed:** 2026-04-13
 
-### TASK-008
+### Story: Client Store Tests
+> Unit tests for all Zustand stores in `client/src/store/`. Each store is tested in isolation with audio and API calls mocked.
+
+#### TASK-008
 - **title:** Add settingsStore unit tests
 - **status:** done
 - **priority:** 8
@@ -97,7 +115,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **pr:** https://github.com/g-chappell/battleships/pull/11
 - **completed:** 2026-04-13
 
-### TASK-009
+#### TASK-009
 - **title:** Add cosmeticsStore unit tests
 - **status:** ready
 - **priority:** 9
@@ -105,7 +123,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **complexity:** small
 - **description:** Add tests for the client cosmeticsStore — equipping/unequipping items, purchasing cosmetics, gold balance deduction, catalog filtering by kind. Mock audio service and any API calls.
 
-### TASK-010
+#### TASK-010
 - **title:** Add campaignStore unit tests
 - **status:** ready
 - **priority:** 10
@@ -113,7 +131,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **complexity:** medium
 - **description:** Add tests for the client campaignStore — mission progress tracking, star recording, mission unlock logic (sequential unlock based on previous completion), current mission state. Mock audio service and API calls.
 
-### TASK-011
+#### TASK-011
 - **title:** Add spectatorStore unit tests
 - **status:** ready
 - **priority:** 11
@@ -121,7 +139,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **complexity:** small
 - **description:** Add tests for the client spectatorStore — joining spectator mode, receiving board state updates, leaving spectator mode, handling invalid match IDs. Mock socket connections.
 
-### TASK-012
+#### TASK-012
 - **title:** Add tournamentsStore unit tests
 - **status:** ready
 - **priority:** 12
@@ -129,7 +147,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **complexity:** small
 - **description:** Add tests for the client tournamentsStore — tournament listing, joining a tournament, bracket state management, status transitions. Mock API calls.
 
-### TASK-013
+#### TASK-013
 - **title:** Add replayStore unit tests
 - **status:** ready
 - **priority:** 13
@@ -137,15 +155,10 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **complexity:** medium
 - **description:** Add tests for the client replayStore — replay loading from match data, playback state (playing/paused), event stepping forward/backward, speed controls, seek to specific event. Mock API calls.
 
-### TASK-014
-- **title:** Add GitHub Actions CI workflow
-- **status:** ready
-- **priority:** 14
-- **workspaces:** shared, client, server
-- **complexity:** medium
-- **description:** P2 item from PRD. Create `.github/workflows/ci.yml` — on push and PR to main, run: TypeScript type-check (`cd client && npx tsc --noEmit`), all three test suites (`npm run test --workspace=shared|server|client`), and client production build (`npm run build --workspace=client`). Use Node 20. Cache node_modules.
+### Story: Server Service Tests
+> Unit tests for server-side services that have no coverage yet. Uses Prisma mocking pattern established in existing server tests.
 
-### TASK-015
+#### TASK-015
 - **title:** Add server tournament service tests
 - **status:** ready
 - **priority:** 15
@@ -153,7 +166,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **complexity:** medium
 - **description:** Add tests for `server/src/services/tournaments.ts` — bracket generation via `seedPairings`, match advancement via `nextBracketSlot`, winner determination, gold rewards on tournament completion. Will need Prisma mocking pattern.
 
-### TASK-016
+#### TASK-016
 - **title:** Add server clans service tests
 - **status:** ready
 - **priority:** 16
@@ -161,26 +174,58 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 - **complexity:** medium
 - **description:** Add tests for `server/src/services/clans.ts` — clan creation, joining, leaving, role management (promote/demote), chat message storage. Will need Prisma mocking pattern.
 
-### TASK-017
-- **title:** Mobile viewport improvements for GamePage
-- **status:** ready
-- **priority:** 17
-- **workspaces:** client
-- **complexity:** medium
-- **description:** P2-5 from PRD. Add responsive breakpoints to GamePage for tablet landscape (1024x768). Ensure HUD, ability bar, and board controls are usable at this size. Add media queries and flex adjustments — do not redesign the layout.
+---
 
-### TASK-018
+## Epic: CI/CD Pipeline
+> Automated validation on every push and PR so regressions are caught before merge, not after.
+
+### Story: Automated Test & Build Pipeline
+
+#### TASK-014
+- **title:** Add GitHub Actions CI workflow
+- **status:** ready
+- **priority:** 14
+- **workspaces:** shared, client, server
+- **complexity:** medium
+- **depends_on:** [TASK-013, TASK-015, TASK-016]
+- **description:** Create `.github/workflows/ci.yml` — on push and PR to main, run: TypeScript type-check (`cd client && npx tsc --noEmit`), all three test suites (`npm run test --workspace=shared|server|client`), and client production build (`npm run build --workspace=client`). Use Node 20. Cache node_modules. Depends on all test stories being complete so the CI baseline is meaningful from day one.
+
+---
+
+## Epic: Gameplay Enhancements
+> Post-launch improvements to the core game loop. Ordered so that UI changes to shared screens (GameOverScreen) land before additive features build on top of them.
+
+### Story: Post-Game Experience
+> Improve what players see and can do after a match ends.
+
+#### TASK-018
 - **title:** Add post-game match summary enhancement
 - **status:** ready
 - **priority:** 18
 - **workspaces:** client, shared
 - **complexity:** medium
-- **description:** P1-5 from PRD. After game ends, enhance GameOverScreen to show full board reveal with both sides visible, shot accuracy stats, abilities used, and total turns taken. Add the data to the existing game-over flow.
+- **description:** After game ends, enhance GameOverScreen to show full board reveal with both sides visible, shot accuracy stats, abilities used, and total turns taken. Add the data to the existing game-over flow.
 
-### TASK-019
+#### TASK-019
 - **title:** Add rematch functionality
 - **status:** ready
 - **priority:** 19
 - **workspaces:** shared, client, server
 - **complexity:** large
-- **description:** P1-5 from PRD. Add "Rematch" button to GameOverScreen that sends a rematch request via socket. Server creates a new room with the same players. Both players must accept. Add socket events to `sockets.ts`, handle in `gameSocket.ts`, add UI to `GameOverScreen`.
+- **depends_on:** [TASK-018]
+- **description:** Add "Rematch" button to GameOverScreen that sends a rematch request via socket. Server creates a new room with the same players. Both players must accept. Add socket events to `sockets.ts`, handle in `gameSocket.ts`, add UI to `GameOverScreen`. Depends on TASK-018 because both tasks modify GameOverScreen — landing the summary enhancement first avoids a merge conflict on that component.
+
+---
+
+## Epic: Platform & UX
+> Cross-cutting improvements to usability that are independent of the game feature roadmap.
+
+### Story: Mobile & Responsive Layout
+
+#### TASK-017
+- **title:** Mobile viewport improvements for GamePage
+- **status:** ready
+- **priority:** 17
+- **workspaces:** client
+- **complexity:** medium
+- **description:** Add responsive breakpoints to GamePage for tablet landscape (1024x768). Ensure HUD, ability bar, and board controls are usable at this size. Add media queries and flex adjustments — do not redesign the layout.
