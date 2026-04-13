@@ -9,6 +9,16 @@
 
 <!-- Agent appends entries below this line -->
 
+### Run [2026-04-13 19:04]
+- **Task:** TASK-010 — Add campaignStore unit tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/14
+- **Test counts:** shared 231, server 37, client 104 (up from 15)
+- **Files changed:** `client/src/__tests__/campaignStore.test.ts` (created, 89 tests)
+- **Lessons learned:** `completeMission` does a best-effort server POST via `.catch(() => {})` — the mock needs to return a resolved promise to avoid async noise, but since it's fire-and-forget, calling `expect(mockApiFetch).toHaveBeenCalledWith(...)` synchronously after `completeMission()` works fine (mock is registered before the async chain runs). `calculateStars` requires meeting 2-star threshold first before 3-star can be awarded (sequential gate). `highestUnlocked` is capped at `CAMPAIGN_MISSIONS.length` (15), so testing mission 15 completion doesn't exceed that. `getMission(999)` returns undefined so no state change occurs — store guards with `if (mission)`.
+- **Self-improvements:** none
+- **New tasks discovered:** none
+
 ### Run [2026-04-13 18:03]
 - **Task:** TASK-009 — Add cosmeticsStore unit tests
 - **Outcome:** success
