@@ -172,3 +172,13 @@
 - **Lessons learned:** At 1024x768, existing `sm:` and `md:` breakpoints were already active (1024 > 640/768). Main concern is vertical compactness — 768px height with HUD (72px) + AbilityBar (80px) leaves ~616px game area. ShipTray (~380px) fits fine. Added `lg:` (1024px width) breakpoints to reduce margins (mt-4→lg:mt-2, mb-4→lg:mb-2) and compact ShipTray padding (p-4→lg:p-3). Added `max-h-[calc(100%-24px)] overflow-y-auto` to ShipTray as safety net. Width-based `lg:` breakpoints are appropriate for tablet landscape since 1024px is exactly the target width.
 - **Self-improvements:** none
 - **New tasks discovered:** none
+
+### Run [2026-04-13 22:16]
+- **Task:** TASK-018 — Add post-game match summary enhancement
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/22
+- **Test counts:** shared 231, server 102, client 184
+- **Files changed:** `client/src/store/gameStore.ts`, `client/src/components/ui/GameOverScreen.tsx`
+- **Lessons learned:** GameOverScreen already showed opponent ships (multiplayer only) and abilities used (multiplayer only). The main gap was: (1) player's own board was never shown, (2) miss cells were not rendered on mini-boards, (3) single-player had no ability tracking. For the board reveal, `engine.playerBoard.ships` / `engine.opponentBoard.ships` are always populated (no fog-of-war locally), while `engine.playerBoard.grid` / `engine.opponentBoard.grid` contain CellState values including Miss for rendering shot misses. The `serializeShips` helper converts `Ship[]` (hits as Set<string>) to `SerializedShip[]` (hits as string[]) needed by MiniBoard. Ability tracking in `useAbility` must fire after `canUseAbility()` passes but before the switch — even if an individual execute function returns null, tracking at that point is safe since `canUseAbility` already validated it was executable.
+- **Self-improvements:** none
+- **New tasks discovered:** none
