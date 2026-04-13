@@ -16,6 +16,13 @@
 - **Test counts:** shared 182, server 37, client 15
 - **Files changed:** `shared/src/__tests__/clans.test.ts` (created)
 - **Lessons learned:** `clans.ts` is purely type-based with no runtime values or constants — no enums, no exported objects. All four interfaces (`ClanSummary`, `ClanMember`, `ClanChatMessage`, `ClanDetail`) and the `ClanRole` union type are testable only by constructing conforming objects and asserting field values. `ClanDetail extends ClanSummary`, so tests check that all eight ClanSummary fields appear on ClanDetail instances. The `description` field on ClanSummary is `string | null` — always test both forms.
+### Run [2026-04-13 13:55]
+- **Task:** TASK-005 — Add cosmetics catalog validation tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/8
+- **Test counts:** shared 187 (+48), server 37, client 15
+- **Files changed:** `shared/src/__tests__/cosmetics.test.ts` (created)
+- **Lessons learned:** `COSMETIC_CATALOG` has duplicate IDs globally ("default" appears once per kind), so "no duplicate IDs" must be tested per-kind rather than globally. `getCosmetic` uses `find` and returns the first match — calling `getCosmetic('default')` returns the first 'default' entry (ship_skin). Default items have price 0, all others have price > 0. `GOLD_REWARDS` is `as const` so values are exact literals — test relative ordering (ranked > casual, hard AI > medium AI > easy AI, tournament win > runner-up) as behavioral contracts.
 - **Self-improvements:** none
 - **New tasks discovered:** none
 
