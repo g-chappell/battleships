@@ -127,7 +127,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-010
 - **title:** Add campaignStore unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 10
 - **workspaces:** client
 - **complexity:** medium
