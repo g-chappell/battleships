@@ -250,3 +250,58 @@ describe('trackAbilityUsed', () => {
     deleteRoom(room.id);
   });
 });
+
+describe('rematch', () => {
+  it('rematchRequests starts empty on room creation', () => {
+    const room = createRoom(makePlayer('p1'), false, false);
+    expect(room.rematchRequests).toBeInstanceOf(Set);
+    expect(room.rematchRequests.size).toBe(0);
+    deleteRoom(room.id);
+  });
+
+  it('can track a single player requesting rematch', () => {
+    const room = createFullRoom();
+    room.rematchRequests.add('p1');
+    expect(room.rematchRequests.has('p1')).toBe(true);
+    expect(room.rematchRequests.has('p2')).toBe(false);
+    deleteRoom(room.id);
+  });
+
+  it('detects when both players have requested rematch', () => {
+    const room = createFullRoom();
+    room.rematchRequests.add('p1');
+    room.rematchRequests.add('p2');
+    const bothReady =
+      room.players[0] !== null &&
+      room.players[1] !== null &&
+      room.rematchRequests.has(room.players[0]!.id) &&
+      room.rematchRequests.has(room.players[1]!.id);
+    expect(bothReady).toBe(true);
+    deleteRoom(room.id);
+  });
+
+  it('does not treat one request as both ready', () => {
+    const room = createFullRoom();
+    room.rematchRequests.add('p1');
+    const bothReady =
+      room.players[0] !== null &&
+      room.players[1] !== null &&
+      room.rematchRequests.has(room.players[0]!.id) &&
+      room.rematchRequests.has(room.players[1]!.id);
+    expect(bothReady).toBe(false);
+    deleteRoom(room.id);
+  });
+
+  it('rematchRequests resets when room is deleted and recreated', () => {
+    const room = createFullRoom();
+    room.rematchRequests.add('p1');
+    room.rematchRequests.add('p2');
+    expect(room.rematchRequests.size).toBe(2);
+    deleteRoom(room.id);
+
+    // A new room should have empty rematchRequests
+    const newRoom = createRoom(makePlayer('p1'), false, false);
+    expect(newRoom.rematchRequests.size).toBe(0);
+    deleteRoom(newRoom.id);
+  });
+});
