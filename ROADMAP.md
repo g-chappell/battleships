@@ -226,7 +226,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-019
 - **title:** Add rematch functionality
-- **status:** ready
+- **status:** in-progress
 - **priority:** 19
 - **workspaces:** shared, client, server
 - **complexity:** large
