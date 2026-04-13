@@ -49,11 +49,13 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-004
 - **title:** Add seasons helper unit tests
-- **status:** in-progress
+- **status:** done
 - **priority:** 4
 - **workspaces:** shared
 - **complexity:** small
 - **description:** Add tests for `seasons.ts` — `getSeasonTimeRemaining` with future end dates (returns positive days/hours), past end dates (returns zeros), edge cases (exactly now, 1 second remaining). Verify `SEASON_DEFAULT_DURATION_DAYS` and `SEASON_START_RATING` constants.
+- **pr:** https://github.com/g-chappell/battleships/pull/7
+- **completed:** 2026-04-13
 
 ### TASK-005
 - **title:** Add cosmetics catalog validation tests
