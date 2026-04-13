@@ -240,8 +240,10 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-017
 - **title:** Mobile viewport improvements for GamePage
-- **status:** in-progress
+- **status:** done
 - **priority:** 17
 - **workspaces:** client
 - **complexity:** medium
 - **description:** Add responsive breakpoints to GamePage for tablet landscape (1024x768). Ensure HUD, ability bar, and board controls are usable at this size. Add media queries and flex adjustments — do not redesign the layout.
+- **pr:** https://github.com/g-chappell/battleships/pull/21
+- **completed:** 2026-04-13
