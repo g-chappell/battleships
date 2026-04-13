@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npx vitest:*)",
+      "Bash(npx prisma:*)",
+      "Bash(find server/src/generated -name *.d.ts -o -name *.ts)",
+      "Bash(find /c/claude/battleships/server -name \"package.json\" ! -path \"*/node_modules/*\" -exec cat {} \\\\;)",
+      "Bash(find /c/claude/battleships/client -name \"package.json\" ! -path \"*/node_modules/*\" -exec cat {} \\\\;)",
+      "Bash(find /c/claude/battleships/shared -name \"package.json\" ! -path \"*/node_modules/*\" -exec cat {} \\\\;)",
+      "Bash(ls C:/claude/battleships/server/vitest.config.* C:/claude/battleships/server/package.json)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(where.exe gh:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" --version)",
+      "Bash(\"/c/Program Files \\(x86\\)/GitHub CLI/gh.exe\" --version)",
+      "Read(//c/Users/GrahamChappell/AppData/Local/Programs/**)",
+      "Bash(git pull:*)",
+      "Bash(git branch:*)",
+      "Bash(git fetch:*)",
+      "Bash(git stash:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git status:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git merge:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh repo:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth status)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" repo view:*)",
+      "Bash('/c/Program Files/GitHub CLI/gh.exe' pr create:*)",
+      "Bash('/c/Program Files/GitHub CLI/gh.exe' pr list:*)",
+      "Bash('/c/Program Files/GitHub CLI/gh.exe' pr view:*)",
+      "Bash(echo \"EXIT: $?\")"
+    ]
+  }
+}
