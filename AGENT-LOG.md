@@ -142,3 +142,13 @@
 - **Lessons learned:** Server services that use Prisma require `vi.hoisted()` to define mock objects before `vi.mock()` factory runs — the factory is hoisted to the top of the file by Vitest, so plain `const mockX = { fn: vi.fn() }` declarations are not yet initialized when the factory executes. Use `vi.hoisted(() => ({ ... }))` and destructure the result. Mocking `../services/db.ts` covers both `tournaments.ts` and `gold.ts` since both import `prisma` from that module — no need to separately mock gold.ts. The `safeDb` wrapper returns null on any thrown error, so DB-unavailable tests simply need `mockX.mockRejectedValue(new Error(...))`. `startTournamentInternal` (called when last player joins) requires chaining `mockTournament.findUnique.mockResolvedValueOnce(...)` for the second call — use `mockResolvedValueOnce` in sequence.
 - **Self-improvements:** none
 - **New tasks discovered:** none
+
+### Run [2026-04-13 21:04]
+- **Task:** TASK-016 — Add server clans service tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/19
+- **Test counts:** shared 231, server 102 (+33), client 184
+- **Files changed:** `server/src/__tests__/clans.test.ts` (created, 33 tests)
+- **Lessons learned:** `getClanDetail` uses `safeDb` wrapper but the inner async function returns `null` early (not throwing) when `clan` is not found — so the service returns `null` but not via the `safeDb` error-catch path. `memberCount` in ClanDetail is derived from `clan.members.length` (runtime array), not from `_count.members` (which is only used in list queries). The `chat` array from Prisma is queried in `desc` order and then `.reverse()`d to restore chronological order — tests must supply desc-ordered input to verify the reversal. `leaveClan` and `incrementClanStats` return `void` (not an error type) so DB errors are silently swallowed by `safeDb`. `addChatMessage` returns the result of `safeDb` directly (not wrapped in `?? fallback`), so it returns `null` on DB error rather than an error object.
+- **Self-improvements:** none
+- **New tasks discovered:** none
