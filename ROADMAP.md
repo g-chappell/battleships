@@ -127,11 +127,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-010
 - **title:** Add campaignStore unit tests
-- **status:** in-progress
+- **status:** done
 - **priority:** 10
 - **workspaces:** client
 - **complexity:** medium
 - **description:** Add tests for the client campaignStore — mission progress tracking, star recording, mission unlock logic (sequential unlock based on previous completion), current mission state. Mock audio service and API calls.
+- **pr:** https://github.com/g-chappell/battleships/pull/14
+- **completed:** 2026-04-13
 
 #### TASK-011
 - **title:** Add spectatorStore unit tests
