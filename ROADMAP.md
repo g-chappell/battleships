@@ -157,11 +157,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-013
 - **title:** Add replayStore unit tests
-- **status:** ready
+- **status:** done
 - **priority:** 13
 - **workspaces:** client
 - **complexity:** medium
 - **description:** Add tests for the client replayStore — replay loading from match data, playback state (playing/paused), event stepping forward/backward, speed controls, seek to specific event. Mock API calls.
+- **pr:** https://github.com/g-chappell/battleships/pull/17
+- **completed:** 2026-04-13
 
 ### Story: Server Service Tests
 > Unit tests for server-side services that have no coverage yet. Uses Prisma mocking pattern established in existing server tests.
