@@ -170,7 +170,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-015
 - **title:** Add server tournament service tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 15
 - **workspaces:** server
 - **complexity:** medium
