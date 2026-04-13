@@ -117,7 +117,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-009
 - **title:** Add cosmeticsStore unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 9
 - **workspaces:** client
 - **complexity:** small
