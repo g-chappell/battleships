@@ -69,11 +69,13 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-006
 - **title:** Add clans type validation tests
-- **status:** ready
+- **status:** done
 - **priority:** 6
 - **workspaces:** shared
 - **complexity:** small
 - **description:** Add tests for `clans.ts` — verify type structures are constructable, ClanRole values are correct (leader, officer, member), ClanDetail extends ClanSummary fields. Since this is mostly types, tests validate structural contracts.
+- **pr:** https://github.com/g-chappell/battleships/pull/9
+- **completed:** 2026-04-13
 
 ### TASK-007
 - **title:** Add captains definition tests
