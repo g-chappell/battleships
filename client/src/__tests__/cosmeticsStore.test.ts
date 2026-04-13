@@ -175,7 +175,7 @@ describe('cosmeticsStore', () => {
     it('returns "insufficient" on ApiError "Insufficient gold"', async () => {
       useCosmeticsStore.setState({ gold: 200 });
       const { ApiError } = await import('../services/apiClient');
-      mockApiFetch.mockRejectedValueOnce(new ApiError('Insufficient gold', 402));
+      mockApiFetch.mockRejectedValueOnce(new ApiError('Insufficient gold', 402, undefined));
 
       const result = await useCosmeticsStore.getState().buy('skull_skin', 50, 'token123');
       expect(result).toBe('insufficient');
@@ -184,7 +184,7 @@ describe('cosmeticsStore', () => {
     it('returns "owned" on ApiError "Already owned"', async () => {
       useCosmeticsStore.setState({ gold: 200 });
       const { ApiError } = await import('../services/apiClient');
-      mockApiFetch.mockRejectedValueOnce(new ApiError('Already owned', 409));
+      mockApiFetch.mockRejectedValueOnce(new ApiError('Already owned', 409, undefined));
 
       const result = await useCosmeticsStore.getState().buy('skull_skin', 50, 'token123');
       expect(result).toBe('owned');

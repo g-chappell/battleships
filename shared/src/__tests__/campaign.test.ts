@@ -3,7 +3,6 @@ import {
   CAMPAIGN_MISSIONS,
   calculateStars,
   getMission,
-  type CampaignMission,
 } from '../campaign';
 import { AbilityType } from '../abilities';
 

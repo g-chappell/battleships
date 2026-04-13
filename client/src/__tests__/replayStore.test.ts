@@ -26,7 +26,7 @@ vi.mock('../services/apiClient', () => ({
 
 import { useReplayStore } from '../store/replayStore';
 import { apiFetchSafe } from '../services/apiClient';
-import { CellState, ShipType } from '@shared/index';
+import { CellState, ShipType, Orientation } from '@shared/index';
 import type { ReplayData, ReplayEvent } from '@shared/index';
 
 const mockApiFetchSafe = apiFetchSafe as ReturnType<typeof vi.fn>;
@@ -51,7 +51,7 @@ function makePlacementEvent(side: 'p1' | 'p2', t = 0): ReplayEvent {
     kind: 'placement',
     side,
     placements: [
-      { type: ShipType.Destroyer, start: { row: 0, col: 0 }, orientation: 'horizontal' },
+      { type: ShipType.Destroyer, start: { row: 0, col: 0 }, orientation: Orientation.Horizontal },
     ],
   };
 }
@@ -371,7 +371,7 @@ describe('replayStore', () => {
           kind: 'placement',
           side: 'p2',
           placements: [
-            { type: ShipType.Destroyer, start: { row: 2, col: 5 }, orientation: 'vertical' },
+            { type: ShipType.Destroyer, start: { row: 2, col: 5 }, orientation: Orientation.Vertical },
           ],
         },
       ]);
@@ -394,7 +394,7 @@ describe('replayStore', () => {
           kind: 'placement',
           side: 'p1',
           placements: [
-            { type: ShipType.Carrier, start: { row: 0, col: 0 }, orientation: 'horizontal' },
+            { type: ShipType.Carrier, start: { row: 0, col: 0 }, orientation: Orientation.Horizontal },
           ],
         },
       ]);

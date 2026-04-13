@@ -83,12 +83,12 @@ describe('ReplayEvent kinds', () => {
       side: 'p2',
       coord: { row: 1, col: 1 },
       outcome: {
-        result: ShotResult.Sunk,
+        result: ShotResult.Sink,
         coordinate: { row: 1, col: 1 },
         sunkShip: ShipType.Destroyer,
       },
     };
-    expect(event.outcome.result).toBe(ShotResult.Sunk);
+    expect(event.outcome.result).toBe(ShotResult.Sink);
     expect(event.outcome.sunkShip).toBe(ShipType.Destroyer);
   });
 

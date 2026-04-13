@@ -309,7 +309,7 @@ describe('spectatorStore', () => {
 
   it('reset clears all state', () => {
     useSpectatorStore.setState({
-      gameState: { roomId: 'r1', phase: 'playing', currentTurn: 'player1', turnCount: 5, winner: null, player1: { username: 'A', rating: 1000 }, player2: { username: 'B', rating: 1000 }, board1: { cells: [], sunkShips: [] }, board2: { cells: [], sunkShips: [] }, spectatorCount: 2 },
+      gameState: { roomId: 'r1', phase: 'playing', currentTurn: 'player1', turnCount: 5, winner: null, player1: { username: 'A', rating: 1000 }, player2: { username: 'B', rating: 1000 }, board1: { width: 10, height: 10, cells: [], sunkShips: [] }, board2: { width: 10, height: 10, cells: [], sunkShips: [] }, spectatorCount: 2 },
       chat: [{ id: '1', username: 'x', text: 'hi', timestamp: 0 }],
       spectatorCount: 2,
       spectatableRooms: [{ roomId: 'r1', player1: 'A', player2: 'B', turnCount: 5, spectatorCount: 2 }],
