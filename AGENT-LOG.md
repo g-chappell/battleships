@@ -152,3 +152,13 @@
 - **Lessons learned:** `getClanDetail` uses `safeDb` wrapper but the inner async function returns `null` early (not throwing) when `clan` is not found — so the service returns `null` but not via the `safeDb` error-catch path. `memberCount` in ClanDetail is derived from `clan.members.length` (runtime array), not from `_count.members` (which is only used in list queries). The `chat` array from Prisma is queried in `desc` order and then `.reverse()`d to restore chronological order — tests must supply desc-ordered input to verify the reversal. `leaveClan` and `incrementClanStats` return `void` (not an error type) so DB errors are silently swallowed by `safeDb`. `addChatMessage` returns the result of `safeDb` directly (not wrapped in `?? fallback`), so it returns `null` on DB error rather than an error object.
 - **Self-improvements:** none
 - **New tasks discovered:** none
+
+### Run [2026-04-13 21:47]
+- **Task:** TASK-014 — Add GitHub Actions CI workflow
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/20
+- **Test counts:** shared 231, server 102, client 184
+- **Files changed:** `.github/workflows/ci.yml` (created)
+- **Lessons learned:** Simple workflow file — single job named `ci` with steps: checkout, setup-node@v4 (Node 20, npm cache), `npm ci`, tsc type-check, three test suites, client build. No special handling needed for the monorepo structure since npm workspaces work naturally with `npm run test --workspace=X`. Used `actions/checkout@v4` and `actions/setup-node@v4` (latest stable versions).
+- **Self-improvements:** none
+- **New tasks discovered:** none
