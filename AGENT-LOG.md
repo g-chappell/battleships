@@ -9,6 +9,16 @@
 
 <!-- Agent appends entries below this line -->
 
+### Run [2026-04-13 18:03]
+- **Task:** TASK-009 — Add cosmeticsStore unit tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/13
+- **Test counts:** shared 231, server 37, client 65 (was 38, added 27)
+- **Files changed:** `client/src/__tests__/cosmeticsStore.test.ts` (created)
+- **Lessons learned:** `cosmeticsStore` imports `ApiError` from `apiClient` — the mock must re-export a real class (not just a vi.fn) so `instanceof ApiError` checks work inside the store's buy() method. `buy()` has three early-exit paths (owned, insufficient, server error) before the local fallback; test them in order. `equip()` fires a background `apiFetch` call that ignores errors — test it was called (for token) or not called (no token) with `expect(mockApiFetch).toHaveBeenCalledWith(...)`. Server fallback in `buy()` only triggers on non-ApiError exceptions — throw a plain `Error` to test it.
+- **Self-improvements:** none
+- **New tasks discovered:** none
+
 ### Run [2026-04-13 16:03]
 - **Task:** TASK-008 — Add settingsStore unit tests
 - **Outcome:** success

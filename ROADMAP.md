@@ -117,11 +117,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-009
 - **title:** Add cosmeticsStore unit tests
-- **status:** ready
+- **status:** done
 - **priority:** 9
 - **workspaces:** client
 - **complexity:** small
 - **description:** Add tests for the client cosmeticsStore — equipping/unequipping items, purchasing cosmetics, gold balance deduction, catalog filtering by kind. Mock audio service and any API calls.
+- **pr:** https://github.com/g-chappell/battleships/pull/13
+- **completed:** 2026-04-13
 
 #### TASK-010
 - **title:** Add campaignStore unit tests
