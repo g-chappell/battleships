@@ -39,7 +39,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-003
 - **title:** Add replay schema unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 3
 - **workspaces:** shared
 - **complexity:** small
