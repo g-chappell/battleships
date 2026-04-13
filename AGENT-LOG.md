@@ -9,6 +9,16 @@
 
 <!-- Agent appends entries below this line -->
 
+### Run [2026-04-13 17:31]
+- **Task:** TASK-007 — Add captains definition tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/12
+- **Test counts:** shared 234, server 37, client 15
+- **Files changed:** `shared/src/__tests__/captains.test.ts` (created)
+- **Lessons learned:** `CAPTAIN_DEFS` keys match `CAPTAIN_IDS` (which is `Object.keys(CAPTAIN_DEFS)`), so testing both confirms consistency. Each captain's abilities array is typed as `[AbilityType, AbilityType, AbilityType]` — all three must be valid `AbilityType` enum values present in `ABILITY_DEFS`. Branch collision: the previous auto/TASK-007 branch existed from a prior run (already had done commits); appended a date suffix to create a fresh branch.
+- **Self-improvements:** none
+- **New tasks discovered:** none
+
 ### Run [2026-04-13 14:03]
 - **Task:** TASK-006 — Add clans type validation tests
 - **Outcome:** success
