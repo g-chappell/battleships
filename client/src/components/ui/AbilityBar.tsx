@@ -20,7 +20,7 @@ export function AbilityBar() {
   const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
 
   return (
-    <div className="mx-2 sm:mx-4 mb-4 h-16 bg-[#221210]/95 backdrop-blur-lg border border-[#c41e3a]/70 rounded-full flex flex-nowrap items-center px-3 sm:px-6 gap-2 sm:gap-3 shrink-0 panel-glow overflow-x-auto shadow-[0_0_14px_rgba(196,30,58,0.3)]">
+    <div className="mx-2 sm:mx-4 mb-4 lg:mb-2 h-16 bg-[#221210]/95 backdrop-blur-lg border border-[#c41e3a]/70 rounded-full flex flex-nowrap items-center px-3 sm:px-6 gap-2 sm:gap-3 shrink-0 panel-glow overflow-x-auto shadow-[0_0_14px_rgba(196,30,58,0.3)]">
       {playerAbilities && engine.phase === GamePhase.Playing && (
         <>
           {playerAbilities.abilityStates.map((ability) => {

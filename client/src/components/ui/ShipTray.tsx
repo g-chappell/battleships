@@ -18,7 +18,7 @@ export function ShipTray() {
   const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
 
   return (
-    <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-gradient-to-b from-[#221210]/95 to-[#150c0c]/95 border border-[#8b0000]/50 rounded p-4 w-56 shadow-xl shadow-[#8b0000]/20">
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 bg-gradient-to-b from-[#221210]/95 to-[#150c0c]/95 border border-[#8b0000]/50 rounded p-4 lg:p-3 w-56 shadow-xl shadow-[#8b0000]/20 max-h-[calc(100%-24px)] overflow-y-auto">
       <h3 className="text-[#c41e3a] font-bold text-base uppercase tracking-wider mb-3" style={{ fontFamily: "'Pirata One', serif", textShadow: '0 0 8px rgba(196, 30, 58, 0.4)' }}>
         Deploy Fleet
       </h3>

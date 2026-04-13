@@ -49,7 +49,7 @@ export function GameHUD() {
   const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
 
   return (
-    <div className="mx-2 sm:mx-4 mt-4 h-14 bg-[#221210]/95 backdrop-blur-lg border border-[#c41e3a]/70 rounded-full flex items-center px-3 sm:px-8 gap-2 sm:gap-5 shrink-0 panel-glow overflow-x-auto shadow-[0_0_14px_rgba(196,30,58,0.3)]">
+    <div className="mx-2 sm:mx-4 mt-4 lg:mt-2 h-14 bg-[#221210]/95 backdrop-blur-lg border border-[#c41e3a]/70 rounded-full flex items-center px-3 sm:px-8 gap-2 sm:gap-5 shrink-0 panel-glow overflow-x-auto shadow-[0_0_14px_rgba(196,30,58,0.3)]">
       <div className="flex items-center gap-2" style={labelStyle}>
         <span className="text-sm text-[#a06820] uppercase tracking-wider">Turn</span>
         <span className="text-lg font-bold text-[#e8dcc8]">{engine.turnCount}</span>
