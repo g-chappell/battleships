@@ -49,7 +49,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-004
 - **title:** Add seasons helper unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 4
 - **workspaces:** shared
 - **complexity:** small
