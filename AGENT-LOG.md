@@ -9,6 +9,16 @@
 
 <!-- Agent appends entries below this line -->
 
+### Run [2026-04-13 19:35]
+- **Task:** TASK-011 — Add spectatorStore unit tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/15
+- **Test counts:** shared 231, server 37, client 121 (up from 104, added 17 tests)
+- **Files changed:** `client/src/__tests__/spectatorStore.test.ts` (created, 17 tests)
+- **Lessons learned:** `spectatorStore` imports `useSocketStore` from `./socketStore` and calls `useSocketStore.getState().socket` — mock the module with `vi.mock('../store/socketStore', ...)` exporting `useSocketStore: { getState: vi.fn() }`, then control `getState` return per test. For `joinAsSpectator`, the socket `emit` ack is the third argument (`emit(event, payload, ack)`) — mock it with `socket.emit.mockImplementation((_event, _payload, ack) => ack(...))`. Registered `on` listeners are stored internally in `makeSocket()` and triggered via `socket._trigger(event, ...args)` — this lets tests verify socket event handler behavior without real sockets. `leaveSpectating` resets state even when no socket is present (the set() call runs unconditionally after the socket null check).
+- **Self-improvements:** none
+- **New tasks discovered:** none
+
 ### Run [2026-04-13 19:04]
 - **Task:** TASK-010 — Add campaignStore unit tests
 - **Outcome:** success
