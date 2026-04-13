@@ -221,7 +221,7 @@ describe('tournamentsStore', () => {
 
     it('returns error when ApiError is thrown', async () => {
       const { ApiError } = await import('../services/apiClient');
-      mockApiFetch.mockRejectedValueOnce(new ApiError('Name taken', 400));
+      mockApiFetch.mockRejectedValueOnce(new ApiError('Name taken', 400, undefined));
 
       const result = await useTournamentsStore.getState().create('Taken', 8, 'tok');
 
@@ -265,7 +265,7 @@ describe('tournamentsStore', () => {
 
     it('returns error when ApiError is thrown', async () => {
       const { ApiError } = await import('../services/apiClient');
-      mockApiFetch.mockRejectedValueOnce(new ApiError('Tournament full', 409));
+      mockApiFetch.mockRejectedValueOnce(new ApiError('Tournament full', 409, undefined));
 
       const result = await useTournamentsStore.getState().join('t1', 'tok');
 
