@@ -9,6 +9,16 @@
 
 <!-- Agent appends entries below this line -->
 
+### Run [2026-04-13 15:03]
+- **Task:** TASK-007 — Add captains definition tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/10
+- **Test counts:** shared 231, server 37, client 15
+- **Files changed:** `shared/src/__tests__/captains.test.ts` (created)
+- **Lessons learned:** `captains.ts` exports `CAPTAIN_DEFS` (Record with 3 entries), `CAPTAIN_IDS` (array of keys), and `DEFAULT_CAPTAIN` (string literal 'ironbeard'). All three captains have exactly 3 abilities each. Testing that abilities exist in `ABILITY_DEFS` is straightforward via `new Set(Object.values(AbilityType))`. The `CaptainDef` interface has 6 required fields: id, name, title, description, abilities, color.
+- **Self-improvements:** none
+- **New tasks discovered:** none
+
 ### Run [2026-04-13 14:03]
 - **Task:** TASK-006 — Add clans type validation tests
 - **Outcome:** success
