@@ -180,11 +180,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-016
 - **title:** Add server clans service tests
-- **status:** ready
+- **status:** done
 - **priority:** 16
 - **workspaces:** server
 - **complexity:** medium
 - **description:** Add tests for `server/src/services/clans.ts` — clan creation, joining, leaving, role management (promote/demote), chat message storage. Will need Prisma mocking pattern.
+- **pr:** https://github.com/g-chappell/battleships/pull/19
+- **completed:** 2026-04-13
 
 ---
 
