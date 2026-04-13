@@ -44,3 +44,6 @@ server/prisma/*.db-journal
 .cache/
 .parcel-cache/
 *.pem
+
+# Claude local settings
+.claude/settings.local.json
