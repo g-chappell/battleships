@@ -9,6 +9,16 @@
 
 <!-- Agent appends entries below this line -->
 
+### Run [2026-04-13 12:45]
+- **Task:** TASK-002 — Add tournament bracket unit tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/5
+- **Test counts:** shared 128 (+26), server 37, client 15
+- **Files changed:** `shared/src/__tests__/tournaments.test.ts` (created)
+- **Lessons learned:** `seedPairings` throws for non-power-of-2 sizes (including empty array and size 1). `nextBracketSlot` uses simple integer division and modulo — even indices → p1, odd → p2. `totalRounds` is exactly `Math.log2(size)`. All functions are pure with no external dependencies.
+- **Self-improvements:** none
+- **New tasks discovered:** none
+
 ### Run [2026-04-13 12:21]
 - **Task:** TASK-001 — Add campaign module unit tests
 - **Outcome:** success

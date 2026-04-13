@@ -29,11 +29,13 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-002
 - **title:** Add tournament bracket unit tests
-- **status:** in-progress
+- **status:** done
 - **priority:** 2
 - **workspaces:** shared
 - **complexity:** small
 - **description:** Add tests for `tournaments.ts` — `seedPairings` produces correct matchups for sizes 4/8/16, `nextBracketSlot` advances correctly, `totalRounds` returns log2 of size, `isFinalRound` detects the last round. Validate `VALID_TOURNAMENT_SIZES` constant. Edge cases: invalid sizes, boundary conditions.
+- **pr:** https://github.com/g-chappell/battleships/pull/5
+- **completed:** 2026-04-13
 
 ### TASK-003
 - **title:** Add replay schema unit tests
