@@ -79,7 +79,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-007
 - **title:** Add captains definition tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 7
 - **workspaces:** shared
 - **complexity:** small
