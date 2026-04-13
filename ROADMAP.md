@@ -67,7 +67,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-006
 - **title:** Add clans type validation tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 6
 - **workspaces:** shared
 - **complexity:** small
