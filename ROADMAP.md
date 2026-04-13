@@ -137,11 +137,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-011
 - **title:** Add spectatorStore unit tests
-- **status:** in-progress
+- **status:** done
 - **priority:** 11
 - **workspaces:** client
 - **complexity:** small
 - **description:** Add tests for the client spectatorStore — joining spectator mode, receiving board state updates, leaving spectator mode, handling invalid match IDs. Mock socket connections.
+- **pr:** https://github.com/g-chappell/battleships/pull/15
+- **completed:** 2026-04-13
 
 #### TASK-012
 - **title:** Add tournamentsStore unit tests
