@@ -29,7 +29,7 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-002
 - **title:** Add tournament bracket unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 2
 - **workspaces:** shared
 - **complexity:** small
