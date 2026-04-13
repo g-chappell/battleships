@@ -112,3 +112,13 @@
 - **Lessons learned:** Campaign module exports `CAMPAIGN_MISSIONS`, `calculateStars`, `getMission` directly from `campaign.ts`. `calculateStars` requires passing 2-star threshold before awarding 3-star (sequential gate). All 15 missions have `fixedAbilities` of exactly 2 items when present. Existing test pattern: `import { describe, it, expect } from 'vitest'`, no mocking needed for pure data/logic modules in shared/.
 - **Self-improvements:** none
 - **New tasks discovered:** none
+
+### Run [2026-04-13 19:41]
+- **Task:** TASK-012 — Add tournamentsStore unit tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/16
+- **Test counts:** shared 231, server 37, client 144 (+29)
+- **Files changed:** `client/src/__tests__/tournamentsStore.test.ts` (created)
+- **Lessons learned:** `tournamentsStore` uses `apiFetchSafe` (returns null on failure) for `fetchList`/`fetchOne` and `apiFetch` (throws ApiError) for `create`/`join`. The `create` action calls `fetchList()` after success, and `join` calls `fetchOne(id)` — both require two mock calls in sequence (one for the mutating action, one for the refresh). The `error` message differs between actions: fetchList/fetchOne use different strings ('Tournaments unavailable offline' vs 'Tournament not found'), so tests must match exactly. Non-ApiError exceptions in `create`/`join` are caught and produce the offline message.
+- **Self-improvements:** none
+- **New tasks discovered:** none
