@@ -157,7 +157,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-013
 - **title:** Add replayStore unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 13
 - **workspaces:** client
 - **complexity:** medium
