@@ -9,6 +9,16 @@
 
 <!-- Agent appends entries below this line -->
 
+### Run [2026-04-13 14:03]
+- **Task:** TASK-006 — Add clans type validation tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/9
+- **Test counts:** shared 182, server 37, client 15
+- **Files changed:** `shared/src/__tests__/clans.test.ts` (created)
+- **Lessons learned:** `clans.ts` is purely type-based with no runtime values or constants — no enums, no exported objects. All four interfaces (`ClanSummary`, `ClanMember`, `ClanChatMessage`, `ClanDetail`) and the `ClanRole` union type are testable only by constructing conforming objects and asserting field values. `ClanDetail extends ClanSummary`, so tests check that all eight ClanSummary fields appear on ClanDetail instances. The `description` field on ClanSummary is `string | null` — always test both forms.
+- **Self-improvements:** none
+- **New tasks discovered:** none
+
 ### Run [2026-04-13 13:49]
 - **Task:** TASK-004 — Add seasons helper unit tests
 - **Outcome:** success
