@@ -9,6 +9,16 @@
 
 <!-- Agent appends entries below this line -->
 
+### Run [2026-04-13 16:03]
+- **Task:** TASK-008 — Add settingsStore unit tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/11
+- **Test counts:** shared 209, server 37, client 38
+- **Files changed:** `client/src/__tests__/settingsStore.test.ts` (created)
+- **Lessons learned:** `settingsStore` imports audio functions under aliased names (`setSfxVolume as setAudioSfxVolume`, `setMusicVolume as setAudioMusicVolume`) — the mock must export them under their original names (`setSfxVolume`, `setMusicVolume`) so Vitest resolves them correctly. `loadFromStorage` uses `?? defaultValue` for missing fields, so partial localStorage objects can be tested for fallback behavior. `toggleMusic` conditionally calls `startAmbientLoop` or `stopAmbientLoop` (not both) — tests should assert the non-called function was NOT called.
+- **Self-improvements:** none
+- **New tasks discovered:** none
+
 ### Run [2026-04-13 14:03]
 - **Task:** TASK-006 — Add clans type validation tests
 - **Outcome:** success
