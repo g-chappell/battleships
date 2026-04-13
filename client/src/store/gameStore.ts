@@ -83,6 +83,7 @@ interface GameStore {
   selectedCaptain: string;
   activeAbility: AbilityType | null; // ability being targeted this turn
   sonarResult: SonarPingResult | null;
+  spAbilitiesUsed: Record<string, number>; // single-player ability usage count
   sonarHistory: { center: Coordinate; shipDetected: boolean }[];
   spyglassResult: { row: number; shipCount: number } | null;
   boardingPartyResult: { shipType: string; hitsTaken: number; totalCells: number } | null;
@@ -165,6 +166,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     boardingPartyResult: null,
     commentary: '',
   revealedCells: new Set(),
+  spAbilitiesUsed: {},
 
   playerTraits: null,
   opponentTraits: null,
@@ -202,6 +204,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       revealedCells: new Set(),
       playerTraits: null,
       opponentTraits: null,
+      spAbilitiesUsed: {},
       tick: 0,
     });
   },
@@ -237,6 +240,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       revealedCells: new Set(),
       playerTraits: null,
       opponentTraits: null,
+      spAbilitiesUsed: {},
       tick: 0,
     });
   },
@@ -267,6 +271,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       revealedCells: new Set(),
       playerTraits: null,
       opponentTraits: null,
+      spAbilitiesUsed: {},
       tick: 0,
     });
   },
@@ -442,6 +447,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (engine.phase !== GamePhase.Playing || engine.currentTurn !== 'player') return;
     if (!canUseAbility(playerAbilities, type)) return;
     playAbilityActivate();
+
+    // Track ability usage for post-game summary (single-player only)
+    set((s) => ({ spAbilitiesUsed: { ...s.spAbilitiesUsed, [type]: (s.spAbilitiesUsed[type] ?? 0) + 1 } }));
 
     // Apply Ironclad/Nimble traits to ability-based shots (same as playerFire)
     const applyTraits = (outcomes: ShotOutcome[]) => {
@@ -774,6 +782,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       revealedCells: new Set(),
       playerTraits: null,
       opponentTraits: null,
+      spAbilitiesUsed: {},
       tick: 0,
     });
   },

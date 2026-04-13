@@ -2,21 +2,55 @@ import { useEffect, useCallback } from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { useSocketStore } from '../../store/socketStore';
 import { playVictoryFanfare, playDefeatTheme } from '../../services/audio';
-import { ABILITY_DEFS } from '@shared/index';
+import { ABILITY_DEFS, CellState } from '@shared/index';
 import type { SerializedShip } from '@shared/sockets';
+import type { Ship, CellGrid } from '@shared/index';
 import { generateShareImage } from '../../services/shareResult';
 
 const GRID = 10;
 const CELL_PX = 18;
 
-function MiniBoard({ ships, label }: { ships: SerializedShip[]; label: string }) {
+function serializeShips(ships: Ship[]): SerializedShip[] {
+  return ships.map((s) => ({
+    type: s.type,
+    cells: s.cells,
+    hits: [...s.hits],
+  }));
+}
+
+function getMissCells(grid: CellGrid): Set<string> {
+  const misses = new Set<string>();
+  for (let r = 0; r < grid.length; r++) {
+    for (let c = 0; c < grid[r].length; c++) {
+      if (grid[r][c] === CellState.Miss || grid[r][c] === CellState.LandRevealed) {
+        misses.add(`${r},${c}`);
+      }
+    }
+  }
+  return misses;
+}
+
+function MiniBoard({ ships, label, missCells }: { ships: SerializedShip[]; label: string; missCells?: Set<string> }) {
   const grid: string[][] = Array.from({ length: GRID }, () => Array(GRID).fill('#150c0c'));
+
+  // Render miss cells first (ships will override)
+  if (missCells) {
+    for (const key of missCells) {
+      const [r, c] = key.split(',').map(Number);
+      if (r >= 0 && r < GRID && c >= 0 && c < GRID) {
+        grid[r][c] = '#3a3a4a'; // grey-blue for miss/land_revealed
+      }
+    }
+  }
+
+  // Render ships on top
   for (const ship of ships) {
     for (const cell of ship.cells) {
       const isHit = ship.hits.includes(`${cell.row},${cell.col}`);
       grid[cell.row][cell.col] = isHit ? '#c41e3a' : '#5d4037';
     }
   }
+
   return (
     <div>
       <div className="text-[#a06820] text-xs uppercase tracking-wider mb-1 text-center" style={{ fontFamily: "'IM Fell English SC', serif" }}>
@@ -44,6 +78,7 @@ export function GameOverScreen() {
   const resetGame = useGameStore((s) => s.resetGame);
   const startNewGame = useGameStore((s) => s.startNewGame);
   const setScreen = useGameStore((s) => s.setScreen);
+  const spAbilitiesUsed = useGameStore((s) => s.spAbilitiesUsed);
 
   // Multiplayer state
   const matchSummary = useSocketStore((s) => s.matchSummary);
@@ -98,8 +133,17 @@ export function GameOverScreen() {
     }
   };
 
-  const abilitiesUsed = matchSummary?.abilitiesUsed;
-  const opponentShips = matchSummary?.opponentShips;
+  // Board reveal data
+  const playerShips = serializeShips(engine.playerBoard.ships);
+  const playerMisses = getMissCells(engine.playerBoard.grid);
+
+  // Opponent ships: use matchSummary (multiplayer full reveal) or engine (single-player)
+  const opponentShips = matchSummary?.opponentShips ?? serializeShips(engine.opponentBoard.ships);
+  const opponentMisses = getMissCells(engine.opponentBoard.grid);
+
+  // Abilities used: server-provided for multiplayer, locally tracked for single-player
+  const abilitiesUsed = gameMode === 'multiplayer' ? matchSummary?.abilitiesUsed : spAbilitiesUsed;
+  const hasAbilities = abilitiesUsed && Object.keys(abilitiesUsed).length > 0;
 
   return (
     <div className="absolute inset-0 bg-black/85 flex items-center justify-center z-50 overflow-y-auto py-4">
@@ -145,19 +189,18 @@ export function GameOverScreen() {
           </div>
         </div>
 
-        {/* Board reveal */}
-        {opponentShips && opponentShips.length > 0 && (
-          <div className="flex justify-center gap-4 mb-4">
-            <MiniBoard ships={opponentShips} label="Opponent's Fleet" />
-          </div>
-        )}
+        {/* Full board reveal — both sides */}
+        <div className="flex justify-center gap-6 mb-4">
+          <MiniBoard ships={playerShips} label="Your Fleet" missCells={playerMisses} />
+          <MiniBoard ships={opponentShips} label="Enemy Fleet" missCells={opponentMisses} />
+        </div>
 
         {/* Abilities used */}
-        {abilitiesUsed && Object.keys(abilitiesUsed).length > 0 && (
+        {hasAbilities && (
           <div className="mb-4 bg-[#4d2e22]/40 rounded p-3 border border-[#8b0000]/20">
             <div className="text-[#a06820] text-xs uppercase tracking-wider mb-2" style={labelStyle}>Abilities Used</div>
             <div className="flex flex-wrap gap-2 justify-center">
-              {Object.entries(abilitiesUsed).map(([type, count]) => {
+              {Object.entries(abilitiesUsed!).map(([type, count]) => {
                 const def = ABILITY_DEFS[type as keyof typeof ABILITY_DEFS];
                 return (
                   <span key={type} className="text-xs text-[#d4c4a1]/80 bg-[#221210]/60 rounded px-2 py-1">
