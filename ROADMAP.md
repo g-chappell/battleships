@@ -226,12 +226,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-019
 - **title:** Add rematch functionality
-- **status:** in-progress
+- **status:** done
 - **priority:** 19
 - **workspaces:** shared, client, server
 - **complexity:** large
 - **depends_on:** [TASK-018]
 - **description:** Add "Rematch" button to GameOverScreen that sends a rematch request via socket. Server creates a new room with the same players. Both players must accept. Add socket events to `sockets.ts`, handle in `gameSocket.ts`, add UI to `GameOverScreen`. Depends on TASK-018 because both tasks modify GameOverScreen — landing the summary enhancement first avoids a merge conflict on that component.
+- **pr:** https://github.com/g-chappell/battleships/pull/23
+- **completed:** 2026-04-13
 
 ---
 
