@@ -162,3 +162,13 @@
 - **Lessons learned:** Simple workflow file — single job named `ci` with steps: checkout, setup-node@v4 (Node 20, npm cache), `npm ci`, tsc type-check, three test suites, client build. No special handling needed for the monorepo structure since npm workspaces work naturally with `npm run test --workspace=X`. Used `actions/checkout@v4` and `actions/setup-node@v4` (latest stable versions).
 - **Self-improvements:** none
 - **New tasks discovered:** none
+
+### Run [2026-04-13 22:05]
+- **Task:** TASK-017 — Mobile viewport improvements for GamePage
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/21
+- **Test counts:** shared 231, server 102, client 184
+- **Files changed:** `client/src/components/ui/GameHUD.tsx`, `client/src/components/ui/AbilityBar.tsx`, `client/src/components/ui/ShipTray.tsx`
+- **Lessons learned:** At 1024x768, existing `sm:` and `md:` breakpoints were already active (1024 > 640/768). Main concern is vertical compactness — 768px height with HUD (72px) + AbilityBar (80px) leaves ~616px game area. ShipTray (~380px) fits fine. Added `lg:` (1024px width) breakpoints to reduce margins (mt-4→lg:mt-2, mb-4→lg:mb-2) and compact ShipTray padding (p-4→lg:p-3). Added `max-h-[calc(100%-24px)] overflow-y-auto` to ShipTray as safety net. Width-based `lg:` breakpoints are appropriate for tablet landscape since 1024px is exactly the target width.
+- **Self-improvements:** none
+- **New tasks discovered:** none
