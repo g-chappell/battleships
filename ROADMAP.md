@@ -180,7 +180,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-016
 - **title:** Add server clans service tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 16
 - **workspaces:** server
 - **complexity:** medium
