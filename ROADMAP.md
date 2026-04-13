@@ -79,11 +79,13 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-007
 - **title:** Add captains definition tests
-- **status:** ready
+- **status:** done
 - **priority:** 7
 - **workspaces:** shared
 - **complexity:** small
 - **description:** Add tests for `captains.ts` — verify `CAPTAIN_DEFS` has entries for all `CAPTAIN_IDS`, each captain has valid ability loadouts (abilities exist in `ABILITY_DEFS`), `DEFAULT_CAPTAIN` is a valid captain ID. Verify no duplicate IDs.
+- **pr:** https://github.com/g-chappell/battleships/pull/10
+- **completed:** 2026-04-13
 
 ### TASK-008
 - **title:** Add settingsStore unit tests

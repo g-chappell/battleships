@@ -16,6 +16,13 @@
 - **Test counts:** shared 209, server 37, client 38
 - **Files changed:** `client/src/__tests__/settingsStore.test.ts` (created)
 - **Lessons learned:** `settingsStore` imports audio functions under aliased names (`setSfxVolume as setAudioSfxVolume`, `setMusicVolume as setAudioMusicVolume`) — the mock must export them under their original names (`setSfxVolume`, `setMusicVolume`) so Vitest resolves them correctly. `loadFromStorage` uses `?? defaultValue` for missing fields, so partial localStorage objects can be tested for fallback behavior. `toggleMusic` conditionally calls `startAmbientLoop` or `stopAmbientLoop` (not both) — tests should assert the non-called function was NOT called.
+### Run [2026-04-13 15:03]
+- **Task:** TASK-007 — Add captains definition tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/10
+- **Test counts:** shared 231, server 37, client 15
+- **Files changed:** `shared/src/__tests__/captains.test.ts` (created)
+- **Lessons learned:** `captains.ts` exports `CAPTAIN_DEFS` (Record with 3 entries), `CAPTAIN_IDS` (array of keys), and `DEFAULT_CAPTAIN` (string literal 'ironbeard'). All three captains have exactly 3 abilities each. Testing that abilities exist in `ABILITY_DEFS` is straightforward via `new Set(Object.values(AbilityType))`. The `CaptainDef` interface has 6 required fields: id, name, title, description, abilities, color.
 - **Self-improvements:** none
 - **New tasks discovered:** none
 
