@@ -147,7 +147,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-012
 - **title:** Add tournamentsStore unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 12
 - **workspaces:** client
 - **complexity:** small
