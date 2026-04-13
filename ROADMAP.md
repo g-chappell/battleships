@@ -197,12 +197,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-014
 - **title:** Add GitHub Actions CI workflow
-- **status:** in-progress
+- **status:** done
 - **priority:** 14
 - **workspaces:** shared, client, server
 - **complexity:** medium
 - **depends_on:** [TASK-013, TASK-015, TASK-016]
 - **description:** Create `.github/workflows/ci.yml` — on push and PR to main, run: TypeScript type-check (`cd client && npx tsc --noEmit`), all three test suites (`npm run test --workspace=shared|server|client`), and client production build (`npm run build --workspace=client`). Use Node 20. Cache node_modules. Depends on all test stories being complete so the CI baseline is meaningful from day one.
+- **pr:** https://github.com/g-chappell/battleships/pull/20
+- **completed:** 2026-04-13
 
 ---
 
