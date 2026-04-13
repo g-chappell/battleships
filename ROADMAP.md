@@ -197,7 +197,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-014
 - **title:** Add GitHub Actions CI workflow
-- **status:** ready
+- **status:** in-progress
 - **priority:** 14
 - **workspaces:** shared, client, server
 - **complexity:** medium
