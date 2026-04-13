@@ -182,3 +182,13 @@
 - **Lessons learned:** GameOverScreen already showed opponent ships (multiplayer only) and abilities used (multiplayer only). The main gap was: (1) player's own board was never shown, (2) miss cells were not rendered on mini-boards, (3) single-player had no ability tracking. For the board reveal, `engine.playerBoard.ships` / `engine.opponentBoard.ships` are always populated (no fog-of-war locally), while `engine.playerBoard.grid` / `engine.opponentBoard.grid` contain CellState values including Miss for rendering shot misses. The `serializeShips` helper converts `Ship[]` (hits as Set<string>) to `SerializedShip[]` (hits as string[]) needed by MiniBoard. Ability tracking in `useAbility` must fire after `canUseAbility()` passes but before the switch — even if an individual execute function returns null, tracking at that point is safe since `canUseAbility` already validated it was executable.
 - **Self-improvements:** none
 - **New tasks discovered:** none
+
+### Run [2026-04-13 23:04]
+- **Task:** TASK-019 — Add rematch functionality
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/23
+- **Test counts:** shared 231, server 107 (+5), client 184
+- **Files changed:** `server/src/__tests__/rooms.test.ts`
+- **Lessons learned:** TASK-019 was already fully implemented before this run — socket events in `sockets.ts`, server handler and `startRematch` in `gameSocket.ts`, client state in `socketStore.ts`, and UI in `GameOverScreen.tsx` (all part of pre-existing code). When a task is "done" but ROADMAP.md says `ready`, check git history carefully before concluding nothing is implemented. The implementation was spread across multiple prior tasks rather than a single dedicated commit. The main gap was test coverage for the rematch data structure in `rooms.ts` — added 5 targeted tests for `rematchRequests` Set initialization and both-players-ready detection.
+- **Self-improvements:** none
+- **New tasks discovered:** none
