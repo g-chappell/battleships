@@ -89,11 +89,13 @@ Lower number = higher priority. Agent picks the lowest-numbered `ready` task.
 
 ### TASK-008
 - **title:** Add settingsStore unit tests
-- **status:** ready
+- **status:** done
 - **priority:** 8
 - **workspaces:** client
 - **complexity:** small
 - **description:** Add tests for the client settingsStore — volume controls (set, get, bounds checking), mute toggle, music toggle. Mock the audio service. Follow existing client test patterns (see `gameStore.test.ts` and `authStore.test.ts` for setup).
+- **pr:** https://github.com/g-chappell/battleships/pull/11
+- **completed:** 2026-04-13
 
 ### TASK-009
 - **title:** Add cosmeticsStore unit tests
