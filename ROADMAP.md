@@ -216,7 +216,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-018
 - **title:** Add post-game match summary enhancement
-- **status:** ready
+- **status:** in-progress
 - **priority:** 18
 - **workspaces:** client, shared
 - **complexity:** medium
