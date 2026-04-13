@@ -132,3 +132,13 @@
 - **Lessons learned:** `replayStore` uses `apiFetchSafe` (returns null on failure) for API path. It also checks `localStorage` first via `localStorage.getItem('battleships_replay_${matchId}')` — tests must mock `localStorage` (using `localStorage.clear()` in beforeEach). The `seek` action rebuilds boards from scratch by replaying all events from index 0 to the target — so seeking backwards works correctly. Fire events apply to the OPPOSITE side's board (p1 fires → p2 board, p2 fires → p1 board). Placement events apply to the NAMED side's board. `play()` uses `setInterval` — must use `vi.useFakeTimers()` with `vi.advanceTimersByTime()` to test interval behavior, and `vi.useRealTimers()` in afterEach. The `playInterval` module-level variable is cleared when `load()` is called again, so testing that a new load stops the previous interval works by checking cursor stays 0.
 - **Self-improvements:** none
 - **New tasks discovered:** none
+
+### Run [2026-04-13 20:05]
+- **Task:** TASK-015 — Add server tournament service tests
+- **Outcome:** success
+- **PR:** https://github.com/g-chappell/battleships/pull/18
+- **Test counts:** shared 231, server 69 (+32), client 184
+- **Files changed:** `server/src/__tests__/tournaments.test.ts` (created, 32 tests)
+- **Lessons learned:** Server services that use Prisma require `vi.hoisted()` to define mock objects before `vi.mock()` factory runs — the factory is hoisted to the top of the file by Vitest, so plain `const mockX = { fn: vi.fn() }` declarations are not yet initialized when the factory executes. Use `vi.hoisted(() => ({ ... }))` and destructure the result. Mocking `../services/db.ts` covers both `tournaments.ts` and `gold.ts` since both import `prisma` from that module — no need to separately mock gold.ts. The `safeDb` wrapper returns null on any thrown error, so DB-unavailable tests simply need `mockX.mockRejectedValue(new Error(...))`. `startTournamentInternal` (called when last player joins) requires chaining `mockTournament.findUnique.mockResolvedValueOnce(...)` for the second call — use `mockResolvedValueOnce` in sequence.
+- **Self-improvements:** none
+- **New tasks discovered:** none
