@@ -12,5 +12,53 @@
       "TodoWrite(*)",
       "Agent(*)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=j.tool_input?.file_path||j.tool_response?.filePath||'';if(/\\.(ts|tsx)$/.test(f)){process.exit(0)}else{process.exit(1)}})\" && cd C:/claude/battleships/client && npx tsc --noEmit 2>&1 | head -20 || true",
+            "timeout": 30,
+            "statusMessage": "Type-checking..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=j.tool_input?.file_path||j.tool_response?.filePath||'';if(f.includes('/shared/') && /\\.(ts|tsx)$/.test(f)){process.exit(0)}else{process.exit(1)}})\" && cd C:/claude/battleships && npm run test --workspace=shared 2>&1 | tail -10 || true",
+            "timeout": 30,
+            "statusMessage": "Running shared tests..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=j.tool_input?.file_path||j.tool_response?.filePath||'';if(f.includes('/server/') && /\\.(ts|tsx)$/.test(f)){process.exit(0)}else{process.exit(1)}})\" && cd C:/claude/battleships && npm run test --workspace=server 2>&1 | tail -10 || true",
+            "timeout": 30,
+            "statusMessage": "Running server tests..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const j=JSON.parse(d);const f=j.tool_input?.file_path||j.tool_response?.filePath||'';if(f.includes('/shared/') && /\\.(ts|tsx)$/.test(f)){process.exit(0)}else{process.exit(1)}})\" && cd C:/claude/battleships/client && npx tsc --noEmit 2>&1 | head -20 || true",
+            "timeout": 30,
+            "statusMessage": "Type-checking client after shared change..."
+          }
+        ]
+      }
+    ]
   }
 }
