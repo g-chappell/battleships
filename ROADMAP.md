@@ -240,7 +240,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-017
 - **title:** Mobile viewport improvements for GamePage
-- **status:** ready
+- **status:** in-progress
 - **priority:** 17
 - **workspaces:** client
 - **complexity:** medium
