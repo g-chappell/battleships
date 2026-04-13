@@ -147,11 +147,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-012
 - **title:** Add tournamentsStore unit tests
-- **status:** ready
+- **status:** done
 - **priority:** 12
 - **workspaces:** client
 - **complexity:** small
 - **description:** Add tests for the client tournamentsStore — tournament listing, joining a tournament, bracket state management, status transitions. Mock API calls.
+- **pr:** https://github.com/g-chappell/battleships/pull/16
+- **completed:** 2026-04-13
 
 #### TASK-013
 - **title:** Add replayStore unit tests
