@@ -312,7 +312,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-042
 - **title:** Add shadcn Toast for notifications and achievement popups
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
