@@ -272,11 +272,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-021
 - **title:** Add persistence service unit tests
-- **status:** ready
+- **status:** done
 - **priority:** 21
 - **workspaces:** server
 - **complexity:** medium
 - **description:** Add tests for `server/src/services/persistence.ts` — match recording (all fields persisted), ELO update applied to both players after ranked match, guest players skipped gracefully, replay storage and retrieval. Mock Prisma with `vi.hoisted()` pattern.
+- **pr:** https://github.com/g-chappell/battleships/pull/25
+- **completed:** 2026-04-14
 
 #### TASK-026
 - **title:** Add seasons service unit tests
