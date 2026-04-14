@@ -337,12 +337,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-044
 - **title:** Audit and fix Dashboard + Leaderboard + Profile brand consistency
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **depends_on:** [TASK-043]
 - **description:** Review `Dashboard.tsx`, `Leaderboard.tsx`, and `Profile.tsx` against the brand-guidelines skill. These stats-heavy pages often have inconsistent table styling, stray colors, and mixed font usage. Ensure all data tables, stat cards, and ranking lists use `Card` component with `panel-glow`, text is `bone`/`parchment`, numbers use `font-label`, and headings use `font-pirate`. Fix any deviations. Run `verify-ui` skill.
+- **pr:** https://github.com/g-chappell/battleships/pull/37
+- **completed:** 2026-04-14
 
 #### TASK-045
 - **title:** Audit and fix Shop + Campaign + Tournaments brand consistency

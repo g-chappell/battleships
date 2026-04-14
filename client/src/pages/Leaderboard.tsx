@@ -7,6 +7,7 @@ import { FONT_STYLES } from '../styles/fonts';
 import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 
 interface LeaderboardEntry {
   rank: number;
@@ -66,28 +67,20 @@ export function Leaderboard() {
       {/* Season switcher + countdown */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="flex gap-2">
-          <button
+          <Button
+            variant={selectedSeasonId === 'active' ? 'primary' : 'secondary'}
+            size="sm"
             onClick={() => selectSeason('active')}
-            className={`px-4 py-1.5 rounded-full text-sm transition ${
-              selectedSeasonId === 'active'
-                ? 'bg-gradient-to-b from-blood-bright to-blood text-bone'
-                : 'bg-coal/60 text-parchment/70 border border-mahogany-light hover:bg-mahogany-light/60'
-            }`}
-            style={FONT_STYLES.labelSC}
           >
             Current Season
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={selectedSeasonId === 'lifetime' ? 'primary' : 'secondary'}
+            size="sm"
             onClick={() => selectSeason('lifetime')}
-            className={`px-4 py-1.5 rounded-full text-sm transition ${
-              selectedSeasonId === 'lifetime'
-                ? 'bg-gradient-to-b from-blood-bright to-blood text-bone'
-                : 'bg-coal/60 text-parchment/70 border border-mahogany-light hover:bg-mahogany-light/60'
-            }`}
-            style={FONT_STYLES.labelSC}
           >
             Lifetime
-          </button>
+          </Button>
         </div>
         {activeSeason && selectedSeasonId === 'active' && timeLeft && (
           <div className="px-4 py-1.5 rounded-full bg-coal/60 border border-gold/50 text-gold text-xs" style={FONT_STYLES.labelSC}>
@@ -144,9 +137,9 @@ export function Leaderboard() {
                     >
                       <td className="px-2 md:px-4 py-2 md:py-3">
                         <span className={`text-base md:text-lg font-bold ${
-                          entry.rank === 1 ? 'text-[#f5a845]' :
-                          entry.rank === 2 ? 'text-[#c0c0c0]' :
-                          entry.rank === 3 ? 'text-[#cd7f32]' :
+                          entry.rank === 1 ? 'text-gold' :
+                          entry.rank === 2 ? 'text-parchment' :
+                          entry.rank === 3 ? 'text-copper' :
                           'text-parchment'
                         }`} style={FONT_STYLES.pirate}>
                           #{entry.rank}
@@ -158,7 +151,7 @@ export function Leaderboard() {
                         </span>
                       </td>
                       <td className="px-2 md:px-4 py-2 md:py-3 text-right text-gold font-bold" style={FONT_STYLES.pirate}>{entry.rating}</td>
-                      <td className="px-2 md:px-4 py-2 md:py-3 text-right text-[#2ecc71]">{entry.wins}</td>
+                      <td className="px-2 md:px-4 py-2 md:py-3 text-right text-gold">{entry.wins}</td>
                       <td className="hidden md:table-cell px-4 py-3 text-right text-blood-bright">{entry.losses}</td>
                       <td className="hidden md:table-cell px-4 py-3 text-right text-parchment">{entry.winRate}%</td>
                     </tr>
