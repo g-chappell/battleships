@@ -272,7 +272,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-021
 - **title:** Add persistence service unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 21
 - **workspaces:** server
 - **complexity:** medium
