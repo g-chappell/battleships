@@ -514,7 +514,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-027
 - **title:** Add achievementsStore unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
