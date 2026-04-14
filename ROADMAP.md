@@ -564,11 +564,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-032
 - **title:** Add apiClient service unit tests
-- **status:** in-progress
+- **status:** done
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
 - **description:** Add tests for `client/src/services/apiClient.ts` — `ApiError` construction (status, message, data fields), `apiFetch` attaches auth header when token present, throws `ApiError` on non-2xx responses, `apiFetchSafe` returns null on any error without throwing.
+- **pr:** https://github.com/g-chappell/battleships/pull/49
+- **completed:** 2026-04-14
 
 ---
 
