@@ -290,7 +290,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-040
 - **title:** Add shadcn Tooltip to replace custom CSS tooltips
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** small
