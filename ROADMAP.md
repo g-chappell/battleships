@@ -412,11 +412,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-037
 - **title:** Add socket reconnection with exponential backoff
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **description:** `socketStore.ts` currently has no retry logic — a single disconnect ends the multiplayer session. Add exponential backoff reconnection (initial 1s, double each attempt, cap at 30s, max 5 attempts) with a visible "Reconnecting…" status in the UI. On max-attempts exceeded, show a "Connection lost — return to menu" message. Do not add reconnection for intentional disconnects (logout, navigate away).
+- **pr:** https://github.com/g-chappell/battleships/pull/30
+- **completed:** 2026-04-14
 
 ---
 
