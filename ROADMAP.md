@@ -514,11 +514,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-027
 - **title:** Add achievementsStore unit tests
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
 - **description:** Add tests for `client/src/store/achievementsStore.ts` — `checkAchievements` unlocks the correct achievement when conditions are met, does not double-unlock, stores unlocked IDs. Mock audio service. Follow existing client test patterns.
+- **pr:** https://github.com/g-chappell/battleships/pull/43
+- **completed:** 2026-04-14
 
 #### TASK-028
 - **title:** Add clanStore unit tests
