@@ -359,12 +359,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-046
 - **title:** Audit and fix Clans + Friends + Guide pages brand consistency
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **depends_on:** [TASK-043]
 - **description:** Review `Clans.tsx`, `Friends.tsx`, and `GuidePage.tsx` against the brand-guidelines skill. Check chat panels use consistent styling, friend list items use `Card` with hover states, guide sections use proper heading hierarchy with `font-pirate`. Ensure all interactive elements (join/leave/invite buttons) use the `Button` component with appropriate variants. Fix any deviations. Run `verify-ui` skill.
+- **pr:** https://github.com/g-chappell/battleships/pull/39
+- **completed:** 2026-04-14
 
 ---
 
