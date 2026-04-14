@@ -524,11 +524,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-028
 - **title:** Add clanStore unit tests
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** client
 - **complexity:** medium
 - **description:** Add tests for `client/src/store/clanStore.ts` — create clan (success sets current clan, error sets error state), join clan, leave clan, fetch chat messages, send chat message. Mock `apiFetch`/`apiFetchSafe` and audio service.
+- **pr:** https://github.com/g-chappell/battleships/pull/44
+- **completed:** 2026-04-14
 
 #### TASK-029
 - **title:** Add friendsStore unit tests
