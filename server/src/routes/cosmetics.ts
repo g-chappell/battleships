@@ -61,28 +61,38 @@ cosmeticsRouter.post('/buy', authMiddleware, async (req, res) => {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        include: { cosmetics: { where: { cosmeticId } } },
+      const owned = await tx.userCosmetic.findUnique({
+        where: { userId_cosmeticId: { userId, cosmeticId } },
       });
-      if (!user) throw new Error('User not found');
-      if (user.cosmetics.length > 0) throw new Error('Already owned');
-      if (user.gold < def.price) throw new Error('Insufficient gold');
+      if (owned) throw new Error('Already owned');
 
-      await tx.user.update({
-        where: { id: userId },
-        data: { gold: { decrement: def.price } },
-      });
+      // Atomic check-and-deduct: only succeeds if gold >= price in a single SQL statement,
+      // preventing a race condition where two concurrent requests both pass a balance check.
+      let updatedUser: { gold: number } | null = null;
+      try {
+        updatedUser = await tx.user.update({
+          where: { id: userId, gold: { gte: def.price } },
+          data: { gold: { decrement: def.price } },
+          select: { gold: true },
+        });
+      } catch {
+        return null; // Insufficient gold or user not found
+      }
+
       await tx.userCosmetic.create({
         data: { userId, cosmeticId: def.id, kind: def.kind },
       });
-      return { newBalance: user.gold - def.price };
+      return { newBalance: updatedUser.gold };
     });
 
+    if (result === null) {
+      res.status(400).json({ error: 'Insufficient gold' });
+      return;
+    }
     res.json({ ok: true, newBalance: result.newBalance });
   } catch (err) {
     const msg = (err as Error).message;
-    if (msg === 'Insufficient gold' || msg === 'Already owned') {
+    if (msg === 'Already owned') {
       res.status(400).json({ error: msg });
       return;
     }

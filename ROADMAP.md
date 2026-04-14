@@ -527,3 +527,69 @@ Each task entry uses these fields (agent-writable fields marked †):
 - **workspaces:** client
 - **complexity:** small
 - **description:** Add tests for `client/src/services/apiClient.ts` — `ApiError` construction (status, message, data fields), `apiFetch` attaches auth header when token present, throws `ApiError` on non-2xx responses, `apiFetchSafe` returns null on any error without throwing.
+
+---
+
+## Epic: Bug Fixes & Security
+> Targeted fixes for known correctness issues discovered during codebase review.
+
+### Story: Server Correctness
+
+#### TASK-022
+- **title:** Fix cosmetics purchase race condition
+- **status:** done
+- **priority:** 22
+- **workspaces:** server
+- **complexity:** small
+- **description:** The `POST /cosmetics/buy` handler reads gold balance then deducts in two separate queries — two concurrent requests can both pass the balance check. Wrap the check-and-deduct in a Prisma `$transaction` with a conditional update (`WHERE gold >= price`) that returns the updated row or null. Return 400 if the transaction returns null (insufficient gold after atomic check).
+- **pr:** https://github.com/g-chappell/battleships/pull/27
+- **completed:** 2026-04-14
+
+### Story: Input Validation
+
+#### TASK-033
+- **title:** Add email format validation on register
+- **status:** ready
+- **priority:** 33
+- **workspaces:** client, server
+- **complexity:** small
+- **description:** The register flow currently accepts any string as an email. Add a simple regex check (`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`) server-side in `auth.ts` (return 400 on invalid format) and a matching inline validation message client-side on the register form before submission.
+
+#### TASK-034
+- **title:** Add rate limiting to clan chat messages
+- **status:** ready
+- **priority:** 34
+- **workspaces:** server
+- **complexity:** small
+- **description:** Game chat already enforces a 5-message/10-second rate limit in `gameSocket.ts`. Apply the same pattern to the clan chat endpoint in `server/src/services/clans.ts` or the socket handler — track per-user message timestamps and reject if the limit is exceeded.
+
+---
+
+## Epic: Client Resilience
+> Defensive improvements to prevent silent failures and improve recovery from transient errors.
+
+### Story: Error Handling & Recovery
+
+#### TASK-035
+- **title:** Add React error boundaries to GamePage and Three.js canvas
+- **status:** ready
+- **priority:** 35
+- **workspaces:** client
+- **complexity:** small
+- **description:** Unhandled errors in the Three.js R3F canvas or GamePage currently crash the entire app. Wrap `GamePage` and the `<Canvas>` component in an `ErrorBoundary` class component that renders a "Something went wrong — return to menu" fallback. Do not add error boundaries to every component — only the two highest-risk render trees.
+
+#### TASK-036
+- **title:** Add AudioContext cleanup on page unload
+- **status:** ready
+- **priority:** 36
+- **workspaces:** client
+- **complexity:** small
+- **description:** The Web Audio API `AudioContext` and any live oscillators/buffers are never closed when the user leaves the page. Add a `beforeunload` event listener in `client/src/services/audio.ts` that calls `audioContext.close()` to release resources and prevent oscillator leaks in browser profiles.
+
+#### TASK-037
+- **title:** Add socket reconnection with exponential backoff
+- **status:** ready
+- **priority:** 37
+- **workspaces:** client
+- **complexity:** medium
+- **description:** `socketStore.ts` currently has no retry logic — a single disconnect ends the multiplayer session. Add exponential backoff reconnection (initial 1s, double each attempt, cap at 30s, max 5 attempts) with a visible "Reconnecting…" status in the UI. On max-attempts exceeded, show a "Connection lost — return to menu" message. Do not add reconnection for intentional disconnects (logout, navigate away).
