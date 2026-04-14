@@ -312,12 +312,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-042
 - **title:** Add shadcn Toast for notifications and achievement popups
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **depends_on:** [TASK-038]
 - **description:** `AchievementToast` (`client/src/components/ui/AchievementToast.tsx`) is a custom notification component with CSS animations. Install shadcn `Sonner` (toast library). Replace `AchievementToast` with a themed Sonner toast. Also use for system messages (connection lost, matchmaking found, gold earned). Style toasts with `coal` background, `gold` accent border, `bone` text, and the existing `slideInRight` animation. Follow brand-guidelines skill.
+- **pr:** https://github.com/g-chappell/battleships/pull/35
+- **completed:** 2026-04-14
 
 ### Story: Page-Level Brand Audit
 > Systematically audit each page for brand guideline adherence — correct fonts, colors, spacing, and component usage. Fix inconsistencies.
