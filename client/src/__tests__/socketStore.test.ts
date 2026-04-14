@@ -294,20 +294,26 @@ describe('socketStore — connect setup', () => {
   });
 
   it('connect() skips creating new socket when existing socket is already connected', () => {
-    mockSocket.connected = true;
-    useSocketStore.setState({ socket: mockSocket as unknown as ReturnType<typeof makeSocket> });
-    const secondSocket = makeSocket();
-    mockIo.mockReturnValue(secondSocket);
+    // First connect places mockSocket in state
     useSocketStore.getState().connect('token');
-    // io() should NOT have been called because socket is already connected
+    // Mark mock as connected, then clear call count
+    mockSocket.connected = true;
+    mockIo.mockClear();
+    // Second connect() should bail early because socket.connected is true
+    useSocketStore.getState().connect('other-token');
     expect(mockIo).not.toHaveBeenCalled();
   });
 
   it('connect() disconnects existing unconnected socket before creating a new one', () => {
-    const oldSocket = makeSocket();
-    useSocketStore.setState({ socket: oldSocket as unknown as ReturnType<typeof makeSocket> });
-    useSocketStore.getState().connect('token');
-    expect(oldSocket.disconnect).toHaveBeenCalled();
+    // First connect places mockSocket in state (connected=false)
+    useSocketStore.getState().connect('first-token');
+    const firstSocket = mockSocket;
+    // Prepare a new socket for the second io() call
+    const secondSocket = makeSocket();
+    mockIo.mockReturnValue(secondSocket);
+    // Second connect() — existing socket has connected=false, so it gets disconnected
+    useSocketStore.getState().connect('second-token');
+    expect(firstSocket.disconnect).toHaveBeenCalled();
   });
 });
 
