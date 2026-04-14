@@ -57,11 +57,11 @@ export function CampaignMap() {
               <div className="flex items-center justify-between">
                 <div className="text-base">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <span key={i} className={i < stars ? 'text-gold' : 'text-mahogany-light'}>★</span>
+                    <span key={i} className={i < stars ? 'text-gold' : 'text-parchment/40'}>★</span>
                   ))}
                 </div>
                 <div className={`text-xs uppercase ${
-                  mission.difficulty === 'easy' ? 'text-[#2ecc71]' :
+                  mission.difficulty === 'easy' ? 'text-parchment' :
                   mission.difficulty === 'medium' ? 'text-gold' :
                   'text-blood-bright'
                 }`} style={FONT_STYLES.labelSC}>

@@ -348,12 +348,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-045
 - **title:** Audit and fix Shop + Campaign + Tournaments brand consistency
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **depends_on:** [TASK-043]
 - **description:** Review `Shop.tsx`, `CampaignMap.tsx`, and `Tournaments.tsx` against the brand-guidelines skill. These content-rich pages need consistent card grids, pricing displays, and progress indicators. Ensure cosmetic cards use `Card` with `panel-border`, gold prices use `text-gold` with `font-label`, star ratings use `text-gold`/`text-parchment`, and tournament brackets use `mahogany` backgrounds with `blood` active-state borders. Fix any deviations. Run `verify-ui` skill.
+- **pr:** https://github.com/g-chappell/battleships/pull/38
+- **completed:** 2026-04-14
 
 #### TASK-046
 - **title:** Audit and fix Clans + Friends + Guide pages brand consistency

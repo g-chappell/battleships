@@ -17,7 +17,7 @@ const TABS: { kind: CosmeticKind; label: string }[] = [
 
 const RARITY_COLOR: Record<string, string> = {
   common: '#a06820',
-  rare: '#8ab0d4',
+  rare: '#b87333',
   legendary: '#d4a040',
 };
 
@@ -67,18 +67,14 @@ export function Shop() {
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
         {TABS.map((t) => (
-          <button
+          <Button
             key={t.kind}
+            variant={tab === t.kind ? 'primary' : 'secondary'}
+            size="sm"
             onClick={() => setTab(t.kind)}
-            className={`px-5 py-2 rounded-full text-sm transition-all ${
-              tab === t.kind
-                ? 'bg-gradient-to-b from-blood-bright to-blood text-bone shadow-md shadow-blood-bright/30'
-                : 'bg-coal/60 text-parchment/70 border border-mahogany-light hover:bg-mahogany-light/60'
-            }`}
-            style={FONT_STYLES.labelSC}
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 
