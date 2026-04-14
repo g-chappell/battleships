@@ -534,11 +534,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-029
 - **title:** Add friendsStore unit tests
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
 - **description:** Add tests for `client/src/store/friendsStore.ts` — send friend request, accept/reject incoming request, remove friend, localStorage fallback when API unavailable. Mock `apiFetch`/`apiFetchSafe` and audio service.
+- **pr:** https://github.com/g-chappell/battleships/pull/45
+- **completed:** 2026-04-14
 
 #### TASK-030
 - **title:** Add seasonsStore unit tests
