@@ -389,7 +389,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-033
 - **title:** Add email format validation on register
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client, server
 - **complexity:** small
