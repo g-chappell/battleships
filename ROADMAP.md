@@ -499,11 +499,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-025
 - **title:** Add cosmetics route unit tests
-- **status:** in-progress
+- **status:** done
 - **priority:** med
 - **workspaces:** server
 - **complexity:** small
 - **description:** Add tests for `server/src/routes/cosmetics.ts` — buy (success deducts gold, insufficient gold returns 400, already owned returns 400), equip (success, not owned returns 403), list owned cosmetics. Mock Prisma with `vi.hoisted()` pattern.
+- **pr:** https://github.com/g-chappell/battleships/pull/41
+- **completed:** 2026-04-14
 
 ### Story: Remaining Client Store Tests
 > Unit tests for the five client Zustand stores that had no coverage after the initial client store testing epic, plus the `apiClient` service.
