@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 /*
  * Design tokens exposed as Tailwind v4 @theme variables.
@@ -27,11 +31,12 @@
 }
 
 /*
- * Legacy CSS variables — kept for hand-written CSS that references
- * var(--color-*). New code should prefer Tailwind utilities generated
- * from the @theme block above.
+ * shadcn CSS variables — mapped to the pirate palette.
+ * These are consumed by shadcn components (Button, Dialog, etc.)
+ * via the @theme inline block below.
  */
 :root {
+  /* Legacy color vars — kept for hand-written CSS using var(--color-*) */
   --color-blood: #8b0000;
   --color-blood-dark: #5c0000;
   --color-blood-bright: #c41e3a;
@@ -46,6 +51,40 @@
   --color-bone: #e8dcc8;
   --color-parchment: #d4c4a1;
   --color-rust: #8b3a1c;
+
+  /* shadcn semantic tokens → pirate palette */
+  --background: #150c0c;       /* pitch */
+  --foreground: #e8dcc8;       /* bone */
+  --card: #221210;             /* coal */
+  --card-foreground: #e8dcc8;  /* bone */
+  --popover: #221210;          /* coal */
+  --popover-foreground: #e8dcc8; /* bone */
+  --primary: #8b0000;          /* blood */
+  --primary-foreground: #e8dcc8; /* bone */
+  --secondary: #3a1e18;        /* mahogany */
+  --secondary-foreground: #e8dcc8; /* bone */
+  --muted: #3a1e18;            /* mahogany */
+  --muted-foreground: #d4c4a1; /* parchment */
+  --accent: #d4a040;           /* gold */
+  --accent-foreground: #150c0c; /* pitch */
+  --destructive: #c41e3a;      /* blood-bright */
+  --border: #4d2e22;           /* mahogany-light */
+  --input: #4d2e22;            /* mahogany-light */
+  --ring: #d4a040;             /* gold */
+  --chart-1: #8b0000;          /* blood */
+  --chart-2: #d4a040;          /* gold */
+  --chart-3: #b87333;          /* copper */
+  --chart-4: #a06820;          /* aged-gold */
+  --chart-5: #8b3a1c;          /* rust */
+  --radius: 0.375rem;
+  --sidebar: #221210;          /* coal */
+  --sidebar-foreground: #e8dcc8; /* bone */
+  --sidebar-primary: #8b0000;  /* blood */
+  --sidebar-primary-foreground: #e8dcc8; /* bone */
+  --sidebar-accent: #3a1e18;   /* mahogany */
+  --sidebar-accent-foreground: #e8dcc8; /* bone */
+  --sidebar-border: #4d2e22;   /* mahogany-light */
+  --sidebar-ring: #d4a040;     /* gold */
 }
 
 * {
@@ -111,4 +150,57 @@ button {
 
 .panel-border {
   border: 1px solid rgba(139, 0, 0, 0.6);
+}
+
+/*
+ * shadcn @theme inline — maps CSS vars to Tailwind color utilities.
+ * Uses pirate fonts instead of Geist.
+ */
+@theme inline {
+  --font-heading: var(--font-pirate);
+  --font-sans: var(--font-body);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
 }

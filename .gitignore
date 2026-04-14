@@ -40,6 +40,9 @@ coverage/
 server/prisma/*.db
 server/prisma/*.db-journal
 
+# Standalone artifacts (web-artifacts-builder skill output)
+/artifacts/
+
 # Misc
 .cache/
 .parcel-cache/
