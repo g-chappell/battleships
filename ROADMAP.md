@@ -455,11 +455,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-023
 - **title:** Add auth route unit tests
-- **status:** ready
-- **priority:** med
+- **status:** done
+- **priority:** 23
 - **workspaces:** server
 - **complexity:** medium
 - **description:** Add tests for `server/src/routes/auth.ts` — register (success, duplicate username, missing fields, short password), login (correct password issues JWT, wrong password returns 401, unknown user returns 401), guest token endpoint. Mock bcrypt and Prisma.
+- **pr:** https://github.com/g-chappell/battleships/pull/28
+- **completed:** 2026-04-14
 
 #### TASK-024
 - **title:** Add leaderboard route unit tests
