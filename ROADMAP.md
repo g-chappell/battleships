@@ -566,3 +566,418 @@ Each task entry uses these fields (agent-writable fields marked †):
 - **complexity:** small
 - **description:** Add tests for `client/src/services/apiClient.ts` — `ApiError` construction (status, message, data fields), `apiFetch` attaches auth header when token present, throws `ApiError` on non-2xx responses, `apiFetchSafe` returns null on any error without throwing.
 
+---
+
+## Epic: Gameplay Correctness & E2E Harness
+> The engine code reads clean, but users have observed hit-recording and ability-conflict bugs in live matches. There is no end-to-end test harness today — unit tests cover shared/server/client in isolation but nothing exercises the full UI↔socket↔engine loop. This epic adds a Playwright-based E2E workspace, property-based engine fuzzing, and scripted server/engine tests that protect the ability→trait→stale-fix pipeline. Bugs surfaced by the new harness are fixed as they're found. Highest-priority epic — gameplay correctness gates everything else.
+
+### Story: End-to-end test workspace
+
+#### TASK-047
+- **title:** Scaffold e2e workspace with Playwright + CI integration
+- **status:** ready
+- **priority:** high
+- **workspaces:** e2e
+- **complexity:** large
+- **description:** Create a new top-level `e2e/` workspace using Playwright. Add to root `package.json` workspaces. Configure Playwright to start client + server (via `npm run dev` with `wait-on` or docker-compose) before the suite, tear down after. Provide fixtures: `registeredUser` (seeds DB + logs in), `guestUser`, `socketReady` helper that waits for game-state events. Extend `.github/workflows/ci.yml` with an `e2e` job that depends on unit tests passing and must pass before merge. Document running locally in `e2e/README.md`.
+
+#### TASK-048
+- **title:** E2E test — complete a full singleplayer match against Easy AI
+- **status:** ready
+- **priority:** high
+- **workspaces:** e2e
+- **complexity:** medium
+- **depends_on:** [TASK-047]
+- **description:** Playwright scenario: launch campaign or singleplayer mode, place all 5 ships via the UI, fire at every enemy cell sequentially (derive targets from a deterministic AI opponent seed), assert each of the 5 ships is reported sunk on the HUD, assert GameOverScreen renders with a win, assert accuracy stats render with correct numerator/denominator. Use `data-testid` selectors on board cells and ship status indicators — add them where missing.
+
+#### TASK-049
+- **title:** E2E test — ability rotation with hit/miss/sunk assertion per activation
+- **status:** ready
+- **priority:** high
+- **workspaces:** e2e
+- **complexity:** medium
+- **depends_on:** [TASK-047]
+- **description:** Playwright scenario: configure a match where each of the 7 abilities (CannonBarrage, SonarPing, SmokeScreen, RepairKit, ChainShot, Spyglass, BoardingParty) is activated in sequence against a known AI ship layout (seeded opponent). After each ability activation, read the HUD's hit count, miss count, and sunk ship count; assert they match the expected values for that ability against the known layout. This is the primary regression test for the user's reported "hit recorded as miss" bug.
+
+#### TASK-050
+- **title:** E2E test — full multiplayer match across two browser contexts
+- **status:** ready
+- **priority:** high
+- **workspaces:** e2e
+- **complexity:** large
+- **depends_on:** [TASK-048]
+- **description:** Playwright scenario using two browser contexts (two registered users). Both join matchmaking, get paired, both place ships, play a scripted match to completion. Assert both sides see consistent outcome state (winner, final board reveal, accuracy stats). Assert the rematch flow still works: both accept → new game begins with same players. Covers socket sync regressions.
+
+### Story: Engine invariants
+
+#### TASK-051
+- **title:** Add property-based fuzz tests on GameEngine
+- **status:** ready
+- **priority:** high
+- **workspaces:** shared
+- **complexity:** medium
+- **description:** Add `fast-check` (or equivalent) to shared tests. Generate random sequences of shots and ability activations against a seeded board. Assert invariants after every step: `ship.hits.size <= ship.size`, sunk iff all cells hit, `turnCount` monotonic, no cell registers twice, grid state consistent with ship.hits. Run 1000+ iterations in CI.
+
+#### TASK-052
+- **title:** Add scripted play-to-completion tests covering trait + ability interactions
+- **status:** ready
+- **priority:** high
+- **workspaces:** shared, server
+- **complexity:** medium
+- **description:** Add tests that drive `GameEngine` directly in shared, and `rooms.ts` directly in server, playing matches to completion with combinations of traits (Ironclad/Spotter/Nimble/Swift) and abilities (all 7). Assert final stats, ability cooldowns, trait one-shots, and sunk counts are correct. Protects the server-side ability→trait→stale-fix pipeline (`rooms.ts:applyTraits` + `abilities.ts` stale-outcome fix).
+
+### Story: Bug fixes from the harness
+
+#### TASK-053
+- **title:** Reproduce and fix hit-recording / ability-conflict bugs found by the harness
+- **status:** ready
+- **priority:** high
+- **workspaces:** shared, server, client
+- **complexity:** medium
+- **depends_on:** [TASK-049, TASK-051]
+- **description:** Any hit-recording or ability-conflict bugs surfaced by TASK-049 (UI-level) or TASK-051 (engine-level) are root-caused and fixed here. Scope limited to bugs the harness actually reproduces — do not guess. The tests that exposed each bug become the regression guard. If no bugs reproduce, close this task with a note and keep the harness as the ongoing safety net.
+
+---
+
+## Epic: Top-Right Controls & Settings Modal Rebuild
+> Users report the existing floating settings and mute buttons overlap the in-game narrative panel, and the SettingsModal layout feels cramped. Also missing: quick access to Profile and Logout. This epic introduces a single top-right control cluster (Profile / Settings / Sound / Logout) rendered at app root, and rebuilds the SettingsModal with proper section spacing.
+
+### Story: Top-right HUD
+
+#### TASK-054
+- **title:** Build TopRightControls cluster (Profile / Settings / Sound / Logout)
+- **status:** ready
+- **priority:** high
+- **workspaces:** client
+- **complexity:** medium
+- **description:** Create `client/src/components/ui/TopRightControls.tsx` — fixed top-right icon cluster containing Profile, Settings, Sound (mute toggle), and Logout buttons. Mount at app root, above page content, z-indexed above game HUD and narrative panel. Replaces the existing ad-hoc floating settings + mute buttons (remove the old ones). Profile button is hidden for guests; Logout is hidden for guests. Use shadcn `Tooltip` on each icon. Follow `brand-guidelines` skill.
+
+#### TASK-055
+- **title:** Fix in-game narrative / HUD collisions with new top-right cluster
+- **status:** ready
+- **priority:** high
+- **workspaces:** client
+- **complexity:** small
+- **depends_on:** [TASK-054]
+- **description:** Audit GamePage narrative panel, AbilityBar, and HUD for any visual overlap with the new top-right cluster. Adjust narrative panel position/sizing so controls remain visible and clickable during missions. Verify via `verify-ui` skill at desktop and tablet widths.
+
+### Story: Settings modal rebuild
+
+#### TASK-056
+- **title:** Rebuild SettingsModal layout with proper spacing and sections
+- **status:** ready
+- **priority:** high
+- **workspaces:** client
+- **complexity:** medium
+- **description:** Rework `SettingsModal.tsx` — organize controls into labeled sections (Audio, Display) using shadcn `Dialog` + `Separator`. Increase vertical spacing between controls. Ensure the Dialog has explicit max-width and the Close action does not overlap the last control. Preserve all existing functionality (master volume, sfx volume, music volume, mute toggle, music toggle). Verify via `verify-ui` skill.
+
+---
+
+## Epic: Auth — Username Login & Password Recovery
+> The `User` model already has a unique `username` field but login is email-only. Password recovery has zero scaffolding. This epic adds username-or-email login, a registration username field, and in-app security-question-based password recovery (no SMTP dependency).
+
+### Story: Username-or-email login
+
+#### TASK-057
+- **title:** Login accepts username OR email
+- **status:** ready
+- **priority:** high
+- **workspaces:** server, client
+- **complexity:** small
+- **description:** Replace the email field on login with a single "Username or email" field. Server: look up `User.username` first, fall back to `email`. Update `POST /auth/login` in `server/src/routes/auth.ts`, `authStore.login` in client, and the login form in `AuthPage.tsx`. Error messaging stays generic ("Invalid credentials") to avoid username enumeration.
+
+#### TASK-058
+- **title:** Register form requires a username
+- **status:** ready
+- **priority:** high
+- **workspaces:** server, client
+- **complexity:** small
+- **depends_on:** [TASK-057]
+- **description:** Add a username input to the register form. Validate client-side (length 3–20, alphanumeric + underscore). Server-side: enforce uniqueness (username is already unique in the schema); return 400 on conflict with a distinct error code from email conflict.
+
+### Story: Password recovery via security questions
+
+#### TASK-059
+- **title:** Add SecurityQuestion model + predefined question bank
+- **status:** ready
+- **priority:** high
+- **workspaces:** server, shared
+- **complexity:** medium
+- **description:** Add `SecurityQuestion` Prisma model (`id`, `userId`, `questionKey`, `answerHash`, `createdAt`) with unique (userId, questionKey). Create a predefined question bank in `shared/src/securityQuestions.ts` (~10 questions like "First pet's name", etc.). At register, require the user to pick two distinct questions and answer each; answers hashed with bcrypt before storage. Add migration. Update register endpoint + form.
+
+#### TASK-060
+- **title:** Password recovery flow (identify → answer questions → reset)
+- **status:** ready
+- **priority:** high
+- **workspaces:** server, client
+- **complexity:** medium
+- **depends_on:** [TASK-059]
+- **description:** Add "Forgot password?" link on login. Three-step flow: (1) identify account by username or email, (2) answer both security questions, (3) set a new password. Server endpoints: `POST /auth/recover/identify`, `POST /auth/recover/verify`, `POST /auth/recover/reset`. Rate-limit attempts per account (5 per hour). Generic error messages to avoid enumeration. No SMTP required — fully in-app.
+
+---
+
+## Epic: Admin Section
+> No admin concept exists today — no role field, no routes, no UI. This epic adds the foundation (role column, middleware, gated page) and four feature areas: user management, season management, tournament management, and live telemetry. Prerequisite for admin-driven tournaments and seasons.
+
+### Story: Admin foundations
+
+#### TASK-061
+- **title:** Add role column to User + ADMIN_EMAILS env auto-promotion
+- **status:** ready
+- **priority:** high
+- **workspaces:** server
+- **complexity:** small
+- **description:** Add `role` field to the `User` Prisma model with values `user` | `admin` (default `user`). Migration required. Add `ADMIN_EMAILS` env var (comma-separated). On login, if the user's email is in `ADMIN_EMAILS` and their role is `user`, promote them to `admin` in DB. Include `role` in the `/auth/me` response and JWT claims.
+
+#### TASK-062
+- **title:** Add requireAdmin middleware and admin route namespace
+- **status:** ready
+- **priority:** high
+- **workspaces:** server
+- **complexity:** small
+- **depends_on:** [TASK-061]
+- **description:** Create `server/src/middleware/requireAdmin.ts` — checks JWT claim `role === 'admin'`, returns 403 otherwise. Create `server/src/routes/admin.ts` mounted at `/admin/*`, all routes guarded by `requireAuth` + `requireAdmin`. Add health-check endpoint `GET /admin/ping` as a placeholder for the first task to wire it up.
+
+#### TASK-063
+- **title:** Admin page scaffold (gated route with sidebar)
+- **status:** ready
+- **priority:** high
+- **workspaces:** client
+- **complexity:** medium
+- **depends_on:** [TASK-061]
+- **description:** Add `client/src/pages/AdminPage.tsx`, route `/admin`, gated on `authStore.user.role === 'admin'` (non-admins redirected to Dashboard). Left sidebar with sections: Users, Seasons, Tournaments, Telemetry. Each section is a stub that will be filled by TASK-064/065/066/067. Follow `brand-guidelines` skill.
+
+### Story: Admin features
+
+#### TASK-064
+- **title:** Admin — user management (search, reset password, reset stats, adjust gold, ban)
+- **status:** ready
+- **priority:** high
+- **workspaces:** server, client
+- **complexity:** large
+- **depends_on:** [TASK-063]
+- **description:** Server endpoints under `/admin/users`: list (paginated + search by username/email), get detail (stats card), reset password (generate temp password, return to admin, flag `mustChangePassword`), reset stats (zero wins/losses/rating), adjust gold (delta or absolute), ban/unban (`bannedAt` column). Client UI: searchable user list, detail panel with action buttons each behind a confirmation dialog. Every destructive action logs an `AdminAuditLog` row (new model).
+
+#### TASK-065
+- **title:** Admin — season management (create, end, view standings)
+- **status:** ready
+- **priority:** high
+- **workspaces:** server, client
+- **complexity:** medium
+- **depends_on:** [TASK-063]
+- **description:** Server endpoints under `/admin/seasons`: create (name, start, end), end (early-close active season), list with standings. Replace the automatic season rollover watchdog in `seasons.ts` with an admin-trigger model (keep the 60s watchdog as a no-op or remove if confirmed unused). Client UI: season list, create form, end-season confirmation, standings table per season.
+
+#### TASK-066
+- **title:** Admin — tournament management (create, start round, advance round)
+- **status:** ready
+- **priority:** high
+- **workspaces:** server, client
+- **complexity:** medium
+- **depends_on:** [TASK-063]
+- **description:** Server endpoints under `/admin/tournaments`: create (name, size 4/8/16, description), open lobby, start round 1 (seeds bracket). Replace automatic progression with admin-triggered round advancement. Client UI in admin page: create form, list of active tournaments, "Start Round" / "Advance Round" buttons. Round-advance button is disabled until all matches in the current round are complete (server returns current round completion %).
+
+#### TASK-067
+- **title:** Admin — live telemetry dashboard
+- **status:** ready
+- **priority:** med
+- **workspaces:** server, client
+- **complexity:** medium
+- **depends_on:** [TASK-063]
+- **description:** Admin telemetry widget: active users (from `io.engine.clientsCount`), games in progress (from `rooms` service map size), recent match outcomes (last 50 rows with player names, mode, winner, duration). Simple card layout, polling every 10s — no charts yet. Endpoint: `GET /admin/telemetry`.
+
+---
+
+## Epic: Tournament Revamp
+> Tournaments today auto-seed by rating and auto-advance when matches finish. The user wants: an admin-created lobby with persistent chat, player slot selection, a visual bracket, and admin-gated round-barrier progression. Depends on the Admin epic being in place.
+
+### Story: Lobby + chat + slot selection
+
+#### TASK-068
+- **title:** Tournament lobby + DB-persisted chat
+- **status:** ready
+- **priority:** med
+- **workspaces:** server, shared
+- **complexity:** medium
+- **depends_on:** [TASK-066]
+- **description:** Add `TournamentChatMessage` Prisma model (tournamentId, userId, message, createdAt). Apply the 5-msgs / 10-seconds rate-limit pattern from game chat. Socket events `tournament:chat:send` and `tournament:chat:new` plus `GET /tournaments/:id/chat` for history (last 100). Add socket events `tournament:lobby:joined` / `tournament:lobby:left` for live roster updates.
+
+#### TASK-069
+- **title:** Tournament lobby UI with joinable bracket slots and chat panel
+- **status:** ready
+- **priority:** med
+- **workspaces:** client
+- **complexity:** large
+- **depends_on:** [TASK-068]
+- **description:** Tournament detail page gains a pre-start lobby: joinable slot cards (players click an empty slot to commit), live roster of committed entrants, chat panel. Once the admin starts round 1, the lobby view swaps to the bracket view. Use shadcn `Card` for slots, existing chat styling from clan chat for the panel.
+
+#### TASK-070
+- **title:** Visual bracket component (responsive single-elimination tree)
+- **status:** ready
+- **priority:** med
+- **workspaces:** client
+- **complexity:** medium
+- **depends_on:** [TASK-069]
+- **description:** Build a responsive single-elimination bracket view for sizes 4/8/16. Shows match status (pending / in-progress / done), round badges, winner highlighting, click-through to spectator mode for in-progress matches. CSS-grid or SVG-based — no third-party bracket library. Follow `brand-guidelines` skill.
+
+#### TASK-071
+- **title:** Round-barrier tournament progression (admin-gated)
+- **status:** ready
+- **priority:** med
+- **workspaces:** server, client
+- **complexity:** medium
+- **depends_on:** [TASK-066, TASK-070]
+- **description:** Replace the current auto-advance in `tournaments.ts:onTournamentMatchComplete`. Server only marks round as "ready to advance" when all matches in the current round are complete; admin must POST `/admin/tournaments/:id/advance` to start the next round. Client: "Advance Round" button in admin panel, disabled until complete. Spectators and entrants see a waiting state between rounds.
+
+---
+
+## Epic: Campaign Rework
+> The existing 15 missions use turns/accuracy/ships-lost objectives with fixed ability sets. The user wants a full rework around captains and captain-specific mastery, with a coherent narrative arc, per-objective tiered stars (bronze/silver/gold), and progressive difficulty displayed before entering each mission.
+
+### Story: Narrative + mission data
+
+#### TASK-072
+- **title:** Author new 15-mission campaign (narrative + mission data)
+- **status:** ready
+- **priority:** med
+- **workspaces:** shared
+- **complexity:** large
+- **description:** Replace the existing 15 missions in `shared/src/campaign.ts`. Each mission defines: required captain, forbidden abilities (optional), turn limit, ship-loss cap, progressive difficulty label (Easy / Rough Seas / Kraken / etc.), per-objective tier thresholds (bronze/silver/gold), narrative beat text, comic panel beats between acts. Overarching narrative arc (three acts, captain-driven). Draft the narrative in the PR description for human sign-off before merging.
+
+#### TASK-073
+- **title:** Extend MissionModifiers + tiered star logic
+- **status:** ready
+- **priority:** med
+- **workspaces:** shared
+- **complexity:** medium
+- **depends_on:** [TASK-072]
+- **description:** Add `requiredCaptain?: CaptainId`, `forbiddenAbilities?: AbilityType[]`, and `starTiers: { bronze: ObjectiveThresholds, silver: ..., gold: ... }` to `MissionModifiers`. Refactor `calculateStars` to aggregate per-objective tier hits into a total star score. Maintain backward-compat types for any consumers. Unit tests for all tier permutations.
+
+### Story: Mission UI + enforcement
+
+#### TASK-074
+- **title:** Pre-mission screen rework (narrative + tiers + captain lock)
+- **status:** ready
+- **priority:** med
+- **workspaces:** client
+- **complexity:** medium
+- **depends_on:** [TASK-073]
+- **description:** Replace or extend `MissionBriefing`. Show: narrative beat text, objectives list with bronze/silver/gold thresholds, progressive difficulty badge, required captain (captain picker disabled with explanation), forbidden abilities (greyed in picker with tooltip "Forbidden in this mission"). Verify via `verify-ui` skill.
+
+#### TASK-075
+- **title:** Enforce captain lock + forbidden abilities at runtime
+- **status:** ready
+- **priority:** med
+- **workspaces:** client, shared
+- **complexity:** medium
+- **depends_on:** [TASK-073]
+- **description:** Update `campaignStore` to carry the active mission's constraints. `CaptainPicker` locks to `requiredCaptain`. `AbilityBar` filters out `forbiddenAbilities`. Engine-level safety check: if a forbidden ability somehow reaches activation, reject with an error. Cover with unit tests.
+
+### Story: Campaign map polish
+
+#### TASK-076
+- **title:** CampaignMap shows per-objective stars, story beats, difficulty
+- **status:** ready
+- **priority:** med
+- **workspaces:** client
+- **complexity:** small
+- **depends_on:** [TASK-074]
+- **description:** Update `CampaignMap.tsx` to surface per-objective star breakdown on mission hover (bronze/silver/gold achieved for each objective), display the act-break comic beats between mission clusters, and show the difficulty badge on each mission node. Verify via `verify-ui` skill.
+
+---
+
+## Epic: Achievements — Full Rebuild
+> `achievements.ts` is defined but `checkAchievements` has zero callers — achievements are effectively dead today. The store is localStorage-only and not gated on auth. This epic adds server persistence, event-site wiring, and registered-user-only gating.
+
+### Story: Server persistence
+
+#### TASK-077
+- **title:** Add UserAchievement model + server endpoints
+- **status:** ready
+- **priority:** high
+- **workspaces:** server, shared
+- **complexity:** medium
+- **description:** Add `UserAchievement` Prisma model (userId, achievementId, unlockedAt) with unique (userId, achievementId). Migration required. Endpoints: `GET /achievements` (returns current user's unlocks + full catalog), `POST /achievements/unlock` (idempotent, body `{ achievementId }`; guests get 401). Unit tests for both.
+
+#### TASK-078
+- **title:** Migrate achievementsStore to server-backed + registered-only
+- **status:** ready
+- **priority:** high
+- **workspaces:** client
+- **complexity:** medium
+- **depends_on:** [TASK-077]
+- **description:** Refactor `achievementsStore` to fetch unlocks from the new server endpoint on login. `checkAchievements(context)` becomes a no-op for guests. Remove the localStorage path entirely. Update existing store tests and add tests for guest skip behavior.
+
+### Story: Event wiring
+
+#### TASK-079
+- **title:** Wire checkAchievements at real event sites
+- **status:** ready
+- **priority:** high
+- **workspaces:** client, shared, server
+- **complexity:** large
+- **depends_on:** [TASK-078]
+- **description:** Add `checkAchievements` call-sites for every achievement in `achievements.ts`: match end (win/loss/accuracy/flawless/perfect), ability used (first use per type), campaign star earned (bronze/silver/gold/perfect), tournament placement (winner, finalist), seasonal milestones. Every achievement in the catalog must have at least one call-site. Regression-tested by TASK-048 + TASK-049 (assert at least one achievement unlocks during the scripted matches).
+
+### Story: Profile visibility
+
+#### TASK-080
+- **title:** Profile achievements gallery + deep-link from top-right
+- **status:** ready
+- **priority:** high
+- **workspaces:** client
+- **complexity:** medium
+- **depends_on:** [TASK-078]
+- **description:** Add an Achievements section to `Profile.tsx`, showing all catalog achievements grouped by category (locked greyed out, unlocked with unlock date). Profile icon in the top-right cluster (TASK-054) deep-links to this section. Verify via `verify-ui` skill.
+
+---
+
+## Epic: Stats Integrity Audit
+> Confirm that every stat-writing and stat-displaying path correctly distinguishes registered users from guests. Guests must not accrue stats; UI must not show misleading zeros to guests.
+
+### Story: Server-side audit
+
+#### TASK-081
+- **title:** Audit every stat-writing path for correct guest skip
+- **status:** ready
+- **priority:** med
+- **workspaces:** server
+- **complexity:** small
+- **description:** Systematic pass over `persistMatch`, `persistAIMatch`, `awardGold`, `getOrCreateSeasonStats`, ELO application, achievement unlock. For each, add a unit test asserting a guest ID produces no DB write. Document findings in the PR description, including any paths that currently leak.
+
+### Story: Client-side audit
+
+#### TASK-082
+- **title:** Audit UI surfaces for correct guest messaging
+- **status:** ready
+- **priority:** med
+- **workspaces:** client
+- **complexity:** small
+- **depends_on:** [TASK-081]
+- **description:** Review Dashboard, Leaderboard, and Profile for the current user's stats view as a guest. Replace any stats display that would show misleading zeros with a "Sign up to track your stats" CTA (using `Button` → AuthPage). Verify via `verify-ui` skill in both guest and registered modes.
+
+---
+
+## Epic: Content Alignment & Guide Expansion
+> Content-level alignment inconsistency (Guide page left-aligned, MainMenu centered) and a basic Captain's Guide that needs expansion with real examples and media. Guide expansion lands last because its content depends on campaign, achievements, and tournaments being reshaped.
+
+### Story: Content alignment sweep
+
+#### TASK-083
+- **title:** Content alignment sweep — headings centered, paragraphs left
+- **status:** ready
+- **priority:** med
+- **workspaces:** client
+- **complexity:** small
+- **description:** Apply the convention: long paragraphs left-aligned inside the already-centered `PageShell` container, headings centered. Fix Guide page (all left-aligned today) and any other page where text alignment reads awkwardly (scan MainMenu, Dashboard, Leaderboard, Campaign, Shop, Tournaments, Friends, Clans, Profile). Verify via `verify-ui` skill with before/after screenshots.
+
+### Story: Captain's Guide expansion
+
+#### TASK-084
+- **title:** Expand Captain's Guide with mixed media (screenshots, clips, diagrams)
+- **status:** ready
+- **priority:** low
+- **workspaces:** client
+- **complexity:** large
+- **depends_on:** [TASK-074, TASK-079, TASK-069]
+- **description:** Populate `GuidePage.tsx` with: static screenshots (placement screen, GameOverScreen, campaign map) under `client/public/guide/screenshots/`; short WebM clips of each ability activation under `client/public/guide/clips/`; SVG diagrams (turn flow, ability range overlays, trait effect indicators) under `client/public/guide/diagrams/`; one embedded R3F mini-scene showcasing a ship with a rotating camera. Reorganize the guide into clear sections (Basics, Abilities, Traits, Campaign, Tournaments, Achievements). Depends on the campaign/achievements/tournaments epics landing so the content reflects current reality.
+
