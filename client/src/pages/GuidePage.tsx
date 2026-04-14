@@ -4,6 +4,7 @@ import { useGameStore } from '../store/gameStore';
 import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
 import { AuthPage } from './AuthPage';
 import { FONT_STYLES } from '../styles/fonts';
 
@@ -88,10 +89,7 @@ export function GuidePage() {
 
       <div className="space-y-4 mb-12">
         {SECTIONS.map((section) => (
-          <div
-            key={section.title}
-            className="bg-coal/60 border border-mahogany-light rounded-lg p-5"
-          >
+          <Card key={section.title} variant="default" padding="md">
             <h3 className="text-xl text-blood-bright mb-2" style={FONT_STYLES.pirate}>
               {section.title}
               {section.requiresAuth && LOCK_BADGE}
@@ -99,7 +97,7 @@ export function GuidePage() {
             <p className="text-parchment/70 text-sm leading-relaxed" style={FONT_STYLES.body}>
               {section.description}
             </p>
-          </div>
+          </Card>
         ))}
       </div>
 
@@ -133,13 +131,9 @@ export function GuidePage() {
       )}
 
       <div className="text-center">
-        <button
-          onClick={() => setScreen('menu')}
-          className="text-parchment/40 text-sm hover:text-parchment/70 transition-colors"
-          style={FONT_STYLES.labelSC}
-        >
+        <Button variant="ghost" size="sm" onClick={() => setScreen('menu')}>
           ← Back to Menu
-        </button>
+        </Button>
       </div>
 
       {showAuth && <AuthPage onClose={() => setShowAuth(false)} initialMode={authMode} />}
