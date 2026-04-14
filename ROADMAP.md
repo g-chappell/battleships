@@ -290,12 +290,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-040
 - **title:** Add shadcn Tooltip to replace custom CSS tooltips
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** small
 - **depends_on:** [TASK-038]
 - **description:** `IconButton` (`client/src/components/ui/IconButton.tsx`) uses custom CSS tooltips via `title` attribute or pseudo-elements. Install shadcn `Tooltip` and wrap all `IconButton` instances. Also apply to ability bar icons in `AbilityBar.tsx` that have hover descriptions. Use `coal` background with `bone` text and `gold` border for the tooltip style. Follow brand-guidelines skill.
+- **pr:** https://github.com/g-chappell/battleships/pull/33
+- **completed:** 2026-04-14
 
 #### TASK-041
 - **title:** Replace ad-hoc modal overlays with shadcn Dialog

@@ -1,5 +1,6 @@
 import { useGameStore } from '../../store/gameStore';
 import { ABILITY_DEFS, canUseAbility, GamePhase } from '@shared/index';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/tooltip';
 
 export function AbilityBar() {
   const engine = useGameStore((s) => s.engine);
@@ -31,27 +32,35 @@ export function AbilityBar() {
             const exhausted = ability.usesRemaining === 0;
 
             return (
-              <button
-                key={ability.type}
-                onClick={() => usable && setActiveAbility(isActive ? null : ability.type)}
-                disabled={!usable}
-                className={`relative h-11 px-3 sm:px-4 rounded-full border transition-all flex items-center gap-2 text-sm whitespace-nowrap shrink-0 ${
-                  isActive
-                    ? 'bg-[#8b0000]/70 border-[#c41e3a] text-[#e8dcc8]'
-                    : usable
-                    ? 'bg-[#4d2e22]/80 border-[#8b0000]/60 text-[#e8dcc8] hover:bg-[#5c0000]/60 hover:border-[#c41e3a]/80'
-                    : 'bg-[#221210]/60 border-[#4d2e22]/40 text-[#d4c4a1]/50 cursor-not-allowed'
-                }`}
-                style={labelStyle}
-              >
-                <span className="font-bold">{def.name}</span>
-                {onCooldown && (
-                  <span className="bg-[#c41e3a] text-[#0d0606] text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                    {ability.cooldownRemaining}
-                  </span>
-                )}
-                {exhausted && <span className="text-[#c41e3a] text-[10px]">USED</span>}
-              </button>
+              <Tooltip key={ability.type}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => usable && setActiveAbility(isActive ? null : ability.type)}
+                    disabled={!usable}
+                    className={`relative h-11 px-3 sm:px-4 rounded-full border transition-all flex items-center gap-2 text-sm whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? 'bg-[#8b0000]/70 border-[#c41e3a] text-[#e8dcc8]'
+                        : usable
+                        ? 'bg-[#4d2e22]/80 border-[#8b0000]/60 text-[#e8dcc8] hover:bg-[#5c0000]/60 hover:border-[#c41e3a]/80'
+                        : 'bg-[#221210]/60 border-[#4d2e22]/40 text-[#d4c4a1]/50 cursor-not-allowed'
+                    }`}
+                    style={labelStyle}
+                  >
+                    <span className="font-bold">{def.name}</span>
+                    {onCooldown && (
+                      <span className="bg-[#c41e3a] text-[#0d0606] text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                        {ability.cooldownRemaining}
+                      </span>
+                    )}
+                    {exhausted && <span className="text-[#c41e3a] text-[10px]">USED</span>}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{def.description}</p>
+                  {onCooldown && <p className="text-parchment">Cooldown: {ability.cooldownRemaining} turn{ability.cooldownRemaining !== 1 ? 's' : ''}</p>}
+                  {exhausted && <p className="text-[#c41e3a]">No uses remaining</p>}
+                </TooltipContent>
+              </Tooltip>
             );
           })}
 
