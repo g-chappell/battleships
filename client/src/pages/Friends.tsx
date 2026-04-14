@@ -119,19 +119,19 @@ export function Friends() {
               <Card key={friend.id} variant="glow" padding="sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${friend.online ? 'bg-[#2ecc71]' : 'bg-mahogany-light'}`} />
+                    <div className={`w-2 h-2 rounded-full ${friend.online ? 'bg-gold' : 'bg-mahogany-light'}`} />
                     <span className="text-bone font-bold" style={FONT_STYLES.labelSC}>{friend.username}</span>
                     {friend.rating && (
                       <span className="text-xs text-gold" style={FONT_STYLES.pirate}>{friend.rating}</span>
                     )}
                   </div>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => removeFriend(friend.id, token)}
-                    className="text-parchment/40 hover:text-blood-bright text-xs transition-colors"
-                    style={FONT_STYLES.labelSC}
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
               </Card>
             ))}

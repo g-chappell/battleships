@@ -162,7 +162,7 @@ export function Clans() {
                   </div>
                 </div>
                 <div className="text-center p-2 bg-pitch/60 rounded-lg">
-                  <div className="text-2xl text-[#2ecc71] font-bold" style={FONT_STYLES.pirate}>
+                  <div className="text-2xl text-gold font-bold" style={FONT_STYLES.pirate}>
                     {myClan.totalWins}
                   </div>
                   <div className="text-xs text-aged-gold uppercase" style={FONT_STYLES.labelSC}>
