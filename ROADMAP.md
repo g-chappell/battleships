@@ -301,7 +301,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-041
 - **title:** Replace ad-hoc modal overlays with shadcn Dialog
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
