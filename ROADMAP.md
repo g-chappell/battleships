@@ -534,7 +534,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-029
 - **title:** Add friendsStore unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
