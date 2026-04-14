@@ -499,7 +499,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-025
 - **title:** Add cosmetics route unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** server
 - **complexity:** small
