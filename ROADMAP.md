@@ -375,11 +375,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-022
 - **title:** Fix cosmetics purchase race condition
-- **status:** in-progress
+- **status:** done
 - **priority:** 22
 - **workspaces:** server
 - **complexity:** small
 - **description:** The `POST /cosmetics/buy` handler reads gold balance then deducts in two separate queries — two concurrent requests can both pass the balance check. Wrap the check-and-deduct in a Prisma `$transaction` with a conditional update (`WHERE gold >= price`) that returns the updated row or null. Return 400 if the transaction returns null (insufficient gold after atomic check).
+- **pr:** https://github.com/g-chappell/battleships/pull/27
+- **completed:** 2026-04-14
 
 ### Story: Input Validation
 
