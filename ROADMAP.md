@@ -544,7 +544,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-030
 - **title:** Add seasonsStore unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
