@@ -251,3 +251,177 @@ Each task entry uses these fields (agent-writable fields marked †):
 - **description:** Add responsive breakpoints to GamePage for tablet landscape (1024x768). Ensure HUD, ability bar, and board controls are usable at this size. Add media queries and flex adjustments — do not redesign the layout.
 - **pr:** https://github.com/g-chappell/battleships/pull/21
 - **completed:** 2026-04-13
+
+---
+
+## Epic: Extended Test Coverage
+> Fill remaining gaps in server services, server routes, and client stores that were out of scope for the initial test coverage epic.
+
+### Story: Additional Server Service Tests
+> Tests for server services that were skipped in the first pass — gold rewards (financial logic), match persistence (ELO integrity), and season state.
+
+#### TASK-020
+- **title:** Add gold service unit tests
+- **status:** ready
+- **priority:** 20
+- **workspaces:** server
+- **complexity:** small
+- **description:** Add tests for `server/src/services/gold.ts` — reward amounts for all game modes (ranked win/loss, AI easy/medium/hard win, tournament placement). Verify gold is not awarded to guests. Use Prisma mocking pattern from existing server tests.
+
+#### TASK-021
+- **title:** Add persistence service unit tests
+- **status:** ready
+- **priority:** 21
+- **workspaces:** server
+- **complexity:** medium
+- **description:** Add tests for `server/src/services/persistence.ts` — match recording (all fields persisted), ELO update applied to both players after ranked match, guest players skipped gracefully, replay storage and retrieval. Mock Prisma with `vi.hoisted()` pattern.
+
+#### TASK-026
+- **title:** Add seasons service unit tests
+- **status:** ready
+- **priority:** 26
+- **workspaces:** server
+- **complexity:** small
+- **description:** Add tests for `server/src/services/seasons.ts` — `getActiveSeason` returns current season or null, `getOrCreateSeasonStats` creates entry on first call and returns existing on subsequent calls, season transition logic. Mock Prisma with `vi.hoisted()` pattern.
+
+### Story: Server Route Tests
+> Integration-style unit tests for Express route handlers. Mock Prisma and JWT — test the HTTP layer (status codes, response bodies, error cases).
+
+#### TASK-023
+- **title:** Add auth route unit tests
+- **status:** ready
+- **priority:** 23
+- **workspaces:** server
+- **complexity:** medium
+- **description:** Add tests for `server/src/routes/auth.ts` — register (success, duplicate username, missing fields, short password), login (correct password issues JWT, wrong password returns 401, unknown user returns 401), guest token endpoint. Mock bcrypt and Prisma.
+
+#### TASK-024
+- **title:** Add leaderboard route unit tests
+- **status:** ready
+- **priority:** 24
+- **workspaces:** server
+- **complexity:** small
+- **description:** Add tests for `server/src/routes/leaderboard.ts` — lifetime rankings (correct sort order, limit), seasonal rankings (filters by active season), empty-DB returns empty array rather than 500. Mock Prisma with `vi.hoisted()` pattern.
+
+#### TASK-025
+- **title:** Add cosmetics route unit tests
+- **status:** ready
+- **priority:** 25
+- **workspaces:** server
+- **complexity:** small
+- **description:** Add tests for `server/src/routes/cosmetics.ts` — buy (success deducts gold, insufficient gold returns 400, already owned returns 400), equip (success, not owned returns 403), list owned cosmetics. Mock Prisma with `vi.hoisted()` pattern.
+
+### Story: Remaining Client Store Tests
+> Unit tests for the five client Zustand stores that had no coverage after the initial client store testing epic, plus the `apiClient` service.
+
+#### TASK-027
+- **title:** Add achievementsStore unit tests
+- **status:** ready
+- **priority:** 27
+- **workspaces:** client
+- **complexity:** small
+- **description:** Add tests for `client/src/store/achievementsStore.ts` — `checkAchievements` unlocks the correct achievement when conditions are met, does not double-unlock, stores unlocked IDs. Mock audio service. Follow existing client test patterns.
+
+#### TASK-028
+- **title:** Add clanStore unit tests
+- **status:** ready
+- **priority:** 28
+- **workspaces:** client
+- **complexity:** medium
+- **description:** Add tests for `client/src/store/clanStore.ts` — create clan (success sets current clan, error sets error state), join clan, leave clan, fetch chat messages, send chat message. Mock `apiFetch`/`apiFetchSafe` and audio service.
+
+#### TASK-029
+- **title:** Add friendsStore unit tests
+- **status:** ready
+- **priority:** 29
+- **workspaces:** client
+- **complexity:** small
+- **description:** Add tests for `client/src/store/friendsStore.ts` — send friend request, accept/reject incoming request, remove friend, localStorage fallback when API unavailable. Mock `apiFetch`/`apiFetchSafe` and audio service.
+
+#### TASK-030
+- **title:** Add seasonsStore unit tests
+- **status:** ready
+- **priority:** 30
+- **workspaces:** client
+- **complexity:** small
+- **description:** Add tests for `client/src/store/seasonsStore.ts` — fetch active season (populates state), fetch player season stats, null handling when no active season. Mock `apiFetchSafe` and audio service.
+
+#### TASK-031
+- **title:** Add socketStore unit tests
+- **status:** ready
+- **priority:** 31
+- **workspaces:** client
+- **complexity:** medium
+- **description:** Add tests for `client/src/store/socketStore.ts` — connect attaches auth token, disconnect clears socket state, socket events are routed to the correct store actions, reconnect re-attaches. Use a mock socket with `_trigger` helper (same pattern as spectatorStore tests).
+
+#### TASK-032
+- **title:** Add apiClient service unit tests
+- **status:** ready
+- **priority:** 32
+- **workspaces:** client
+- **complexity:** small
+- **description:** Add tests for `client/src/services/apiClient.ts` — `ApiError` construction (status, message, data fields), `apiFetch` attaches auth header when token present, throws `ApiError` on non-2xx responses, `apiFetchSafe` returns null on any error without throwing.
+
+---
+
+## Epic: Bug Fixes & Security
+> Targeted fixes for known correctness issues discovered during codebase review.
+
+### Story: Server Correctness
+
+#### TASK-022
+- **title:** Fix cosmetics purchase race condition
+- **status:** ready
+- **priority:** 22
+- **workspaces:** server
+- **complexity:** small
+- **description:** The `POST /cosmetics/buy` handler reads gold balance then deducts in two separate queries — two concurrent requests can both pass the balance check. Wrap the check-and-deduct in a Prisma `$transaction` with a conditional update (`WHERE gold >= price`) that returns the updated row or null. Return 400 if the transaction returns null (insufficient gold after atomic check).
+
+### Story: Input Validation
+
+#### TASK-033
+- **title:** Add email format validation on register
+- **status:** ready
+- **priority:** 33
+- **workspaces:** client, server
+- **complexity:** small
+- **description:** The register flow currently accepts any string as an email. Add a simple regex check (`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`) server-side in `auth.ts` (return 400 on invalid format) and a matching inline validation message client-side on the register form before submission.
+
+#### TASK-034
+- **title:** Add rate limiting to clan chat messages
+- **status:** ready
+- **priority:** 34
+- **workspaces:** server
+- **complexity:** small
+- **description:** Game chat already enforces a 5-message/10-second rate limit in `gameSocket.ts`. Apply the same pattern to the clan chat endpoint in `server/src/services/clans.ts` or the socket handler — track per-user message timestamps and reject if the limit is exceeded.
+
+---
+
+## Epic: Client Resilience
+> Defensive improvements to prevent silent failures and improve recovery from transient errors.
+
+### Story: Error Handling & Recovery
+
+#### TASK-035
+- **title:** Add React error boundaries to GamePage and Three.js canvas
+- **status:** ready
+- **priority:** 35
+- **workspaces:** client
+- **complexity:** small
+- **description:** Unhandled errors in the Three.js R3F canvas or GamePage currently crash the entire app. Wrap `GamePage` and the `<Canvas>` component in an `ErrorBoundary` class component that renders a "Something went wrong — return to menu" fallback. Do not add error boundaries to every component — only the two highest-risk render trees.
+
+#### TASK-036
+- **title:** Add AudioContext cleanup on page unload
+- **status:** ready
+- **priority:** 36
+- **workspaces:** client
+- **complexity:** small
+- **description:** The Web Audio API `AudioContext` and any live oscillators/buffers are never closed when the user leaves the page. Add a `beforeunload` event listener in `client/src/services/audio.ts` that calls `audioContext.close()` to release resources and prevent oscillator leaks in browser profiles.
+
+#### TASK-037
+- **title:** Add socket reconnection with exponential backoff
+- **status:** ready
+- **priority:** 37
+- **workspaces:** client
+- **complexity:** medium
+- **description:** `socketStore.ts` currently has no retry logic — a single disconnect ends the multiplayer session. Add exponential backoff reconnection (initial 1s, double each attempt, cap at 30s, max 5 attempts) with a visible "Reconnecting…" status in the UI. On max-attempts exceeded, show a "Connection lost — return to menu" message. Do not add reconnection for intentional disconnects (logout, navigate away).
