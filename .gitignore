@@ -47,3 +47,6 @@ server/prisma/*.db-journal
 
 # Claude local settings
 .claude/settings.local.json
+
+# Agent log (lives in memory system, not version controlled)
+AGENT-LOG.md
