@@ -564,7 +564,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-032
 - **title:** Add apiClient service unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
