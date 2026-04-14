@@ -489,8 +489,10 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-024
 - **title:** Add leaderboard route unit tests
-- **status:** in-progress
+- **status:** done
 - **priority:** med
+- **pr:** https://github.com/g-chappell/battleships/pull/40
+- **completed:** 2026-04-14
 - **workspaces:** server
 - **complexity:** small
 - **description:** Add tests for `server/src/routes/leaderboard.ts` — lifetime rankings (correct sort order, limit), seasonal rankings (filters by active season), empty-DB returns empty array rather than 500. Mock Prisma with `vi.hoisted()` pattern.
