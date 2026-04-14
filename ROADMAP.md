@@ -554,11 +554,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-031
 - **title:** Add socketStore unit tests
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** client
 - **complexity:** medium
 - **description:** Add tests for `client/src/store/socketStore.ts` — connect attaches auth token, disconnect clears socket state, socket events are routed to the correct store actions, reconnect re-attaches. Use a mock socket with `_trigger` helper (same pattern as spectatorStore tests).
+- **pr:** https://github.com/g-chappell/battleships/pull/48
+- **completed:** 2026-04-14
 
 #### TASK-032
 - **title:** Add apiClient service unit tests
