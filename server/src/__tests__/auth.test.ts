@@ -138,6 +138,59 @@ describe('POST /auth/register', () => {
     expect(body.error).toMatch(/required/i);
   });
 
+  it('returns 400 when email has no @ symbol', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'notanemail', username: 'testuser', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/invalid email format/i);
+  });
+
+  it('returns 400 when email has no domain part after @', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'user@', username: 'testuser', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/invalid email format/i);
+  });
+
+  it('returns 400 when email has no TLD (no dot after domain)', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'user@domain', username: 'testuser', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/invalid email format/i);
+  });
+
+  it('accepts a valid email format with subdomain', async () => {
+    mockUser.findFirst.mockResolvedValue(null);
+    mockUser.create.mockResolvedValue({
+      id: 'user-123',
+      email: 'user@mail.example.com',
+      username: 'testuser',
+    });
+
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'user@mail.example.com', username: 'testuser', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(201);
+  });
+
   it('returns 400 when password is shorter than 6 characters', async () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',

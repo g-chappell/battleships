@@ -10,11 +10,20 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   const { login, register, isLoading, error, clearError } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === 'register') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setEmailError('Please enter a valid email address');
+        return;
+      }
+    }
+    setEmailError('');
     let success: boolean;
     if (mode === 'login') {
       success = await login(email, password);
@@ -42,7 +51,7 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
             variant={mode === 'login' ? 'primary' : 'secondary'}
             size="sm"
             fullWidth
-            onClick={() => { setMode('login'); clearError(); }}
+            onClick={() => { setMode('login'); clearError(); setEmailError(''); }}
           >
             Login
           </Button>
@@ -50,7 +59,7 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
             variant={mode === 'register' ? 'primary' : 'secondary'}
             size="sm"
             fullWidth
-            onClick={() => { setMode('register'); clearError(); }}
+            onClick={() => { setMode('register'); clearError(); setEmailError(''); }}
           >
             Register
           </Button>
@@ -61,9 +70,12 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
             type="email"
             placeholder="Email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(''); }}
             required
           />
+          {emailError && (
+            <p className="text-blood-bright text-sm italic -mt-1" style={FONT_STYLES.body}>{emailError}</p>
+          )}
 
           {mode === 'register' && (
             <FormField
