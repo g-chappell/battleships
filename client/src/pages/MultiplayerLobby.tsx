@@ -18,6 +18,7 @@ export function MultiplayerLobby() {
   const user = useAuthStore((s) => s.user);
 
   const status = useSocketStore((s) => s.status);
+  const reconnectAttempts = useSocketStore((s) => s.reconnectAttempts);
   const matchmakingState = useSocketStore((s) => s.matchmakingState);
   const roomId = useSocketStore((s) => s.roomId);
   const privateCode = useSocketStore((s) => s.privateCode);
@@ -125,7 +126,11 @@ export function MultiplayerLobby() {
 
       {status !== 'connected' && (
         <div className="mb-4 text-[#c41e3a] italic" style={{ fontFamily: "'IM Fell English', serif" }}>
-          {status === 'connecting' ? 'Connecting to the high seas...' : 'Disconnected'}
+          {status === 'connecting'
+            ? 'Connecting to the high seas...'
+            : status === 'reconnecting'
+            ? `Reconnecting... (attempt ${reconnectAttempts}/${5})`
+            : 'Disconnected'}
           {errorMessage && <div className="text-xs mt-1">{errorMessage}</div>}
         </div>
       )}
