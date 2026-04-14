@@ -326,12 +326,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-043
 - **title:** Audit and fix MainMenu + AuthPage brand consistency
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **depends_on:** [TASK-039, TASK-041]
 - **description:** Review `MainMenu.tsx` and `AuthPage.tsx` against the brand-guidelines skill. Check: all text uses pirate font stack (no system fonts leaking), backgrounds are pitch/coal (no stray whites or grays), buttons use the `Button` component consistently, form inputs use the new shadcn-based `FormField`, spacing follows a consistent rhythm, gold accents are used for highlights. Fix any deviations. Run `verify-ui` skill to screenshot before and after.
+- **pr:** https://github.com/g-chappell/battleships/pull/36
+- **completed:** 2026-04-14
 
 #### TASK-044
 - **title:** Audit and fix Dashboard + Leaderboard + Profile brand consistency
