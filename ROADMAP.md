@@ -554,7 +554,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-031
 - **title:** Add socketStore unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** medium
