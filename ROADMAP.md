@@ -279,7 +279,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-039
 - **title:** Replace hand-built form inputs with shadcn Input and Label
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
