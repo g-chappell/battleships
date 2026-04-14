@@ -212,3 +212,13 @@
 - **Lessons learned:** GameOverScreen already showed opponent ships (multiplayer only) and abilities used (multiplayer only). The main gap was: (1) player's own board was never shown, (2) miss cells were not rendered on mini-boards, (3) single-player had no ability tracking. For the board reveal, `engine.playerBoard.ships` / `engine.opponentBoard.ships` are always populated (no fog-of-war locally), while `engine.playerBoard.grid` / `engine.opponentBoard.grid` contain CellState values including Miss for rendering shot misses. The `serializeShips` helper converts `Ship[]` (hits as Set<string>) to `SerializedShip[]` (hits as string[]) needed by MiniBoard. Ability tracking in `useAbility` must fire after `canUseAbility()` passes but before the switch — even if an individual execute function returns null, tracking at that point is safe since `canUseAbility` already validated it was executable.
 - **Self-improvements:** none
 - **New tasks discovered:** none
+
+### Run 2026-04-14 03:02
+- **Task:** none
+- **Outcome:** skipped — no tasks available (TASK-019 awaiting PR review at #23)
+- **PR:** N/A
+- **Test counts:** N/A
+- **Files changed:** none
+- **Lessons learned:** none
+- **Self-improvements:** none
+- **New tasks discovered:** none
