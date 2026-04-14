@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { MainMenu } from './pages/MainMenu';
 import { PreGameSetup } from './pages/PreGameSetup';
 import { GamePage } from './pages/GamePage';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { Dashboard } from './pages/Dashboard';
 import { MultiplayerLobby } from './pages/MultiplayerLobby';
 import { Leaderboard } from './pages/Leaderboard';
@@ -64,7 +65,7 @@ function App() {
       <div className="w-full h-full">
         {screen === 'menu' && <MainMenu />}
         {screen === 'setup_ai' && <PreGameSetup />}
-        {screen === 'game' && <GamePage />}
+        {screen === 'game' && <ErrorBoundary><GamePage /></ErrorBoundary>}
         {screen === 'guide' && <GuidePage />}
         {screen === 'dashboard' && <AuthGate featureName="Dashboard"><Dashboard /></AuthGate>}
         {screen === 'lobby' && <MultiplayerLobby />}

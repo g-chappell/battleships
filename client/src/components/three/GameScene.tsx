@@ -8,6 +8,7 @@ import { ShipModel } from './ShipModel';
 import { KrakenTentacle, SeaSerpent, Mermaid } from './Creatures';
 import { useGameStore } from '../../store/gameStore';
 import { useSocketStore } from '../../store/socketStore';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 import {
   GamePhase,
   Orientation,
@@ -151,8 +152,17 @@ export function GameScene() {
     : [0, 18, 12];
   const cameraFov = isPlacing ? 45 : 60;
 
+  const canvasFallback = (
+    <div className="w-full h-full flex items-center justify-center bg-[#0d0d0d]">
+      <p className="text-[#d4c4a1]/60 text-sm" style={{ fontFamily: "'IM Fell English', serif" }}>
+        3D scene unavailable
+      </p>
+    </div>
+  );
+
   return (
     <div className="w-full h-full">
+      <ErrorBoundary fallback={canvasFallback}>
       <Canvas
         camera={{ position: cameraPos, fov: cameraFov }}
         shadows
@@ -267,6 +277,7 @@ export function GameScene() {
           <Environment preset="night" />
         </Suspense>
       </Canvas>
+      </ErrorBoundary>
     </div>
   );
 }
