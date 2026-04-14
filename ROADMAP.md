@@ -389,11 +389,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-033
 - **title:** Add email format validation on register
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** client, server
 - **complexity:** small
 - **description:** The register flow currently accepts any string as an email. Add a simple regex check (`/^[^\s@]+@[^\s@]+\.[^\s@]+$/`) server-side in `auth.ts` (return 400 on invalid format) and a matching inline validation message client-side on the register form before submission.
+- **pr:** https://github.com/g-chappell/battleships/pull/51
+- **completed:** 2026-04-15
 
 #### TASK-034
 - **title:** Add rate limiting to clan chat messages
