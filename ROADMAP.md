@@ -375,7 +375,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-022
 - **title:** Fix cosmetics purchase race condition
-- **status:** ready
+- **status:** in-progress
 - **priority:** 22
 - **workspaces:** server
 - **complexity:** small
