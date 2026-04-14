@@ -337,7 +337,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-044
 - **title:** Audit and fix Dashboard + Leaderboard + Profile brand consistency
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
