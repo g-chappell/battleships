@@ -468,11 +468,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-026
 - **title:** Add seasons service unit tests
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** server
 - **complexity:** small
 - **description:** Add tests for `server/src/services/seasons.ts` — `getActiveSeason` returns current season or null, `getOrCreateSeasonStats` creates entry on first call and returns existing on subsequent calls, season transition logic. Mock Prisma with `vi.hoisted()` pattern.
+- **pr:** https://github.com/g-chappell/battleships/pull/42
+- **completed:** 2026-04-14
 
 ### Story: Server Route Tests
 > Integration-style unit tests for Express route handlers. Mock Prisma and JWT — test the HTTP layer (status codes, response bodies, error cases).
