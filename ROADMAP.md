@@ -392,7 +392,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-035
 - **title:** Add React error boundaries to GamePage and Three.js canvas
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** small
