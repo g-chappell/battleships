@@ -293,7 +293,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-023
 - **title:** Add auth route unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 23
 - **workspaces:** server
 - **complexity:** medium
