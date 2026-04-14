@@ -262,11 +262,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-020
 - **title:** Add gold service unit tests
-- **status:** in-progress
+- **status:** done
 - **priority:** 20
 - **workspaces:** server
 - **complexity:** small
 - **description:** Add tests for `server/src/services/gold.ts` — reward amounts for all game modes (ranked win/loss, AI easy/medium/hard win, tournament placement). Verify gold is not awarded to guests. Use Prisma mocking pattern from existing server tests.
+- **pr:** https://github.com/g-chappell/battleships/pull/24
+- **completed:** 2026-04-14
 
 #### TASK-021
 - **title:** Add persistence service unit tests
