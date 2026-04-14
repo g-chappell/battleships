@@ -280,7 +280,7 @@ describe('clanStore', () => {
 
     it('returns { error } on ApiError', async () => {
       const { ApiError } = await import('../services/apiClient');
-      mockApiFetch.mockRejectedValueOnce(new ApiError('Name already taken', 409));
+      mockApiFetch.mockRejectedValueOnce(new ApiError('Name already taken', 409, undefined));
 
       const result = await useClanStore.getState().createClan('Iron Fleet', 'IF', undefined, 'token123');
 
@@ -335,7 +335,7 @@ describe('clanStore', () => {
 
     it('returns { error } on ApiError', async () => {
       const { ApiError } = await import('../services/apiClient');
-      mockApiFetch.mockRejectedValueOnce(new ApiError('Clan is full', 400));
+      mockApiFetch.mockRejectedValueOnce(new ApiError('Clan is full', 400, undefined));
 
       const result = await useClanStore.getState().joinClan('clan-99', 'token123');
 
