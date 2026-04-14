@@ -23,6 +23,7 @@ import {
   isAmbientRunning,
 } from '../services/audio';
 import { useSettingsStore } from '../store/settingsStore';
+import { useSocketStore } from '../store/socketStore';
 
 export function GamePage() {
   const engine = useGameStore((s) => s.engine);
@@ -42,6 +43,10 @@ export function GamePage() {
   const addGold = useCosmeticsStore((s) => s.addGold);
 
   const musicEnabled = useSettingsStore((s) => s.musicEnabled);
+
+  const socketStatus = useSocketStore((s) => s.status);
+  const reconnectAttempts = useSocketStore((s) => s.reconnectAttempts);
+  const socketErrorMessage = useSocketStore((s) => s.errorMessage);
 
   const isPlacing = engine.phase === GamePhase.Placement;
   const isFinished = engine.phase === GamePhase.Finished;
@@ -161,6 +166,40 @@ export function GamePage() {
         {isPlacing && <ShipTray />}
         <ChatPanel />
         <OpponentDisconnectOverlay />
+        {gameMode === 'multiplayer' && socketStatus === 'reconnecting' && (
+          <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-40">
+            <div className="bg-[#221210]/95 border-2 border-[#8b0000] rounded p-6 text-center panel-glow">
+              <h2 className="text-2xl text-[#c41e3a] mb-2 animate-pulse" style={{ fontFamily: "'Pirata One', serif" }}>
+                Lost at Sea
+              </h2>
+              <p className="text-[#d4c4a1]/70 italic" style={{ fontFamily: "'IM Fell English', serif" }}>
+                Reconnecting to the battle...
+              </p>
+              <p className="text-[#a06820] text-sm mt-2 uppercase tracking-wider">
+                Attempt {reconnectAttempts} of 5
+              </p>
+            </div>
+          </div>
+        )}
+        {gameMode === 'multiplayer' && socketStatus === 'error' && socketErrorMessage === 'Connection lost — return to menu' && (
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-40">
+            <div className="bg-[#221210]/95 border-2 border-[#8b0000] rounded p-6 text-center panel-glow">
+              <h2 className="text-2xl text-[#c41e3a] mb-2" style={{ fontFamily: "'Pirata One', serif" }}>
+                Connection Lost
+              </h2>
+              <p className="text-[#d4c4a1]/70 italic mb-4" style={{ fontFamily: "'IM Fell English', serif" }}>
+                Could not reconnect to the high seas.
+              </p>
+              <button
+                onClick={resetGame}
+                className="px-6 py-2 bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8] font-bold rounded border border-[#c41e3a] hover:from-[#e74c3c] hover:to-[#c41e3a] transition-colors"
+                style={{ fontFamily: "'Pirata One', serif" }}
+              >
+                Return to Menu
+              </button>
+            </div>
+          </div>
+        )}
         {isFinished && gameMode !== 'campaign' && <GameOverScreen />}
         <MissionOutro />
       </div>

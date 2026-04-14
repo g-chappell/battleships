@@ -13,8 +13,44 @@ import { SOCKET_URL } from '../services/apiClient';
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
 export type MatchmakingState = 'idle' | 'queueing' | 'matched';
+
+// Module-level reconnect state
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let isIntentionalDisconnect = false;
+
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_CAP_MS = 30000;
+const RECONNECT_MAX_ATTEMPTS = 5;
+
+function calcReconnectDelay(attempt: number): number {
+  return Math.min(RECONNECT_BASE_MS * Math.pow(2, attempt - 1), RECONNECT_CAP_MS);
+}
+
+function scheduleReconnect(
+  socket: GameSocket,
+  attempt: number,
+  set: (partial: Partial<SocketStore>) => void,
+  get: () => SocketStore
+): void {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  if (attempt > RECONNECT_MAX_ATTEMPTS) {
+    set({ status: 'error', errorMessage: 'Connection lost — return to menu' });
+    return;
+  }
+  set({ status: 'reconnecting', reconnectAttempts: attempt });
+  const delay = calcReconnectDelay(attempt);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (get().status === 'reconnecting') {
+      socket.connect();
+    }
+  }, delay);
+}
 
 interface SocketStore {
   socket: GameSocket | null;
@@ -47,6 +83,9 @@ interface SocketStore {
   // Rematch
   selfRequestedRematch: boolean;
   opponentRequestedRematch: boolean;
+
+  // Reconnect
+  reconnectAttempts: number;
 
   // Actions
   connect: (token: string | null, guestName?: string) => void;
@@ -91,30 +130,45 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
   selfRequestedRematch: false,
   opponentRequestedRematch: false,
 
+  reconnectAttempts: 0,
+
   connect: (token, guestName) => {
     const existing = get().socket;
     if (existing && existing.connected) return;
     if (existing) existing.disconnect();
 
-    set({ status: 'connecting', errorMessage: null });
+    // Clear any pending reconnect from a previous connection
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    isIntentionalDisconnect = false;
+
+    set({ status: 'connecting', errorMessage: null, reconnectAttempts: 0 });
 
     const socket: GameSocket = io(SOCKET_URL, {
       auth: { token, guestName },
       autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: 5,
+      reconnection: false,
     });
 
     socket.on('connect', () => {
-      set({ status: 'connected', errorMessage: null });
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      set({ status: 'connected', errorMessage: null, reconnectAttempts: 0 });
     });
 
-    socket.on('disconnect', () => {
-      set({ status: 'disconnected' });
+    socket.on('disconnect', (reason) => {
+      if (isIntentionalDisconnect || reason === 'io client disconnect') {
+        set({ status: 'disconnected' });
+        return;
+      }
+      scheduleReconnect(socket, 1, set, get);
     });
 
     socket.on('connect_error', (err) => {
-      set({ status: 'error', errorMessage: err.message });
+      if (get().status === 'reconnecting') {
+        const nextAttempt = get().reconnectAttempts + 1;
+        scheduleReconnect(socket, nextAttempt, set, get);
+      } else {
+        set({ status: 'error', errorMessage: err.message });
+      }
     });
 
     // Matchmaking
@@ -195,11 +249,14 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
   },
 
   disconnect: () => {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    isIntentionalDisconnect = true;
     const socket = get().socket;
     if (socket) socket.disconnect();
     set({
       socket: null,
       status: 'disconnected',
+      reconnectAttempts: 0,
       matchmakingState: 'idle',
       roomId: null,
       privateCode: null,
