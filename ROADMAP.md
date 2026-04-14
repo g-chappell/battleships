@@ -544,11 +544,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-030
 - **title:** Add seasonsStore unit tests
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
 - **description:** Add tests for `client/src/store/seasonsStore.ts` — fetch active season (populates state), fetch player season stats, null handling when no active season. Mock `apiFetchSafe` and audio service.
+- **pr:** https://github.com/g-chappell/battleships/pull/47
+- **completed:** 2026-04-14
 
 #### TASK-031
 - **title:** Add socketStore unit tests
