@@ -412,7 +412,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-037
 - **title:** Add socket reconnection with exponential backoff
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
