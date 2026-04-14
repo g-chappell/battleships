@@ -269,7 +269,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-038
 - **title:** Replace SettingsModal with shadcn Dialog + Switch + Slider
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
