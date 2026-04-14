@@ -83,11 +83,11 @@ export function Dashboard() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard label="Rating" value={stats?.rating ?? 1200} color="#d4a040" />
-        <StatCard label="Win Rate" value={`${winRate}%`} color="#2ecc71" />
-        <StatCard label="Wins" value={stats?.wins ?? 0} color="#2ecc71" />
+        <StatCard label="Win Rate" value={`${winRate}%`} color="#d4a040" />
+        <StatCard label="Wins" value={stats?.wins ?? 0} color="#d4a040" />
         <StatCard label="Losses" value={stats?.losses ?? 0} color="#c41e3a" />
-        <StatCard label="Accuracy" value={`${stats?.accuracy ?? 0}%`} color="#8ab0d4" />
-        <StatCard label="Ships Sunk" value={stats?.shipsSunk ?? 0} color="#2ecc71" />
+        <StatCard label="Accuracy" value={`${stats?.accuracy ?? 0}%`} color="#b87333" />
+        <StatCard label="Ships Sunk" value={stats?.shipsSunk ?? 0} color="#d4a040" />
         <StatCard label="Ships Lost" value={stats?.shipsLost ?? 0} color="#c41e3a" />
         <StatCard label="Avg Game" value={`${stats?.avgGameTimeSec ?? 0}s`} color="#d4a040" />
       </div>
@@ -119,7 +119,7 @@ export function Dashboard() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <span className={`font-bold text-sm ${m.won ? 'text-[#2ecc71]' : 'text-blood-bright'}`} style={FONT_STYLES.labelSC}>
+                    <span className={`font-bold text-sm ${m.won ? 'text-gold' : 'text-blood-bright'}`} style={FONT_STYLES.labelSC}>
                       {m.won ? 'WIN' : 'LOSS'}
                     </span>
                     <span className="text-parchment/70 text-sm" style={FONT_STYLES.labelSC}>{m.mode}</span>
