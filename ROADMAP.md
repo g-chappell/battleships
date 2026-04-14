@@ -489,7 +489,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-024
 - **title:** Add leaderboard route unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** server
 - **complexity:** small
