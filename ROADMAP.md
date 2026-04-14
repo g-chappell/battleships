@@ -392,11 +392,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-035
 - **title:** Add React error boundaries to GamePage and Three.js canvas
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** small
 - **description:** Unhandled errors in the Three.js R3F canvas or GamePage currently crash the entire app. Wrap `GamePage` and the `<Canvas>` component in an `ErrorBoundary` class component that renders a "Something went wrong — return to menu" fallback. Do not add error boundaries to every component — only the two highest-risk render trees.
+- **pr:** https://github.com/g-chappell/battleships/pull/29
+- **completed:** 2026-04-14
 
 #### TASK-036
 - **title:** Add AudioContext cleanup on page unload
