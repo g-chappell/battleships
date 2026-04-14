@@ -618,11 +618,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-051
 - **title:** Add property-based fuzz tests on GameEngine
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** shared
 - **complexity:** medium
 - **description:** Add `fast-check` (or equivalent) to shared tests. Generate random sequences of shots and ability activations against a seeded board. Assert invariants after every step: `ship.hits.size <= ship.size`, sunk iff all cells hit, `turnCount` monotonic, no cell registers twice, grid state consistent with ship.hits. Run 1000+ iterations in CI.
+- **pr:** https://github.com/g-chappell/battleships/pull/50
+- **completed:** 2026-04-14
 
 #### TASK-052
 - **title:** Add scripted play-to-completion tests covering trait + ability interactions
