@@ -1,5 +1,8 @@
 import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { FONT_STYLES } from '../../styles/fonts';
+import { Input } from '../shadcn/input';
+import { Label } from '../shadcn/label';
+import { Textarea } from '../shadcn/textarea';
 
 interface BaseFieldProps {
   label?: string;
@@ -28,40 +31,32 @@ export function FormField({
   ...rest
 }: InputProps) {
   const fieldId = id ?? name;
-  const inputBase =
-    'w-full px-4 py-2 bg-pitch border border-blood/40 rounded text-bone placeholder-parchment/30 focus:border-blood-bright focus:outline-none transition-colors';
 
   return (
     <div className={`w-full ${className}`}>
       {label && (
-        <label
-          htmlFor={fieldId}
-          className="block text-parchment text-xs uppercase tracking-wider mb-1"
-          style={FONT_STYLES.labelSC}
-        >
+        <Label htmlFor={fieldId} style={FONT_STYLES.labelSC}>
           {label}
-        </label>
+        </Label>
       )}
       {multiline ? (
-        <textarea
+        <Textarea
           id={fieldId}
           name={name}
           rows={rows ?? 3}
-          className={`${inputBase} resize-none`}
           style={FONT_STYLES.body}
           {...(rest as unknown as TextareaHTMLAttributes<HTMLTextAreaElement>)}
         />
       ) : (
-        <input
+        <Input
           id={fieldId}
           name={name}
-          className={inputBase}
           style={FONT_STYLES.body}
           {...rest}
         />
       )}
       {error && (
-        <p className="text-blood-bright text-xs mt-1 italic" style={FONT_STYLES.body}>
+        <p className="text-destructive text-xs mt-1 italic" style={FONT_STYLES.body}>
           {error}
         </p>
       )}
