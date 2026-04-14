@@ -269,11 +269,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-038
 - **title:** Replace SettingsModal with shadcn Dialog + Switch + Slider
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **description:** The current `SettingsModal` (`client/src/components/ui/SettingsModal.tsx`) is a hand-built modal overlay with custom toggle buttons and range inputs for volume/mute/music. Replace with shadcn `Dialog` for the modal shell, `Switch` for toggles, and `Slider` for volume controls. Install components via shadcn MCP (`npx shadcn add dialog switch slider`). Theme all components using the pirate palette CSS variables already in `index.css`. Preserve all existing functionality and keyboard accessibility. Follow brand-guidelines skill.
+- **pr:** https://github.com/g-chappell/battleships/pull/31
+- **completed:** 2026-04-14
 
 #### TASK-039
 - **title:** Replace hand-built form inputs with shadcn Input and Label
