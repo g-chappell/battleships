@@ -618,7 +618,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-051
 - **title:** Add property-based fuzz tests on GameEngine
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** shared
 - **complexity:** medium
