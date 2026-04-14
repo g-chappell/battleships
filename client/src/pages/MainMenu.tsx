@@ -42,16 +42,20 @@ export function MainMenu() {
 
       {/* Guest registration prompt */}
       {!user && (
-        <button
+        <Button
+          variant="ghost"
+          size="md"
           onClick={() => setScreen('guide')}
-          className="mt-12 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-coal/60 border border-blood/40 text-parchment/60 text-sm hover:border-blood hover:text-parchment/80 transition-all"
+          className="mt-12 border border-blood/40 hover:border-blood"
           style={FONT_STYLES.labelSC}
+          icon={
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="opacity-60">
+              <path d="M18 10V8A6 6 0 0 0 6 8v2H4v12h16V10h-2ZM8 8a4 4 0 0 1 8 0v2H8V8Z"/>
+            </svg>
+          }
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="opacity-60">
-            <path d="M18 10V8A6 6 0 0 0 6 8v2H4v12h16V10h-2ZM8 8a4 4 0 0 1 8 0v2H8V8Z"/>
-          </svg>
           Register to unlock Campaign, Tournaments, Clans & more
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -93,13 +93,16 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
           </Button>
         </form>
 
-        <button
+        <Button
+          variant="ghost"
+          size="md"
+          fullWidth
           onClick={onClose}
-          className="mt-4 w-full py-2 text-parchment/40 text-sm hover:text-parchment/70 transition-colors italic"
+          className="mt-4 italic text-parchment/40 hover:text-parchment/70"
           style={FONT_STYLES.body}
         >
           Play as Guest
-        </button>
+        </Button>
       </DialogContent>
     </Dialog>
   );
