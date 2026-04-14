@@ -7,6 +7,7 @@ import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { FormField } from '../components/ui/FormField';
+import { Dialog, DialogContent, DialogTitle } from '../components/shadcn/dialog';
 
 export function Clans() {
   const token = useAuthStore((s) => s.token);
@@ -259,12 +260,12 @@ export function Clans() {
       )}
 
       {/* Create clan modal */}
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-          <Card variant="glow" padding="lg" className="max-w-md w-full border-2 border-blood">
-            <h2 className="text-3xl text-blood-bright mb-4" style={FONT_STYLES.pirate}>
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent showCloseButton={false} className="max-w-md sm:max-w-md p-0 bg-transparent ring-0 shadow-none border-0">
+          <Card variant="glow" padding="lg" className="border-2 border-blood">
+            <DialogTitle className="text-3xl text-blood-bright mb-4" style={FONT_STYLES.pirate}>
               Raise the Colors
-            </h2>
+            </DialogTitle>
             <div className="space-y-3">
               <FormField
                 label="Clan Name"
@@ -297,8 +298,8 @@ export function Clans() {
               </Button>
             </div>
           </Card>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }

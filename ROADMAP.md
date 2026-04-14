@@ -301,12 +301,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-041
 - **title:** Replace ad-hoc modal overlays with shadcn Dialog
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **depends_on:** [TASK-038]
 - **description:** Several pages use `absolute inset-0 bg-black/85` overlays as hand-built modals: `AuthGate` confirmation, `OpponentDisconnect` notice, `MissionBriefing` popup, and any confirmation prompts. Refactor each to use the shadcn `Dialog` component (already installed in TASK-038). This centralizes modal behavior (backdrop click, escape key, focus trap) and ensures consistent pirate theming. Follow brand-guidelines skill.
+- **pr:** https://github.com/g-chappell/battleships/pull/34
+- **completed:** 2026-04-14
 
 #### TASK-042
 - **title:** Add shadcn Toast for notifications and achievement popups
