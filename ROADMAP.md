@@ -524,7 +524,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-028
 - **title:** Add clanStore unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** medium
