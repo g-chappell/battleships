@@ -192,18 +192,15 @@ export function Tournaments() {
                 </label>
                 <div className="flex gap-2">
                   {VALID_TOURNAMENT_SIZES.map((size) => (
-                    <button
+                    <Button
                       key={size}
+                      variant={createSize === size ? 'primary' : 'secondary'}
+                      size="sm"
+                      className="flex-1"
                       onClick={() => setCreateSize(size)}
-                      className={`flex-1 py-2 rounded-full text-sm transition ${
-                        createSize === size
-                          ? 'bg-gradient-to-b from-blood-bright to-blood text-bone'
-                          : 'bg-mahogany-light text-parchment border border-blood/40'
-                      }`}
-                      style={FONT_STYLES.pirate}
                     >
                       {size}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
