@@ -279,12 +279,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-039
 - **title:** Replace hand-built form inputs with shadcn Input and Label
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **depends_on:** [TASK-038]
 - **description:** The current `FormField` component (`client/src/components/ui/FormField.tsx`) wraps raw `<input>` and `<textarea>` with ad-hoc styling. Install shadcn `Input`, `Label`, and `Textarea` components. Refactor `FormField` to compose these shadcn primitives. Update all consumers: `AuthPage` (login/register forms), `Clans` (create clan, chat input), `Friends` (search input). Ensure error states use `destructive` color token. Follow brand-guidelines skill.
+- **pr:** https://github.com/g-chappell/battleships/pull/32
+- **completed:** 2026-04-14
 
 #### TASK-040
 - **title:** Add shadcn Tooltip to replace custom CSS tooltips
