@@ -18,6 +18,7 @@ import { TopNav } from './components/ui/TopNav';
 import { GlobalControls } from './components/ui/GlobalControls';
 import { AuthGate } from './components/ui/AuthGate';
 import { AchievementToast } from './components/ui/AchievementToast';
+import { Toaster, toast } from './components/shadcn/sonner';
 import { LoadingSplash } from './components/ui/LoadingSplash';
 import { useGameStore } from './store/gameStore';
 import { useAuthStore } from './store/authStore';
@@ -25,6 +26,7 @@ import { useAchievementsStore } from './store/achievementsStore';
 import { useSettingsStore } from './store/settingsStore';
 import { useCosmeticsStore } from './store/cosmeticsStore';
 import { useSeasonsStore } from './store/seasonsStore';
+import { useSocketStore } from './store/socketStore';
 
 function App() {
   const screen = useGameStore((s) => s.screen);
@@ -55,6 +57,22 @@ function App() {
     }
   }, [token, loadCosmeticsServer, resetGoldForGuest]);
 
+  // System toasts: connection lost / found opponent
+  const socketStatus = useSocketStore((s) => s.status);
+  const matchmakingState = useSocketStore((s) => s.matchmakingState);
+
+  useEffect(() => {
+    if (socketStatus === 'error') {
+      toast.error('Connection lost — return to menu');
+    }
+  }, [socketStatus]);
+
+  useEffect(() => {
+    if (matchmakingState === 'matched') {
+      toast('Opponent found! Ready yer cannons!');
+    }
+  }, [matchmakingState]);
+
   // Hide nav during active game (in-game UI is its own thing)
   const showNav = screen !== 'game' && screen !== 'spectate';
 
@@ -80,6 +98,7 @@ function App() {
         {screen === 'multiplayer' && <MultiplayerLobby />}
       </div>
       <AchievementToast />
+      <Toaster />
       <LoadingSplash />
     </div>
   );
