@@ -348,7 +348,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-045
 - **title:** Audit and fix Shop + Campaign + Tournaments brand consistency
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
