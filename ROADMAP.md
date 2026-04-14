@@ -262,7 +262,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-020
 - **title:** Add gold service unit tests
-- **status:** ready
+- **status:** in-progress
 - **priority:** 20
 - **workspaces:** server
 - **complexity:** small
