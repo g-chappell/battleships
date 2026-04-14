@@ -58,6 +58,8 @@ client/src/
                       Leaderboard, Clans, Shop, Profile, Guide, etc.
   components/three/   R3F: GameScene, BoardGrid, Ocean (GLSL shader), ShipModel, CoastalTerrain, Creatures
   components/ui/      GameHUD, AbilityBar, ShipTray, ChatPanel, GameOverScreen, CaptainPicker, etc.
+  components/shadcn/  shadcn/ui components (installed via `npx shadcn add <component>`)
+  lib/utils.ts        cn() helper for shadcn class merging
   services/audio.ts   Procedural Web Audio API (no audio files)
   styles/tokens.ts    Design tokens (colors, sizes)
 
@@ -85,6 +87,13 @@ server/src/
 - **Within shared:** `import { Board } from './Board'` (relative, no extension)
 - **Prisma client:** `import { PrismaClient } from '../generated/prisma/client.js'`
 - **Client tests** use the `@shared` alias. **Server tests** use relative paths with `.ts`.
+
+## Design system
+- Brand guidelines skill: `.claude/skills/brand-guidelines/SKILL.md` — pirate color palette, typography, component patterns, anti-patterns
+- All UI work must follow the brand guidelines
+- shadcn components are themed via CSS variables mapped to pirate palette in `client/src/index.css`
+- shadcn components install to `client/src/components/shadcn/` (separate from hand-built UI in `client/src/components/ui/`)
+- Use `cn()` from `@/lib/utils` for conditional class merging in shadcn components
 
 ## Tailwind CSS v4
 - Config: `@import "tailwindcss"` + `@theme {}` block in `client/src/index.css` — there is no `tailwind.config.js`
@@ -148,6 +157,9 @@ docker compose -f docker-compose.prod.yml down              # stop all (keeps da
 - **Server tests:** Use `createRoom()`/`joinRoom()`/`placeShips()` helpers and `makePlayer()` factory.
 - **Coverage gaps:** campaign, tournaments, replay, socket lifecycle, most client stores — new features in these areas MUST include tests.
 - Run all workspaces: `npm run test --workspace=shared && npm run test --workspace=server && npm run test --workspace=client`
+
+## MCP Servers
+- **shadcn** (`.mcp.json`) — component discovery & installation via `npx shadcn@latest mcp`. Lets Claude Code search, browse, and install shadcn/ui components conversationally.
 
 ## Architecture notes
 - `gh` CLI is at `"/c/Program Files/GitHub CLI/gh.exe"` (not on bash PATH)
