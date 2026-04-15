@@ -39,6 +39,8 @@ type IroncladBridge = {
   getEngineStats: () => { hits: number; actions: number; sunk: number };
   getOpponentShipCells: () => Array<{ row: number; col: number; shipType: string; isHit: boolean }>;
   damagePlayerShip: () => { row: number; col: number } | null;
+  disableOpponentTraits: () => void;
+  completeGameFast: () => string | null;
 };
 
 declare global {
@@ -83,7 +85,15 @@ test('ability rotation — each of 7 abilities produces correct hit/miss/sunk de
   // Overrides the captain's 2-ability loadout so we can test all 7 in one match.
   await page.evaluate(() => window.__ironclad!.injectAllAbilities());
 
-  // ── 5. Run all 7 abilities in a single page.evaluate ────────────────────
+  // ── 5. Disable opponent traits to prevent Nimble interference ───────────
+  // The opponent's Destroyer has the Nimble trait, which forces misses on
+  // cells adjacent to it. Depending on random ship placement, some of those
+  // adjacent cells may belong to other ships. Without disabling traits, ability
+  // shots aimed at those ship cells (e.g. Spyglass) become forced misses and
+  // the `hits++` assertion fails non-deterministically.
+  await page.evaluate(() => window.__ironclad!.disableOpponentTraits());
+
+  // ── 6. Run all 7 abilities in a single page.evaluate ────────────────────
   // All bridge methods are synchronous — batching eliminates ~42 Playwright
   // round trips that caused 30s timeouts in headless CI (SwiftShader renderer).
   type AbilityStats = { hits: number; actions: number; sunk: number };
@@ -155,7 +165,7 @@ test('ability rotation — each of 7 abilities produces correct hit/miss/sunk de
     boardingParty: AbilityResult;
   };
 
-  // ── 6. Assert per-ability deltas ─────────────────────────────────────────
+  // ── 7. Assert per-ability deltas ─────────────────────────────────────────
 
   // CannonBarrage
   if (!results.cannonBarrage.skipped) {
@@ -199,7 +209,7 @@ test('ability rotation — each of 7 abilities produces correct hit/miss/sunk de
     expect(results.boardingParty.after.hits, 'BoardingParty on ship: intel success counts as accuracy hit').toBeGreaterThan(results.boardingParty.before.hits);
   }
 
-  // ── 7. Cross-check HUD sunk count ───────────────────────────────────────
+  // ── 8. Cross-check HUD sunk count ───────────────────────────────────────
   // At this point 3 damaging abilities (CannonBarrage, ChainShot, Spyglass) have fired.
   // The HUD enemy-remaining count must match the engine's sunk count.
   const finalStats = await page.evaluate(() => window.__ironclad!.getEngineStats());

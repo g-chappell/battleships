@@ -34,6 +34,19 @@ if (import.meta.env.DEV) {
       /** Reset all ability cooldowns to 0 and restore exhausted uses to unlimited. */
       resetAbilityCooldowns: () => void;
       /**
+       * Set opponentTraits to null so Nimble / Ironclad no longer interfere with
+       * player shots. Call this before firing in E2E tests that target ship cells
+       * directly — otherwise Nimble can permanently block certain cells.
+       */
+      disableOpponentTraits: () => void;
+      /**
+       * Fire all 100 cells (up to 3 passes) directly through the engine, bypassing
+       * Zustand actions and React re-renders during the loop. Returns engine.winner
+       * ('player' | 'opponent' | null). Guarantees a player win because traits are
+       * not applied (no Nimble force-misses), so every ship cell is hittable.
+       */
+      completeGameFast: () => string | null;
+      /**
        * Use an ability at (row, col) and synchronously advance through AI turns.
        * `type` is the AbilityType string value (e.g. 'cannon_barrage').
        */
@@ -236,6 +249,54 @@ if (import.meta.env.DEV) {
           }
         }
         return null;
+      },
+
+      disableOpponentTraits: () => {
+        // Nulling opponentTraits causes playerFire / useAbility to skip all
+        // Nimble and Ironclad processing, so every shot on a ship cell registers
+        // as a clean hit without forced-miss interference.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        useGameStore.setState((s) => ({ opponentTraits: null as any, tick: s.tick + 1 }));
+      },
+
+      completeGameFast: (): string | null => {
+        const { engine, ai } = useGameStore.getState();
+        // Fire all 100 cells directly through the engine (no Zustand set() calls
+        // during the loop → no React re-renders → no SwiftShader WebGL overhead).
+        // Three passes handle any edge cases (e.g. cells revealed after a ship sinks).
+        for (let pass = 0; pass < 3 && engine.phase === 'playing'; pass++) {
+          for (let row = 0; row < 10 && engine.phase === 'playing'; row++) {
+            for (let col = 0; col < 10 && engine.phase === 'playing'; col++) {
+              // Run any pending AI turns first
+              while (engine.phase === 'playing' && engine.currentTurn === 'opponent') {
+                const target = ai.chooseTarget(engine.playerBoard);
+                const aiOutcome = engine.opponentShoot(target);
+                if (!aiOutcome) break;
+                ai.notifyResult(target, aiOutcome.result);
+              }
+              if (engine.currentTurn !== 'player') break;
+              // Fire directly — bypasses Nimble/Ironclad so all ship cells are hittable
+              const shotOutcome = engine.playerShoot({ row, col });
+              // Mirror what playerFire action does: track hits/actions for accuracy
+              if (shotOutcome) {
+                engine.recordPlayerAction(shotOutcome.result !== 'miss');
+              }
+              // Handle opponent turn if the shot was a miss.
+              // Cast needed: TS narrows currentTurn to 'player' via the guard above
+              // but playerShoot mutates the engine and can flip it to 'opponent'.
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              while (engine.phase === 'playing' && (engine.currentTurn as any) === 'opponent') {
+                const target = ai.chooseTarget(engine.playerBoard);
+                const aiOutcome = engine.opponentShoot(target);
+                if (!aiOutcome) break;
+                ai.notifyResult(target, aiOutcome.result);
+              }
+            }
+          }
+        }
+        // Single setState tick to flush React / notify UI of final state
+        useGameStore.setState((s) => ({ tick: s.tick + 1 }));
+        return engine.winner;
       },
     };
 
