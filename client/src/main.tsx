@@ -15,7 +15,11 @@ createRoot(document.getElementById('root')!).render(
 // needing to click WebGL canvas cells.
 // ---------------------------------------------------------------------------
 if (import.meta.env.DEV) {
-  import('./store/gameStore').then(({ useGameStore }) => {
+  Promise.all([
+    import('./store/gameStore'),
+    import('./store/socketStore'),
+    import('./store/authStore'),
+  ]).then(([{ useGameStore }, { useSocketStore }, { useAuthStore }]) => {
     type IroncladBridge = {
       isReady: () => boolean;
       getPhase: () => string;
@@ -60,6 +64,39 @@ if (import.meta.env.DEV) {
        * Returns the damaged cell coords, or null if no undamaged ship cell found.
        */
       damagePlayerShip: () => { row: number; col: number } | null;
+      // ── Multiplayer helpers (TASK-050) ─────────────────────────────────────
+      /** Return this player's own ship cells (from local engine — call while in placement phase). */
+      getOwnShipCells: () => Array<{ row: number; col: number }>;
+      /**
+       * Inject auth credentials into localStorage and call authStore.loadFromStorage().
+       * Used by E2E tests to authenticate without going through the login UI.
+       * @param token - JWT token string
+       * @param userJson - JSON.stringify'd user object { id, email, username }
+       */
+      injectAuth: (token: string, userJson: string) => void;
+      /** Emit game:fire via the socket store (multiplayer only). */
+      fireViaSocket: (row: number, col: number) => void;
+      /** Emit game:resign via the socket store (multiplayer only). */
+      resignViaSocket: () => void;
+      /** Emit game:rematch_request via the socket store (multiplayer only). */
+      requestRematchViaSocket: () => void;
+      /**
+       * Return a snapshot of socket store state for assertions in E2E multiplayer tests.
+       */
+      getMultiplayerState: () => {
+        socketStatus: string;
+        matchmakingState: string;
+        gameState: {
+          phase: string;
+          currentTurn: string;
+          ownBoard: { cells: string[][] };
+          opponentBoard: { cells: string[][] };
+          sunkShips: unknown[];
+        } | null;
+        matchSummary: unknown | null;
+        selfRequestedRematch: boolean;
+        opponentRequestedRematch: boolean;
+      };
     };
 
     const bridge: IroncladBridge = {
@@ -257,6 +294,50 @@ if (import.meta.env.DEV) {
         // as a clean hit without forced-miss interference.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         useGameStore.setState((s) => ({ opponentTraits: null as any, tick: s.tick + 1 }));
+      },
+
+      // ── Multiplayer helpers ───────────────────────────────────────────────
+
+      getOwnShipCells: () => {
+        const { engine } = useGameStore.getState();
+        const cells: Array<{ row: number; col: number }> = [];
+        for (const ship of engine.playerBoard.ships) {
+          for (const cell of ship.cells) {
+            cells.push({ row: cell.row, col: cell.col });
+          }
+        }
+        return cells;
+      },
+
+      injectAuth: (token: string, userJson: string) => {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', userJson);
+        useAuthStore.getState().loadFromStorage();
+      },
+
+      fireViaSocket: (row: number, col: number) => {
+        useSocketStore.getState().fire({ row, col });
+      },
+
+      resignViaSocket: () => {
+        useSocketStore.getState().resign();
+      },
+
+      requestRematchViaSocket: () => {
+        useSocketStore.getState().requestRematch();
+      },
+
+      getMultiplayerState: () => {
+        const s = useSocketStore.getState();
+        return {
+          socketStatus: s.status,
+          matchmakingState: s.matchmakingState,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          gameState: s.gameState as any,
+          matchSummary: s.matchSummary,
+          selfRequestedRematch: s.selfRequestedRematch,
+          opponentRequestedRematch: s.opponentRequestedRematch,
+        };
       },
 
       completeGameFast: (): string | null => {

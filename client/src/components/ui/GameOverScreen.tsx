@@ -218,6 +218,7 @@ export function GameOverScreen() {
           <>
             <div className="flex gap-3">
               <button
+                data-testid="btn-rematch"
                 onClick={handleMpRematch}
                 disabled={selfRequestedRematch}
                 className="flex-1 px-4 py-3 bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8] font-bold rounded border border-[#c41e3a] hover:from-[#e74c3c] hover:to-[#c41e3a] transition-colors disabled:opacity-50"

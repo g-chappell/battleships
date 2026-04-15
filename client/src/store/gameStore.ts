@@ -755,7 +755,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
       hits: new Set(s.hits),
     }));
 
-    set((s) => ({ engine, tick: s.tick + 1 }));
+    // Rematch reset: when a fresh placement phase arrives with no server-side
+    // ships for the player, the previous game's placement state (placedShips,
+    // mpPlacementSubmitted) must be cleared — otherwise ShipTray keeps showing
+    // "Awaiting opponent..." because mpPlacementSubmitted is still true from
+    // the prior game and the "Ready for Battle" button never re-renders.
+    if (state.phase === 'placement' && state.ownBoard.ships.length === 0) {
+      set((s) => ({
+        engine,
+        placedShips: [],
+        mpPlacementSubmitted: false,
+        placingShipType: ShipType.Carrier,
+        placingOrientation: Orientation.Horizontal,
+        tick: s.tick + 1,
+      }));
+    } else {
+      set((s) => ({ engine, tick: s.tick + 1 }));
+    }
   },
 
   resetGame: () => {

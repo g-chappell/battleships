@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { GameScene } from '../components/three/GameScene';
 import { ShipTray } from '../components/ui/ShipTray';
 import { GameHUD } from '../components/ui/GameHUD';
@@ -35,6 +35,7 @@ export function GamePage() {
 
   const gameMode = useGameStore((s) => s.gameMode);
   const difficulty = useGameStore((s) => s.difficulty);
+  const startMultiplayerGame = useGameStore((s) => s.startMultiplayerGame);
   const unlockMany = useAchievementsStore((s) => s.unlockMany);
   const alreadyUnlocked = useAchievementsStore((s) => s.unlocked);
   const completeMission = useCampaignStore((s) => s.completeMission);
@@ -47,9 +48,30 @@ export function GamePage() {
   const socketStatus = useSocketStore((s) => s.status);
   const reconnectAttempts = useSocketStore((s) => s.reconnectAttempts);
   const socketErrorMessage = useSocketStore((s) => s.errorMessage);
+  const roomId = useSocketStore((s) => s.roomId);
 
   const isPlacing = engine.phase === GamePhase.Placement;
   const isFinished = engine.phase === GamePhase.Finished;
+
+  // Rematch reset: MultiplayerLobby normally triggers startMultiplayerGame() on
+  // mm:matched, but on rematch the lobby is no longer mounted (we're on the
+  // game screen showing GameOverScreen). Detect the rematch by watching for a
+  // *new* roomId while we're already in a multiplayer game — the initial
+  // roomId is handled by the lobby before GamePage mounts, so we only act on a
+  // transition from one roomId to another.
+  const prevRoomIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prevRoomId = prevRoomIdRef.current;
+    prevRoomIdRef.current = roomId;
+    if (
+      gameMode === 'multiplayer' &&
+      roomId &&
+      prevRoomId &&
+      roomId !== prevRoomId
+    ) {
+      startMultiplayerGame();
+    }
+  }, [gameMode, roomId, startMultiplayerGame]);
 
   // Start/stop ambient soundtrack
   useEffect(() => {

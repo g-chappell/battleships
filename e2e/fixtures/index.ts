@@ -13,7 +13,67 @@
 import { test as base, expect, type Page } from '@playwright/test';
 import { randomUUID } from 'crypto';
 
+export type { Page } from '@playwright/test';
+
 const API_URL = process.env.API_URL ?? 'http://localhost:3001/api';
+
+// ---------------------------------------------------------------------------
+// Test bridge type
+// ---------------------------------------------------------------------------
+
+/**
+ * The window.__ironclad bridge exposed by main.tsx in DEV builds.
+ * Declared here once so all test files import the same type and avoid
+ * TS2717 "Subsequent property declarations must have the same type" errors.
+ *
+ * Add new bridge methods here rather than per-file.
+ */
+export type IroncladBridge = {
+  isReady: () => boolean;
+  getPhase: () => string;
+  getTurnCount: () => number;
+  getOpponentShipsRemaining: () => number;
+  getPlayerShipsRemaining: () => number;
+  getWinner: () => string | null;
+  getAccuracy: () => number;
+  getOpponentShipsSunk: () => number;
+  isAnimating: () => boolean;
+  isPlayerTurn: () => boolean;
+  fireAndAdvance: (row: number, col: number) => { result: string; sunkShip: string | null } | null;
+  injectAllAbilities: () => void;
+  resetAbilityCooldowns: () => void;
+  disableOpponentTraits: () => void;
+  completeGameFast: () => string | null;
+  useAbilityAndAdvance: (type: string, row: number, col: number) => { applied: boolean };
+  getEngineStats: () => { hits: number; actions: number; sunk: number };
+  getOpponentShipCells: () => Array<{ row: number; col: number; shipType: string; isHit: boolean }>;
+  damagePlayerShip: () => { row: number; col: number } | null;
+  // Multiplayer helpers (TASK-050)
+  getOwnShipCells: () => Array<{ row: number; col: number }>;
+  injectAuth: (token: string, userJson: string) => void;
+  fireViaSocket: (row: number, col: number) => void;
+  resignViaSocket: () => void;
+  requestRematchViaSocket: () => void;
+  getMultiplayerState: () => {
+    socketStatus: string;
+    matchmakingState: string;
+    gameState: {
+      phase: string;
+      currentTurn: string;
+      ownBoard: { cells: string[][] };
+      opponentBoard: { cells: string[][] };
+    } | null;
+    matchSummary: unknown | null;
+    selfRequestedRematch: boolean;
+    opponentRequestedRematch: boolean;
+  };
+};
+
+declare global {
+  interface Window {
+    __ironclad?: IroncladBridge;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types

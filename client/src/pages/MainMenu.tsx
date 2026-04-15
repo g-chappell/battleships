@@ -35,7 +35,7 @@ export function MainMenu() {
         <Button variant="pill" size="lg" onClick={() => setScreen('campaign')}>
           Campaign
         </Button>
-        <Button variant="pill" size="lg" onClick={() => setScreen('lobby')}>
+        <Button data-testid="btn-multiplayer" variant="pill" size="lg" onClick={() => setScreen('lobby')}>
           Multiplayer
         </Button>
       </div>

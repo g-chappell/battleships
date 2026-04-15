@@ -13,39 +13,8 @@
  * The bridge runs AI turns synchronously so the test completes in seconds.
  */
 
+// IroncladBridge type and Window.__ironclad global are declared once in ../fixtures/index.ts
 import { test, expect } from '../fixtures';
-
-// ---------------------------------------------------------------------------
-// Helper type for the window bridge
-// ---------------------------------------------------------------------------
-type IroncladBridge = {
-  isReady: () => boolean;
-  getPhase: () => string;
-  getTurnCount: () => number;
-  getOpponentShipsRemaining: () => number;
-  getPlayerShipsRemaining: () => number;
-  getWinner: () => string | null;
-  getAccuracy: () => number;
-  getOpponentShipsSunk: () => number;
-  isAnimating: () => boolean;
-  isPlayerTurn: () => boolean;
-  fireAndAdvance: (row: number, col: number) => { result: string; sunkShip: string | null } | null;
-  // Ability testing helpers (added for TASK-049)
-  injectAllAbilities: () => void;
-  resetAbilityCooldowns: () => void;
-  useAbilityAndAdvance: (type: string, row: number, col: number) => { applied: boolean };
-  getEngineStats: () => { hits: number; actions: number; sunk: number };
-  getOpponentShipCells: () => Array<{ row: number; col: number; shipType: string; isHit: boolean }>;
-  damagePlayerShip: () => { row: number; col: number } | null;
-  disableOpponentTraits: () => void;
-  completeGameFast: () => string | null;
-};
-
-declare global {
-  interface Window {
-    __ironclad?: IroncladBridge;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Test
