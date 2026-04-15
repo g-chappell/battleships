@@ -17,7 +17,7 @@ export function PreGameSetup() {
   const setDifficulty = useGameStore((s) => s.setDifficulty);
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center pt-24 pb-12 overflow-y-auto bg-gradient-to-b from-pitch via-coal to-mahogany px-4">
+    <div data-testid="pregame-setup" className="w-full h-full flex flex-col items-center justify-center pt-24 pb-12 overflow-y-auto bg-gradient-to-b from-pitch via-coal to-mahogany px-4">
       <h1
         className="text-4xl md:text-5xl text-blood-bright mb-2"
         style={{ ...FONT_STYLES.pirate, textShadow: '0 0 20px rgba(196,30,58,0.4)' }}
@@ -37,6 +37,7 @@ export function PreGameSetup() {
           {DIFFICULTIES.map((d) => (
             <button
               key={d.value}
+              data-testid={`difficulty-${d.value}`}
               onClick={() => setDifficulty(d.value)}
               className={`px-6 py-2 text-sm rounded-full border-2 transition-all ${
                 difficulty === d.value
@@ -66,7 +67,7 @@ export function PreGameSetup() {
         <Button variant="ghost" size="md" onClick={() => setScreen('menu')}>
           ← Back
         </Button>
-        <Button variant="primary" size="lg" onClick={startNewGame}>
+        <Button data-testid="btn-set-sail" variant="primary" size="lg" onClick={startNewGame}>
           Set Sail
         </Button>
       </div>

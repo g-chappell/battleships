@@ -146,9 +146,10 @@ export function GameOverScreen() {
   const hasAbilities = abilitiesUsed && Object.keys(abilitiesUsed).length > 0;
 
   return (
-    <div className="absolute inset-0 bg-black/85 flex items-center justify-center z-50 overflow-y-auto py-4">
+    <div data-testid="game-over-screen" className="absolute inset-0 bg-black/85 flex items-center justify-center z-50 overflow-y-auto py-4">
       <div className="bg-gradient-to-b from-[#221210] to-[#2a1410] border-2 border-[#8b0000] rounded p-8 text-center max-w-lg shadow-2xl shadow-[#8b0000]/40">
         <h1
+          data-testid="game-over-result"
           className={`text-6xl mb-2 ${isVictory ? 'text-[#c41e3a]' : 'text-[#6b6b6b]'}`}
           style={{ ...pirateStyle, textShadow: isVictory ? '0 0 20px rgba(196, 30, 58, 0.6)' : '0 0 20px rgba(0,0,0,0.8)' }}
         >
@@ -173,11 +174,11 @@ export function GameOverScreen() {
           </div>
           <div className="bg-[#4d2e22]/60 rounded p-3 border border-[#8b0000]/30">
             <div className="text-[#a06820] text-xs uppercase tracking-wider" style={labelStyle}>Accuracy</div>
-            <div className="text-2xl font-bold text-[#e8dcc8]" style={pirateStyle}>{accuracy}%</div>
+            <div data-testid="game-over-accuracy" className="text-2xl font-bold text-[#e8dcc8]" style={pirateStyle}>{accuracy}%</div>
           </div>
           <div className="bg-[#4d2e22]/60 rounded p-3 border border-[#8b0000]/30">
             <div className="text-[#a06820] text-xs uppercase tracking-wider" style={labelStyle}>Ships Sunk</div>
-            <div className="text-2xl font-bold text-[#c41e3a]" style={pirateStyle}>
+            <div data-testid="game-over-ships-sunk" className="text-2xl font-bold text-[#c41e3a]" style={pirateStyle}>
               {engine.getSunkShipTypes(engine.opponentBoard).length}
             </div>
           </div>

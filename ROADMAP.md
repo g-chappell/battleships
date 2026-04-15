@@ -597,12 +597,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-048
 - **title:** E2E test — complete a full singleplayer match against Easy AI
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** e2e
 - **complexity:** medium
 - **depends_on:** [TASK-047]
 - **description:** Playwright scenario: launch campaign or singleplayer mode, place all 5 ships via the UI, fire at every enemy cell sequentially (derive targets from a deterministic AI opponent seed), assert each of the 5 ships is reported sunk on the HUD, assert GameOverScreen renders with a win, assert accuracy stats render with correct numerator/denominator. Use `data-testid` selectors on board cells and ship status indicators — add them where missing.
+- **pr:** https://github.com/g-chappell/battleships/pull/57
+- **completed:** 2026-04-15
 
 #### TASK-049
 - **title:** E2E test — ability rotation with hit/miss/sunk assertion per activation
