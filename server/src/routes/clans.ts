@@ -10,6 +10,22 @@ import {
   addChatMessage,
 } from '../services/clans.ts';
 
+// Rate limiting for clan chat: 5 messages per 10 seconds per user
+const clanChatTimestamps = new Map<string, number[]>();
+
+function rateLimitClanChat(userId: string): boolean {
+  const now = Date.now();
+  const history = clanChatTimestamps.get(userId) ?? [];
+  const recent = history.filter((t) => now - t < 10000);
+  if (recent.length >= 5) {
+    clanChatTimestamps.set(userId, recent);
+    return false;
+  }
+  recent.push(now);
+  clanChatTimestamps.set(userId, recent);
+  return true;
+}
+
 export const clansRouter = Router();
 
 clansRouter.get('/', async (req, res) => {
@@ -68,6 +84,10 @@ clansRouter.post('/:id/chat', authMiddleware, async (req, res) => {
   const { text } = req.body ?? {};
   if (!text || typeof text !== 'string') {
     res.status(400).json({ error: 'text required' });
+    return;
+  }
+  if (!rateLimitClanChat(req.user!.userId)) {
+    res.status(429).json({ error: 'Slow down, captain!' });
     return;
   }
   try {
