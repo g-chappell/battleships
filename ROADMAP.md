@@ -587,11 +587,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-047
 - **title:** Scaffold e2e workspace with Playwright + CI integration
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** e2e
 - **complexity:** large
 - **description:** Create a new top-level `e2e/` workspace using Playwright. Add to root `package.json` workspaces. Configure Playwright to start client + server (via `npm run dev` with `wait-on` or docker-compose) before the suite, tear down after. Provide fixtures: `registeredUser` (seeds DB + logs in), `guestUser`, `socketReady` helper that waits for game-state events. Extend `.github/workflows/ci.yml` with an `e2e` job that depends on unit tests passing and must pass before merge. Document running locally in `e2e/README.md`.
+- **pr:** https://github.com/g-chappell/battleships/pull/56
+- **completed:** 2026-04-15
 
 #### TASK-048
 - **title:** E2E test — complete a full singleplayer match against Easy AI
