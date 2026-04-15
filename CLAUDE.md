@@ -176,6 +176,13 @@ docker compose -f docker-compose.prod.yml down              # stop all (keeps da
 - Always use `tsc -b` (not `tsc --noEmit`) for the final type check — `tsc -b` validates project references and composite builds; `--noEmit` misses these and can pass locally while CI fails.
 - Run all workspaces: `npm run test --workspace=shared && npm run test --workspace=server && npm run test --workspace=client`
 
+## E2E testing patterns
+- Import from `../fixtures` (not `@playwright/test`) to get the `test` object extended with `registeredUser`, `guestUser`, and `socketReady` fixtures.
+- `socketReady(page, eventName)` must be called BEFORE the UI action that triggers the socket event — the WebSocket listener registers at call-time; frames arriving before registration are missed.
+- Add `data-testid="..."` attributes to components when a test needs to target them — prefer these over CSS selectors or text matches.
+- Playwright tsconfig requires `"lib": ["ES2022", "DOM"]` — Playwright's type definitions reference `HTMLElement`, `SVGElement`, etc. even though tests run in Node.js.
+- When adding a new Playwright CI job, always include at least one smoke test in `testDir` — an empty test directory causes `playwright test` to exit code 1 and fail CI.
+
 ## MCP Servers
 - **shadcn** (`.mcp.json`) — component discovery & installation via `npx shadcn@latest mcp`. Lets Claude Code search, browse, and install shadcn/ui components conversationally.
 
@@ -184,6 +191,7 @@ docker compose -f docker-compose.prod.yml down              # stop all (keeps da
 - Some shadcn components wrap a **separate npm package** (not Radix): `sonner` (toast), `vaul` (drawer), `cmdk` (command palette), `embla-carousel-react` (carousel), `recharts` (charts). Installing these requires `npm install`, which violates the no-dependency rule. **Do not build a custom substitute — stop and ask the human for permission to install the package instead.**
 - When refactoring a component that reads from a Zustand store that already has tests, use the **bridge pattern**: keep the store API unchanged, have the refactored component watch the store and delegate rendering to the new UI primitive. This preserves existing tests without modification.
 - `preview_screenshot` consistently times out because the 3D R3F canvas holds the renderer busy. Use `preview_eval` (DOM queries, `data-slot` counts, mounted-state checks) and `preview_snapshot` (accessibility tree for text/roles) for visual verification instead. Skip `preview_screenshot` unless the specific visual output is essential.
+- `IconButton` (in `client/src/components/ui/`) auto-renders a shadcn `Tooltip` when a `label` prop is passed — no additional tooltip wiring needed.
 
 ## Architecture notes
 - `gh` CLI is at `"/c/Program Files/GitHub CLI/gh.exe"` (not on bash PATH)
