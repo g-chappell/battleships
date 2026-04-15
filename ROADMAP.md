@@ -399,7 +399,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-034
 - **title:** Add rate limiting to clan chat messages
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** server
 - **complexity:** small
