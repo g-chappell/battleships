@@ -608,7 +608,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-049
 - **title:** E2E test — ability rotation with hit/miss/sunk assertion per activation
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** e2e
 - **complexity:** medium
