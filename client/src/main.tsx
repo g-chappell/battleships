@@ -89,6 +89,7 @@ if (import.meta.env.DEV) {
         gameState: {
           phase: string;
           currentTurn: string;
+          ownBoard: { cells: string[][] };
           opponentBoard: { cells: string[][] };
           sunkShips: unknown[];
         } | null;

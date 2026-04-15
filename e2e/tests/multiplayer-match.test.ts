@@ -153,50 +153,104 @@ test(
         { timeout: 30_000 },
       );
 
-      // ── 14. Player 1 fires at all of player 2's ship cells ────────────────
-      // Strategy: target only ship cells → every shot is a hit → player keeps
-      // consecutive turn (hits don't switch) → player 2 never fires → player 1
-      // wins in exactly 17 shots with 100% accuracy.
-      // Fires sequentially; waits for each hit to appear in the server game state
-      // before sending the next shot (prevents socket event ordering issues).
-      await page1.evaluate(async (cells: Array<{ row: number; col: number }>) => {
-        for (const cell of cells) {
-          // Count current hits before firing
-          const before = (() => {
-            const gs = window.__ironclad?.getMultiplayerState()?.gameState;
-            if (!gs) return 0;
-            let n = 0;
-            for (const row of gs.opponentBoard.cells) for (const c of row) if (c === 'hit') n++;
-            return n;
-          })();
-
-          // Fire the shot
-          window.__ironclad!.fireViaSocket(cell.row, cell.col);
-
-          // Wait for the hit to be reflected in game state (server round-trip)
-          await new Promise<void>((resolve, reject) => {
-            const deadline = Date.now() + 8_000;
-            const poll = () => {
-              const gs = window.__ironclad?.getMultiplayerState()?.gameState;
-              if (!gs) {
-                if (Date.now() > deadline) reject(new Error('gameState missing after shot'));
-                else setTimeout(poll, 50);
-                return;
-              }
-              if (gs.phase === 'finished') { resolve(); return; }
-              let n = 0;
-              for (const row of gs.opponentBoard.cells) for (const c of row) if (c === 'hit') n++;
-              if (n > before) resolve();
-              else if (Date.now() > deadline)
-                reject(new Error(`hit not registered for cell ${JSON.stringify(cell)}`));
-              else setTimeout(poll, 50);
-            };
-            setTimeout(poll, 50);
-          });
-
-          if (window.__ironclad?.getPhase() === 'finished') break;
+      // ── 14. Read player 1's water cells for player 2's guaranteed-miss shots ──
+      // 'empty' cells on player 1's ownBoard are water (not ship, not land).
+      // Passing them to player 2's loop guarantees misses → turn switch to player 1.
+      // This handles the case where the server assigns player 2 the first turn.
+      const p1WaterCells = await page1.evaluate(() => {
+        const gs = window.__ironclad?.getMultiplayerState()?.gameState;
+        if (!gs) return [] as Array<{ row: number; col: number }>;
+        const result: Array<{ row: number; col: number }> = [];
+        for (let r = 0; r < gs.ownBoard.cells.length; r++) {
+          for (let c = 0; c < gs.ownBoard.cells[r].length; c++) {
+            if (gs.ownBoard.cells[r][c] === 'empty') result.push({ row: r, col: c });
+          }
         }
-      }, p2ShipCells);
+        return result;
+      });
+
+      // ── 15. Fire concurrently: p1 hits ship cells; p2 fires misses on its turn ──
+      // Strategy: target only ship cells → every player-1 shot is a hit → player 1
+      // keeps consecutive turn (hits don't switch turns). If player 2 goes first,
+      // the p2 loop fires a guaranteed miss at a water cell → turn switches to p1.
+      await Promise.all([
+        // Player 1: fire at all p2 ship cells, waiting for each hit to register
+        page1.evaluate(async (cells: Array<{ row: number; col: number }>) => {
+          for (const cell of cells) {
+            // Wait for player 1's turn before firing
+            await new Promise<void>((resolve, reject) => {
+              const deadline = Date.now() + 30_000;
+              const poll = () => {
+                const gs = window.__ironclad?.getMultiplayerState()?.gameState;
+                if (!gs || gs.phase === 'finished') { resolve(); return; }
+                if (gs.currentTurn === 'self') { resolve(); return; }
+                if (Date.now() > deadline) reject(new Error('timed out waiting for player 1 turn'));
+                else setTimeout(poll, 100);
+              };
+              setTimeout(poll, 100);
+            });
+
+            const gs = window.__ironclad?.getMultiplayerState()?.gameState;
+            if (!gs || gs.phase === 'finished') break;
+
+            // Count hits before shot
+            let before = 0;
+            for (const row of gs.opponentBoard.cells) for (const c of row) if (c === 'hit') before++;
+
+            window.__ironclad!.fireViaSocket(cell.row, cell.col);
+
+            // Wait for hit to be reflected in game state (server round-trip)
+            await new Promise<void>((resolve, reject) => {
+              const deadline = Date.now() + 8_000;
+              const poll = () => {
+                const g = window.__ironclad?.getMultiplayerState()?.gameState;
+                if (!g || g.phase === 'finished') { resolve(); return; }
+                let n = 0;
+                for (const row of g.opponentBoard.cells) for (const c of row) if (c === 'hit') n++;
+                if (n > before) resolve();
+                else if (Date.now() > deadline)
+                  reject(new Error(`hit not registered for cell ${JSON.stringify(cell)}`));
+                else setTimeout(poll, 50);
+              };
+              setTimeout(poll, 50);
+            });
+
+            if (window.__ironclad?.getPhase() === 'finished') break;
+          }
+        }, p2ShipCells),
+
+        // Player 2: fire at player 1's water cells whenever it's player 2's turn.
+        // These are guaranteed misses → turn switches back to player 1.
+        page2.evaluate(async (waterCells: Array<{ row: number; col: number }>) => {
+          let idx = 0;
+          const deadline = Date.now() + 90_000;
+          while (idx < waterCells.length && Date.now() < deadline) {
+            const gs = window.__ironclad?.getMultiplayerState()?.gameState;
+            if (!gs || gs.phase === 'finished') break;
+
+            if (gs.currentTurn !== 'self') {
+              await new Promise<void>((r) => setTimeout(r, 100));
+              continue;
+            }
+
+            window.__ironclad!.fireViaSocket(waterCells[idx].row, waterCells[idx].col);
+            idx++;
+
+            // Wait for turn to switch back (miss → opponent's turn)
+            await new Promise<void>((resolve) => {
+              const turnDeadline = Date.now() + 5_000;
+              const poll = () => {
+                const g = window.__ironclad?.getMultiplayerState()?.gameState;
+                if (!g || g.phase === 'finished') { resolve(); return; }
+                if (g.currentTurn !== 'self') { resolve(); return; }
+                if (Date.now() > turnDeadline) { resolve(); return; }
+                setTimeout(poll, 50);
+              };
+              setTimeout(poll, 50);
+            });
+          }
+        }, p1WaterCells),
+      ]);
 
       // ── 15. Wait for Finished phase on both pages ─────────────────────────
       await page1.waitForFunction(

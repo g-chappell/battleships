@@ -60,6 +60,7 @@ export type IroncladBridge = {
     gameState: {
       phase: string;
       currentTurn: string;
+      ownBoard: { cells: string[][] };
       opponentBoard: { cells: string[][] };
     } | null;
     matchSummary: unknown | null;
