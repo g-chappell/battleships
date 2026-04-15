@@ -597,7 +597,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-048
 - **title:** E2E test — complete a full singleplayer match against Easy AI
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** e2e
 - **complexity:** medium
