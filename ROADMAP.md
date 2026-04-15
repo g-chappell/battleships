@@ -634,11 +634,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-052
 - **title:** Add scripted play-to-completion tests covering trait + ability interactions
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** shared, server
 - **complexity:** medium
 - **description:** Add tests that drive `GameEngine` directly in shared, and `rooms.ts` directly in server, playing matches to completion with combinations of traits (Ironclad/Spotter/Nimble/Swift) and abilities (all 7). Assert final stats, ability cooldowns, trait one-shots, and sunk counts are correct. Protects the server-side ability→trait→stale-fix pipeline (`rooms.ts:applyTraits` + `abilities.ts` stale-outcome fix).
+- **pr:** https://github.com/g-chappell/battleships/pull/54
+- **completed:** 2026-04-15
 
 ### Story: Bug fixes from the harness
 
