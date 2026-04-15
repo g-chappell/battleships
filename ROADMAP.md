@@ -619,7 +619,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-050
 - **title:** E2E test — full multiplayer match across two browser contexts
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** e2e
 - **complexity:** large
