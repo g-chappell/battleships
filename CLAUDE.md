@@ -177,9 +177,13 @@ docker compose -f docker-compose.prod.yml down              # stop all (keeps da
 - Run all workspaces: `npm run test --workspace=shared && npm run test --workspace=server && npm run test --workspace=client`
 
 ## E2E testing patterns
+- **Run the `/e2e-test` skill before writing or debugging an `e2e/tests/*.test.ts` spec.** It covers the bridge pattern, multiplayer gotchas, rematch flow, and CI-survival tips that cost real time to rediscover.
 - Import from `../fixtures` (not `@playwright/test`) to get the `test` object extended with `registeredUser`, `guestUser`, and `socketReady` fixtures.
 - `socketReady(page, eventName)` must be called BEFORE the UI action that triggers the socket event — the WebSocket listener registers at call-time; frames arriving before registration are missed.
 - Add `data-testid="..."` attributes to components when a test needs to target them — prefer these over CSS selectors or text matches.
+- `IroncladBridge` type and the `declare global { interface Window { __ironclad?: IroncladBridge } }` augmentation are declared ONCE in `e2e/fixtures/index.ts`. Never duplicate in per-file `declare global` blocks — structurally different types trigger TS2717.
+- Use `test.setTimeout(N)` inside the test body. `{ timeout: N }` as a `TestDetails` option is a TS2353 error in Playwright v1.52/1.59.
+- **Multiplayer E2E:** poll `getMultiplayerState().gameState.phase` (socketStore, synchronous) not `getPhase()` (gameStore, React-dependent). Use `resignViaSocket()` for deterministic wins — server-side Ironclad/Nimble traits make shot-based MP assertions non-deterministic. Wrap every paired `waitForFunction` across two pages in `Promise.all([...])` or sequential waits will compound past the test timeout.
 - Playwright tsconfig requires `"lib": ["ES2022", "DOM"]` — Playwright's type definitions reference `HTMLElement`, `SVGElement`, etc. even though tests run in Node.js.
 - When adding a new Playwright CI job, always include at least one smoke test in `testDir` — an empty test directory causes `playwright test` to exit code 1 and fail CI.
 
