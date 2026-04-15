@@ -15,7 +15,7 @@ import { ReplayViewer } from './pages/ReplayViewer';
 import { SpectatorView } from './pages/SpectatorView';
 import { GuidePage } from './pages/GuidePage';
 import { TopNav } from './components/ui/TopNav';
-import { GlobalControls } from './components/ui/GlobalControls';
+import { TopRightControls } from './components/ui/TopRightControls';
 import { AuthGate } from './components/ui/AuthGate';
 import { AchievementToast } from './components/ui/AchievementToast';
 import { Toaster, toast } from './components/shadcn/sonner';
@@ -79,7 +79,7 @@ function App() {
   return (
     <div className="w-full h-full relative">
       {showNav && <TopNav />}
-      <GlobalControls />
+      <TopRightControls />
       <div className="w-full h-full">
         {screen === 'menu' && <MainMenu />}
         {screen === 'setup_ai' && <PreGameSetup />}

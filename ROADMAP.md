@@ -662,11 +662,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-054
 - **title:** Build TopRightControls cluster (Profile / Settings / Sound / Logout)
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **description:** Create `client/src/components/ui/TopRightControls.tsx` — fixed top-right icon cluster containing Profile, Settings, Sound (mute toggle), and Logout buttons. Mount at app root, above page content, z-indexed above game HUD and narrative panel. Replaces the existing ad-hoc floating settings + mute buttons (remove the old ones). Profile button is hidden for guests; Logout is hidden for guests. Use shadcn `Tooltip` on each icon. Follow `brand-guidelines` skill.
+- **pr:** https://github.com/g-chappell/battleships/pull/55
+- **completed:** 2026-04-15
 
 #### TASK-055
 - **title:** Fix in-game narrative / HUD collisions with new top-right cluster
