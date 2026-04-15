@@ -399,11 +399,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-034
 - **title:** Add rate limiting to clan chat messages
-- **status:** in-progress
+- **status:** done
 - **priority:** med
 - **workspaces:** server
 - **complexity:** small
 - **description:** Game chat already enforces a 5-message/10-second rate limit in `gameSocket.ts`. Apply the same pattern to the clan chat endpoint in `server/src/services/clans.ts` or the socket handler — track per-user message timestamps and reject if the limit is exceeded.
+- **pr:** https://github.com/g-chappell/battleships/pull/52
+- **completed:** 2026-04-15
 
 ---
 
