@@ -1,7 +1,7 @@
 # CLAUDE.md — Ironclad Waters
 
 ## Project overview
-3D pirate-themed battleships game. Monorepo: `shared/` (game engine), `client/` (React 19 + Vite + R3F), `server/` (Express + Socket.IO + Prisma/Postgres).
+3D pirate-themed battleships game. Monorepo: `shared/` (game engine), `client/` (React 19 + Vite + R3F), `server/` (Express + Socket.IO + Prisma/Postgres), `e2e/` (Playwright end-to-end tests).
 
 ## Key commands
 
@@ -79,7 +79,19 @@ server/src/
   prisma/schema.prisma   Models: User, PlayerStats, Match, UserCosmetic, Tournament,
                          TournamentMatch, Clan, ClanChatMessage, Season, SeasonPlayerStats
   generated/prisma/      Auto-generated Prisma client — never edit directly
+
+e2e/                — Playwright end-to-end tests (@playwright/test ^1.52, wait-on installed)
+  playwright.config.ts  (to be created by TASK-047)
+  tests/              Playwright test specs
+  fixtures/           registeredUser, guestUser, socketReady helpers
 ```
+
+## E2E workspace notes
+- `@playwright/test` (v1.59) and `wait-on` are already installed in `e2e/` and in root `node_modules`
+- Browser binaries must be installed once: `cd e2e && npx playwright install --with-deps`
+- Run e2e tests: `npm run test --workspace=e2e` (or `cd e2e && npx playwright test`)
+- E2E tests require the full stack running (client + server + DB)
+- TASK-047 scaffolds the config; TASK-048/049/050 add the actual test specs
 
 ## Import patterns
 - **Client → shared:** `import { GameEngine, GamePhase } from '@shared/index'` (Vite alias defined in `vite.config.ts` + `tsconfig.app.json`)
@@ -149,13 +161,19 @@ docker compose -f docker-compose.prod.yml down              # stop all (keeps da
 - For multi-file changes, edit one file at a time with intermediate type-checks between each. Never batch-edit 3+ files without verifying compilation.
 - Server ships raw TS via `tsx` at runtime — never add server-only or client-only dependencies to `shared/`.
 - Prefer editing existing files over creating new ones. This codebase uses a flat structure by design.
+- Brand color anti-patterns to fix on sight: `#2ecc71` (lime green) → `text-gold`; `#8ab0d4` (light blue) → `text-copper`; `#f5a845`/`#c0c0c0`/`#cd7f32` (medal colors) → `text-gold`/`text-parchment`/`text-copper`; raw `<button>` for interactive UI → always `Button` component with appropriate `variant`.
 
 ## Testing patterns
 - All tests use Vitest. Locations: `shared/src/__tests__/`, `server/src/__tests__/`, `client/src/__tests__/`
 - **Shared tests:** Import directly from source files. Use `placeAllShips()` helper for standard game state setup.
-- **Client tests:** Mock `../services/audio` first. Use `useGameStore.getState()` for Zustand store testing. Reset store in `beforeEach`.
+- **Client tests:** Mock `../services/audio` first. Use `useGameStore.getState()` for Zustand store testing. Reset store in `beforeEach`. When a store action internally calls a refresh (e.g., `loadFromServer`, `fetchMyClan`), tests need 1 (action) + N (refresh calls) total `mockResolvedValueOnce` calls chained in sequence — read the refresh function to count N (`loadFromServer` uses `Promise.all` with 2 `apiFetchSafe` calls, so N=2).
 - **Server tests:** Use `createRoom()`/`joinRoom()`/`placeShips()` helpers and `makePlayer()` factory.
+- **Server route tests:** Create an Express app in `beforeAll`, mount the router, bind to port 0 (dynamic) with `server.listen(0, '127.0.0.1', resolve)`, use Node 20 built-in `fetch` for requests. Cast `server.address() as AddressInfo` from `net` to get the port. Mock Prisma via `vi.hoisted()` + `vi.mock('../services/db.ts')`. For modules with a module-level `setInterval` (e.g., `seasons.ts` has a 60s rollover watchdog), mock the entire module to prevent background timers firing during tests. For Prisma `$transaction` mocks: add `$transaction: vi.fn().mockImplementation((fn) => fn({ user: txUser, ... }))` in `vi.hoisted` — route logic uses `tx.user.update` etc.; throwing from the callback propagates as a rejected promise for the route's outer catch.
 - **Coverage gaps:** campaign, tournaments, replay, socket lifecycle, most client stores — new features in these areas MUST include tests.
+- **Long-running tests (fuzz/stress):** Pass an explicit timeout as the 3rd argument to `it()` — e.g. `it('...', async () => { ... }, 300_000)`. Use `throw` (not `expect()`) for per-step invariant checks inside large loops — millions of `expect()` calls in Vitest have significant overhead.
+- **Service tests that call `fetch` directly:** Mock via `vi.stubGlobal('fetch', vi.fn())` in `beforeEach` (not `vi.mock`). Assert URL paths with `toMatch(/\/api\/path$/)` not full URLs — `import.meta.env.VITE_API_URL` is undefined in Vitest. No audio mock needed for non-store services.
+- **Asserting intermediate loading state:** Create a deferred promise (`let resolve!: () => void; const p = new Promise<T>(r => { resolve = r as () => void; })`), mock the API call with it, start the store action without awaiting, assert `loading: true`, then call `resolve()` and `await` the action.
+- Always use `tsc -b` (not `tsc --noEmit`) for the final type check — `tsc -b` validates project references and composite builds; `--noEmit` misses these and can pass locally while CI fails.
 - Run all workspaces: `npm run test --workspace=shared && npm run test --workspace=server && npm run test --workspace=client`
 
 ## MCP Servers

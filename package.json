@@ -4,7 +4,8 @@
   "workspaces": [
     "shared",
     "client",
-    "server"
+    "server",
+    "e2e"
   ],
   "scripts": {
     "dev:client": "npm run dev --workspace=client",
