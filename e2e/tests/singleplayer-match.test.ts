@@ -90,31 +90,19 @@ test('complete a full singleplayer match against Easy AI and win', async ({ page
   await expect(page.getByTestId('hud')).toBeVisible({ timeout: 5_000 });
 
   // ── 8. Fire at every opponent cell (row 0-9, col 0-9) ───────────────────
-  // The bridge handles AI turns synchronously — no 1.2 s delays.
-  const fired: string[] = [];
-  outer: for (let row = 0; row < 10; row++) {
-    for (let col = 0; col < 10; col++) {
-      // Re-check phase — game might end before we've fired at all 100 cells
-      const phase = await page.evaluate(() => window.__ironclad!.getPhase());
-      if (phase === 'finished') break outer;
-
-      // Wait until it is the player's turn and not animating
-      await page.waitForFunction(
-        () =>
-          window.__ironclad!.getPhase() === 'playing' &&
-          window.__ironclad!.isPlayerTurn() &&
-          !window.__ironclad!.isAnimating(),
-        { timeout: 5_000 },
-      );
-
-      await page.evaluate(
-        ([r, c]) => { window.__ironclad!.fireAndAdvance(r, c); },
-        [row, col] as [number, number],
-      );
-
-      fired.push(`${row},${col}`);
+  // All 100 shots run in a single page.evaluate so there are no per-shot
+  // Playwright round trips. fireAndAdvance handles AI turns synchronously.
+  const fired = await page.evaluate(() => {
+    const shots: string[] = [];
+    for (let row = 0; row < 10; row++) {
+      for (let col = 0; col < 10; col++) {
+        if (window.__ironclad!.getPhase() !== 'playing') return shots;
+        const result = window.__ironclad!.fireAndAdvance(row, col);
+        if (result !== null) shots.push(`${row},${col}`);
+      }
     }
-  }
+    return shots;
+  });
 
   // ── 9. Assert game finished with a player victory ────────────────────────
   await page.waitForFunction(
