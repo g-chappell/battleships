@@ -634,7 +634,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-052
 - **title:** Add scripted play-to-completion tests covering trait + ability interactions
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** shared, server
 - **complexity:** medium
