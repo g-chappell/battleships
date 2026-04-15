@@ -587,7 +587,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-047
 - **title:** Scaffold e2e workspace with Playwright + CI integration
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** e2e
 - **complexity:** large
