@@ -73,6 +73,9 @@ jobs:
       - name: Install Playwright browsers
         run: cd e2e && npx playwright install --with-deps chromium
 
+      - name: Generate Prisma client
+        run: cd server && npx prisma generate
+
       - name: Push database schema
         run: cd server && npx prisma db push
         env:
