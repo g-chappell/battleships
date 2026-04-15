@@ -426,11 +426,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-036
 - **title:** Add AudioContext cleanup on page unload
-- **status:** ready
+- **status:** done
 - **priority:** low
 - **workspaces:** client
 - **complexity:** small
 - **description:** The Web Audio API `AudioContext` and any live oscillators/buffers are never closed when the user leaves the page. Add a `beforeunload` event listener in `client/src/services/audio.ts` that calls `audioContext.close()` to release resources and prevent oscillator leaks in browser profiles.
+- **pr:** https://github.com/g-chappell/battleships/pull/53
+- **completed:** 2026-04-15
 
 #### TASK-037
 - **title:** Add socket reconnection with exponential backoff

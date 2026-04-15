@@ -589,3 +589,15 @@ export function stopAmbientLoop() {
 export function isAmbientRunning(): boolean {
   return ambientRunning;
 }
+
+// Release AudioContext and all live nodes when the page unloads to prevent
+// oscillator leaks in browser profiles.
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    stopAmbientLoop();
+    if (audioCtx) {
+      audioCtx.close();
+      audioCtx = null;
+    }
+  });
+}
