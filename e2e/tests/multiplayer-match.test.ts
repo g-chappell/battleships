@@ -14,16 +14,18 @@
  * 10. Rematch: both click Rematch → new Placement phase begins
  * 11. Both place ships again → game starts → player 2 resigns → player 1 wins rematch
  *
- * Note on shooting strategy: server-side traits (Ironclad, Nimble) are active
- * in multiplayer and make shot-by-shot assertions non-deterministic:
- *  - Ironclad negates the first Battleship hit → cell stays 'empty' in public board
- *  - Nimble can permanently mark a ship cell as 'miss'
- * Using player-2-resigns is reliable and still exercises the full socket/matchmaking/
- * rematch pipeline — the actual shoot mechanics are covered by singleplayer tests.
- *
- * The window.__ironclad bridge (injected by main.tsx in DEV mode) exposes
- * multiplayer-specific helpers: injectAuth, resignViaSocket, requestRematchViaSocket,
- * getMultiplayerState.
+ * Implementation notes:
+ *  - All paired `waitForFunction` calls run in `Promise.all` — sequential waits
+ *    previously compounded past the 120s test timeout on headless CI.
+ *  - Phase polling reads `getMultiplayerState()?.gameState?.phase` directly from
+ *    socketStore. `getPhase()` (gameStore) depends on React useEffect to call
+ *    syncFromMpState, which can lag behind the socket event in CI (SwiftShader
+ *    WebGL overhead delays GameScene mount/re-render).
+ *  - Game end uses `matchSummary !== null` — set exactly once on `game:end`.
+ *  - Resign (not shooting) is used because server-side Ironclad/Nimble traits
+ *    make per-shot assertions non-deterministic in multiplayer. resignGame()
+ *    bypasses all trait processing and is turn-independent. The shoot mechanic
+ *    is already covered by singleplayer and ability-rotation E2E tests.
  */
 
 import { test, expect, type Page } from '../fixtures';
@@ -70,7 +72,7 @@ async function registerUser(
 test(
   'two registered users play a full multiplayer match and rematch',
   async ({ browser, request }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
 
     // ── 1. Register two users ─────────────────────────────────────────────
     const [body1, body2] = await Promise.all([
@@ -92,14 +94,16 @@ test(
       await Promise.all([waitForBridge(page1), waitForBridge(page2)]);
 
       // ── 5. Inject auth credentials ────────────────────────────────────────
-      await page1.evaluate(
-        ({ token, user }) => window.__ironclad!.injectAuth(token, JSON.stringify(user)),
-        { token: body1.token, user: body1.user },
-      );
-      await page2.evaluate(
-        ({ token, user }) => window.__ironclad!.injectAuth(token, JSON.stringify(user)),
-        { token: body2.token, user: body2.user },
-      );
+      await Promise.all([
+        page1.evaluate(
+          ({ token, user }) => window.__ironclad!.injectAuth(token, JSON.stringify(user)),
+          { token: body1.token, user: body1.user },
+        ),
+        page2.evaluate(
+          ({ token, user }) => window.__ironclad!.injectAuth(token, JSON.stringify(user)),
+          { token: body2.token, user: body2.user },
+        ),
+      ]);
 
       // ── 6. Wait for main menu, then navigate to lobby ─────────────────────
       await Promise.all([
@@ -108,50 +112,64 @@ test(
       ]);
 
       // Clicking Multiplayer navigates to the lobby and triggers socket connect
-      await page1.getByTestId('btn-multiplayer').click();
-      await page2.getByTestId('btn-multiplayer').click();
+      await Promise.all([
+        page1.getByTestId('btn-multiplayer').click(),
+        page2.getByTestId('btn-multiplayer').click(),
+      ]);
 
       // ── 7. Wait for socket to connect on both pages ───────────────────────
-      await page1.waitForFunction(
-        () => window.__ironclad?.getMultiplayerState()?.socketStatus === 'connected',
-        { timeout: 15_000 },
-      );
-      await page2.waitForFunction(
-        () => window.__ironclad?.getMultiplayerState()?.socketStatus === 'connected',
-        { timeout: 15_000 },
-      );
+      await Promise.all([
+        page1.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.socketStatus === 'connected',
+          { timeout: 20_000 },
+        ),
+        page2.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.socketStatus === 'connected',
+          { timeout: 20_000 },
+        ),
+      ]);
 
       // ── 8. Both click "Find Opponent" to join matchmaking ─────────────────
-      await page1.getByTestId('btn-find-opponent').click();
-      await page2.getByTestId('btn-find-opponent').click();
+      await Promise.all([
+        page1.getByTestId('btn-find-opponent').click(),
+        page2.getByTestId('btn-find-opponent').click(),
+      ]);
 
-      // ── 9. Wait for both to reach the Placement phase ─────────────────────
-      await page1.waitForFunction(
-        () => window.__ironclad?.getPhase() === 'placement',
-        { timeout: 30_000 },
-      );
-      await page2.waitForFunction(
-        () => window.__ironclad?.getPhase() === 'placement',
-        { timeout: 30_000 },
-      );
+      // ── 9. Wait for both to reach the Placement phase (socketStore) ───────
+      await Promise.all([
+        page1.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.gameState?.phase === 'placement',
+          { timeout: 30_000 },
+        ),
+        page2.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.gameState?.phase === 'placement',
+          { timeout: 30_000 },
+        ),
+      ]);
 
       // ── 10. Auto-place ships on both boards ───────────────────────────────
-      await page1.getByTestId('btn-auto-place').click();
-      await page2.getByTestId('btn-auto-place').click();
+      await Promise.all([
+        page1.getByTestId('btn-auto-place').click(),
+        page2.getByTestId('btn-auto-place').click(),
+      ]);
 
       // ── 11. Both confirm placement ────────────────────────────────────────
-      await page1.getByTestId('btn-ready').click();
-      await page2.getByTestId('btn-ready').click();
+      await Promise.all([
+        page1.getByTestId('btn-ready').click(),
+        page2.getByTestId('btn-ready').click(),
+      ]);
 
       // ── 12. Wait for Playing phase on both pages ──────────────────────────
-      await page1.waitForFunction(
-        () => window.__ironclad?.getPhase() === 'playing',
-        { timeout: 30_000 },
-      );
-      await page2.waitForFunction(
-        () => window.__ironclad?.getPhase() === 'playing',
-        { timeout: 30_000 },
-      );
+      await Promise.all([
+        page1.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.gameState?.phase === 'playing',
+          { timeout: 30_000 },
+        ),
+        page2.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.gameState?.phase === 'playing',
+          { timeout: 30_000 },
+        ),
+      ]);
 
       // ── 13. Player 2 resigns — player 1 wins the first game ───────────────
       // Resign is turn-independent (server doesn't check currentTurn) and avoids
@@ -160,23 +178,29 @@ test(
       // singleplayer and ability-rotation E2E tests.
       await page2.evaluate(() => window.__ironclad!.resignViaSocket());
 
-      // ── 14. Wait for Finished phase on both pages ─────────────────────────
-      await page1.waitForFunction(
-        () => window.__ironclad?.getPhase() === 'finished',
-        { timeout: 15_000 },
-      );
-      await page2.waitForFunction(
-        () => window.__ironclad?.getPhase() === 'finished',
-        { timeout: 15_000 },
-      );
+      // ── 14. Wait for game:end on both pages (matchSummary set) ────────────
+      await Promise.all([
+        page1.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.matchSummary !== null,
+          { timeout: 15_000 },
+        ),
+        page2.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.matchSummary !== null,
+          { timeout: 15_000 },
+        ),
+      ]);
 
       // ── 15. Assert GameOverScreen is visible on both pages ────────────────
-      await expect(page1.getByTestId('game-over-screen')).toBeVisible({ timeout: 5_000 });
-      await expect(page2.getByTestId('game-over-screen')).toBeVisible({ timeout: 5_000 });
+      await Promise.all([
+        expect(page1.getByTestId('game-over-screen')).toBeVisible({ timeout: 10_000 }),
+        expect(page2.getByTestId('game-over-screen')).toBeVisible({ timeout: 10_000 }),
+      ]);
 
       // ── 16. Assert outcome: player 1 wins, player 2 loses ─────────────────
-      await expect(page1.getByTestId('game-over-result')).toContainText('Victory!');
-      await expect(page2.getByTestId('game-over-result')).toContainText('Defeat');
+      await Promise.all([
+        expect(page1.getByTestId('game-over-result')).toContainText('Victory!'),
+        expect(page2.getByTestId('game-over-result')).toContainText('Defeat'),
+      ]);
 
       // ── 17. Assert stats panel is visible on player 1's screen ───────────
       // Ships-sunk count and accuracy are shown; exact values depend on how many
@@ -184,45 +208,64 @@ test(
       await expect(page1.getByTestId('game-over-ships-sunk')).toBeVisible();
 
       // ── 18. Rematch flow: both click Rematch ──────────────────────────────
-      await page1.getByTestId('btn-rematch').click();
-      await page2.getByTestId('btn-rematch').click();
+      await Promise.all([
+        page1.getByTestId('btn-rematch').click(),
+        page2.getByTestId('btn-rematch').click(),
+      ]);
 
-      // ── 19. Wait for new game to begin (Placement phase) ──────────────────
-      await page1.waitForFunction(
-        () => window.__ironclad?.getPhase() === 'placement',
-        { timeout: 30_000 },
-      );
-      await page2.waitForFunction(
-        () => window.__ironclad?.getPhase() === 'placement',
-        { timeout: 30_000 },
-      );
+      // ── 19. Wait for new game to begin (Placement phase in new gameState) ─
+      // Rematch emits mm:matched which resets gameState/matchSummary to null,
+      // then game:state arrives with phase='placement' when new match starts.
+      await Promise.all([
+        page1.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.gameState?.phase === 'placement',
+          { timeout: 30_000 },
+        ),
+        page2.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.gameState?.phase === 'placement',
+          { timeout: 30_000 },
+        ),
+      ]);
 
       // ── 20. Both place ships in the rematch game ───────────────────────────
-      await page1.getByTestId('btn-auto-place').click();
-      await page2.getByTestId('btn-auto-place').click();
-      await page1.getByTestId('btn-ready').click();
-      await page2.getByTestId('btn-ready').click();
+      await Promise.all([
+        page1.getByTestId('btn-auto-place').click(),
+        page2.getByTestId('btn-auto-place').click(),
+      ]);
+      await Promise.all([
+        page1.getByTestId('btn-ready').click(),
+        page2.getByTestId('btn-ready').click(),
+      ]);
 
-      // ── 21. Wait for playing phase ─────────────────────────────────────────
-      await page2.waitForFunction(
-        () => window.__ironclad?.getPhase() === 'playing',
-        { timeout: 30_000 },
-      );
+      // ── 21. Wait for playing phase on both pages ───────────────────────────
+      await Promise.all([
+        page1.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.gameState?.phase === 'playing',
+          { timeout: 30_000 },
+        ),
+        page2.waitForFunction(
+          () => window.__ironclad?.getMultiplayerState()?.gameState?.phase === 'playing',
+          { timeout: 30_000 },
+        ),
+      ]);
 
       // ── 22. Player 2 resigns — player 1 wins the rematch ──────────────────
       await page2.evaluate(() => window.__ironclad!.resignViaSocket());
 
       // ── 23. Assert player 1 wins the rematch ──────────────────────────────
       await page1.waitForFunction(
-        () => window.__ironclad?.getPhase() === 'finished',
+        () => window.__ironclad?.getMultiplayerState()?.matchSummary !== null,
         { timeout: 15_000 },
       );
-      await expect(page1.getByTestId('game-over-screen')).toBeVisible({ timeout: 5_000 });
+      await expect(page1.getByTestId('game-over-screen')).toBeVisible({ timeout: 10_000 });
       await expect(page1.getByTestId('game-over-result')).toContainText('Victory!');
 
     } finally {
-      await ctx1.close();
-      await ctx2.close();
+      // Swallow close errors — if the test timed out, Playwright may have
+      // already torn down the browser, making ctx.close() throw a protocol
+      // error that masks the real failure.
+      await ctx1.close().catch(() => {});
+      await ctx2.close().catch(() => {});
     }
   },
 );
