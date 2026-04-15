@@ -92,12 +92,10 @@ test('complete a full singleplayer match against Easy AI and win', async ({ page
   await expect(page.getByTestId('hud')).toBeVisible({ timeout: 5_000 });
 
   // ── 8. Complete the game with a single bridge call ───────────────────────
-  // completeGameFast() fires all 100 cells (up to 3 passes) directly through
-  // the engine without Zustand set() calls during the loop, so React never
-  // re-renders mid-loop and SwiftShader doesn't slow things down. Traits are
-  // bypassed (opponentTraits set to null first) so Nimble can't permanently
-  // block ship cells that are adjacent to the opponent's Destroyer. The player
-  // wins in exactly 17 engine shots with no AI turns. One round trip total.
+  // completeGameFast() enumerates all opponent ship cells and fires at them
+  // directly via engine.playerShoot (bypassing Zustand actions and trait
+  // processing). Every shot is a hit → player keeps consecutive turns → AI
+  // never fires → guaranteed player win in exactly 17 shots. One round trip.
   await page.evaluate(() => window.__ironclad!.disableOpponentTraits());
   const winner = await page.evaluate(() => window.__ironclad!.completeGameFast());
   const fired = ['deterministic']; // sentinel — completeGameFast always fires
@@ -122,10 +120,8 @@ test('complete a full singleplayer match against Easy AI and win', async ({ page
   await expect(page.getByTestId('game-over-ships-sunk')).toHaveText('5');
 
   // ── 13. Assert accuracy display matches engine value ─────────────────────
-  // completeGameFast fires all 100 cells via engine.playerShoot and calls
-  // engine.recordPlayerAction for each valid shot. Ship cells (17) register
-  // as hits; water cells register as misses; land cells are no-ops.
-  // Accuracy = 17 hits / (100 − land cells) actions ≈ 17–20%.
+  // completeGameFast fires only the 17 opponent ship cells, all recorded as
+  // hits via engine.recordPlayerAction(true). Accuracy = 17/17 = 100%.
   const engineAccuracyPct = await page.evaluate(() =>
     Math.round(window.__ironclad!.getAccuracy() * 100),
   );

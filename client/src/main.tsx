@@ -261,39 +261,43 @@ if (import.meta.env.DEV) {
 
       completeGameFast: (): string | null => {
         const { engine, ai } = useGameStore.getState();
-        // Fire all 100 cells directly through the engine (no Zustand set() calls
-        // during the loop → no React re-renders → no SwiftShader WebGL overhead).
-        // Three passes handle any edge cases (e.g. cells revealed after a ship sinks).
-        for (let pass = 0; pass < 3 && engine.phase === 'playing'; pass++) {
-          for (let row = 0; row < 10 && engine.phase === 'playing'; row++) {
-            for (let col = 0; col < 10 && engine.phase === 'playing'; col++) {
-              // Run any pending AI turns first
-              while (engine.phase === 'playing' && engine.currentTurn === 'opponent') {
-                const target = ai.chooseTarget(engine.playerBoard);
-                const aiOutcome = engine.opponentShoot(target);
-                if (!aiOutcome) break;
-                ai.notifyResult(target, aiOutcome.result);
-              }
-              if (engine.currentTurn !== 'player') break;
-              // Fire directly — bypasses Nimble/Ironclad so all ship cells are hittable
-              const shotOutcome = engine.playerShoot({ row, col });
-              // Mirror what playerFire action does: track hits/actions for accuracy
-              if (shotOutcome) {
-                engine.recordPlayerAction(shotOutcome.result !== 'miss');
-              }
-              // Handle opponent turn if the shot was a miss.
-              // Cast needed: TS narrows currentTurn to 'player' via the guard above
-              // but playerShoot mutates the engine and can flip it to 'opponent'.
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              while (engine.phase === 'playing' && (engine.currentTurn as any) === 'opponent') {
-                const target = ai.chooseTarget(engine.playerBoard);
-                const aiOutcome = engine.opponentShoot(target);
-                if (!aiOutcome) break;
-                ai.notifyResult(target, aiOutcome.result);
-              }
+        // Collect all unhit opponent ship cells. Targeting only ship cells means
+        // every shot is a hit → player keeps consecutive turns (hits don't switch
+        // turn) → AI never fires → guaranteed player win in exactly 17 shots,
+        // deterministic regardless of AI difficulty or random ship placement.
+        // No Zustand setState during the loop → no React re-renders → no SwiftShader
+        // WebGL overhead. Traits are bypassed because we call engine.playerShoot
+        // directly (trait processing lives in the Zustand playerFire action, not
+        // in the engine).
+        const targets: Array<{ row: number; col: number }> = [];
+        for (const ship of engine.opponentBoard.ships) {
+          for (const cell of ship.cells) {
+            const key = `${cell.row},${cell.col}`;
+            if (!ship.hits.has(key)) {
+              targets.push({ row: cell.row, col: cell.col });
             }
           }
         }
+
+        for (const target of targets) {
+          if (engine.phase !== 'playing') break;
+          // Defensive: handle any pending AI turns (shouldn't occur since all
+          // prior shots should have been hits granting consecutive player turns).
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          while (engine.phase === 'playing' && (engine.currentTurn as any) === 'opponent') {
+            const t = ai.chooseTarget(engine.playerBoard);
+            const aiOutcome = engine.opponentShoot(t);
+            if (!aiOutcome) break;
+            ai.notifyResult(t, aiOutcome.result);
+          }
+          if (engine.currentTurn !== 'player') break;
+          const shotOutcome = engine.playerShoot(target);
+          if (shotOutcome) {
+            // All targeted shots are ship cells → count as hits for accuracy
+            engine.recordPlayerAction(true);
+          }
+        }
+
         // Single setState tick to flush React / notify UI of final state
         useGameStore.setState((s) => ({ tick: s.tick + 1 }));
         return engine.winner;
