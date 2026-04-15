@@ -426,7 +426,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-036
 - **title:** Add AudioContext cleanup on page unload
-- **status:** ready
+- **status:** in-progress
 - **priority:** low
 - **workspaces:** client
 - **complexity:** small
