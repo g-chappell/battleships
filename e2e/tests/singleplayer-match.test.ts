@@ -89,17 +89,21 @@ test('complete a full singleplayer match against Easy AI and win', async ({ page
   // HUD should now be visible
   await expect(page.getByTestId('hud')).toBeVisible({ timeout: 5_000 });
 
-  // ── 8. Fire at every opponent cell (row 0-9, col 0-9) ───────────────────
-  // All 100 shots run in a single page.evaluate so there are no per-shot
-  // Playwright round trips. fireAndAdvance handles AI turns synchronously.
+  // ── 8. Fire at all opponent ship cells (deterministic player win) ────────
+  // Firing exclusively at ship cells means every shot is a hit. In this game
+  // hits grant consecutive turns (no turn switch), so the AI never fires back
+  // and the player wins in exactly 17 shots with 100% accuracy. This makes the
+  // test deterministic — the Easy AI cannot win by chance before all ships are
+  // found. All 100 shots run in a single page.evaluate to avoid per-shot
+  // Playwright round trips.
   const fired = await page.evaluate(() => {
     const shots: string[] = [];
-    for (let row = 0; row < 10; row++) {
-      for (let col = 0; col < 10; col++) {
-        if (window.__ironclad!.getPhase() !== 'playing') return shots;
-        const result = window.__ironclad!.fireAndAdvance(row, col);
-        if (result !== null) shots.push(`${row},${col}`);
-      }
+    // Read ship positions from bridge (fog-of-war lifted in DEV bridge)
+    const shipCells = window.__ironclad!.getOpponentShipCells();
+    for (const cell of shipCells) {
+      if (window.__ironclad!.getPhase() !== 'playing') return shots;
+      const result = window.__ironclad!.fireAndAdvance(cell.row, cell.col);
+      if (result !== null) shots.push(`${cell.row},${cell.col}`);
     }
     return shots;
   });
