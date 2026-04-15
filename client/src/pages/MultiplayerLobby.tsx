@@ -114,7 +114,7 @@ export function MultiplayerLobby() {
   const elapsed = createdAt ? Math.floor((Date.now() - createdAt) / 1000) + elapsedTick * 0 : 0;
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-pitch via-coal to-mahogany px-6 py-8 md:px-12 pt-24 overflow-y-auto">
+    <div data-testid="multiplayer-lobby" className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-pitch via-coal to-mahogany px-6 py-8 md:px-12 pt-24 overflow-y-auto">
       <div className="text-center mb-8">
         <h1 className="text-5xl text-[#c41e3a] mb-2" style={{ ...pirateStyle, textShadow: '0 0 20px rgba(196,30,58,0.4)' }}>
           Multiplayer
@@ -145,6 +145,7 @@ export function MultiplayerLobby() {
                 Find a random opponent of similar skill. Ranked match.
               </p>
               <button
+                data-testid="btn-find-opponent"
                 onClick={handleQuickMatch}
                 disabled={status !== 'connected'}
                 className="w-full px-4 py-3 bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8] font-bold rounded border border-[#c41e3a] hover:from-[#e74c3c] hover:to-[#c41e3a] transition-colors disabled:opacity-50"

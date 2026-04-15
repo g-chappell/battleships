@@ -14,40 +14,8 @@
  * The window.__ironclad bridge is exposed in DEV builds by main.tsx.
  */
 
+// IroncladBridge type and Window.__ironclad global are declared once in ../fixtures/index.ts
 import { test, expect } from '../fixtures';
-
-// ---------------------------------------------------------------------------
-// Bridge type — full set of methods exposed by main.tsx (all test files must
-// declare the same shape to avoid TypeScript TS2717 on merged Window interface)
-// ---------------------------------------------------------------------------
-type IroncladBridge = {
-  isReady: () => boolean;
-  getPhase: () => string;
-  getTurnCount: () => number;
-  getOpponentShipsRemaining: () => number;
-  getPlayerShipsRemaining: () => number;
-  getWinner: () => string | null;
-  getAccuracy: () => number;
-  getOpponentShipsSunk: () => number;
-  isAnimating: () => boolean;
-  isPlayerTurn: () => boolean;
-  fireAndAdvance: (row: number, col: number) => { result: string; sunkShip: string | null } | null;
-  // Ability testing helpers
-  injectAllAbilities: () => void;
-  resetAbilityCooldowns: () => void;
-  useAbilityAndAdvance: (type: string, row: number, col: number) => { applied: boolean };
-  getEngineStats: () => { hits: number; actions: number; sunk: number };
-  getOpponentShipCells: () => Array<{ row: number; col: number; shipType: string; isHit: boolean }>;
-  damagePlayerShip: () => { row: number; col: number } | null;
-  disableOpponentTraits: () => void;
-  completeGameFast: () => string | null;
-};
-
-declare global {
-  interface Window {
-    __ironclad?: IroncladBridge;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Test
