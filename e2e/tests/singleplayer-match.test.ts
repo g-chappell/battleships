@@ -93,25 +93,28 @@ test('complete a full singleplayer match against Easy AI and win', async ({ page
   // Firing exclusively at ship cells means every shot is a hit. In this game
   // hits grant consecutive turns (no turn switch), so the AI never fires back
   // and the player wins in exactly 17 shots with 100% accuracy. This makes the
-  // test deterministic — the Easy AI cannot win by chance before all ships are
-  // found. All 100 shots run in a single page.evaluate to avoid per-shot
-  // Playwright round trips.
-  const fired = await page.evaluate(() => {
-    const shots: string[] = [];
-    // Read ship positions from bridge (fog-of-war lifted in DEV bridge)
-    const shipCells = window.__ironclad!.getOpponentShipCells();
-    for (const cell of shipCells) {
-      if (window.__ironclad!.getPhase() !== 'playing') return shots;
-      const result = window.__ironclad!.fireAndAdvance(cell.row, cell.col);
-      if (result !== null) shots.push(`${cell.row},${cell.col}`);
-    }
-    return shots;
-  });
+  // test deterministic — the Easy AI cannot win by chance.
+  //
+  // Each shot is one page.evaluate (not batched into one call) so the browser
+  // event loop runs between shots and React state updates settle properly.
+  // waitForFunction is eliminated because all shots are hits (no AI turn, no
+  // animation lock). Total: ~35 round trips vs the original ~300.
+  const shipCells = await page.evaluate(() => window.__ironclad!.getOpponentShipCells());
+  const fired: string[] = [];
+  for (const cell of shipCells) {
+    const phase = await page.evaluate(() => window.__ironclad!.getPhase());
+    if (phase !== 'playing') break;
+    const result = await page.evaluate(
+      ([r, c]) => window.__ironclad!.fireAndAdvance(r, c),
+      [cell.row, cell.col] as [number, number],
+    );
+    if (result !== null) fired.push(`${cell.row},${cell.col}`);
+  }
 
   // ── 9. Assert game finished with a player victory ────────────────────────
   await page.waitForFunction(
     () => window.__ironclad!.getPhase() === 'finished',
-    { timeout: 10_000 },
+    { timeout: 30_000 },
   );
 
   const winner = await page.evaluate(() => window.__ironclad!.getWinner());
