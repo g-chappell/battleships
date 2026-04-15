@@ -608,12 +608,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-049
 - **title:** E2E test — ability rotation with hit/miss/sunk assertion per activation
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** e2e
 - **complexity:** medium
 - **depends_on:** [TASK-047]
 - **description:** Playwright scenario: configure a match where each of the 7 abilities (CannonBarrage, SonarPing, SmokeScreen, RepairKit, ChainShot, Spyglass, BoardingParty) is activated in sequence against a known AI ship layout (seeded opponent). After each ability activation, read the HUD's hit count, miss count, and sunk ship count; assert they match the expected values for that ability against the known layout. This is the primary regression test for the user's reported "hit recorded as miss" bug.
+- **pr:** https://github.com/g-chappell/battleships/pull/58
+- **completed:** 2026-04-15
 
 #### TASK-050
 - **title:** E2E test — full multiplayer match across two browser contexts
