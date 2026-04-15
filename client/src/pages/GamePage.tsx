@@ -35,6 +35,7 @@ export function GamePage() {
 
   const gameMode = useGameStore((s) => s.gameMode);
   const difficulty = useGameStore((s) => s.difficulty);
+  const startMultiplayerGame = useGameStore((s) => s.startMultiplayerGame);
   const unlockMany = useAchievementsStore((s) => s.unlockMany);
   const alreadyUnlocked = useAchievementsStore((s) => s.unlocked);
   const completeMission = useCampaignStore((s) => s.completeMission);
@@ -47,9 +48,27 @@ export function GamePage() {
   const socketStatus = useSocketStore((s) => s.status);
   const reconnectAttempts = useSocketStore((s) => s.reconnectAttempts);
   const socketErrorMessage = useSocketStore((s) => s.errorMessage);
+  const matchmakingState = useSocketStore((s) => s.matchmakingState);
+  const roomId = useSocketStore((s) => s.roomId);
 
   const isPlacing = engine.phase === GamePhase.Placement;
   const isFinished = engine.phase === GamePhase.Finished;
+
+  // Rematch reset: MultiplayerLobby normally triggers startMultiplayerGame() on
+  // mm:matched, but on rematch the lobby is no longer mounted (we're on the
+  // game screen showing GameOverScreen). When a new match starts while our
+  // local engine is still in the Finished phase, drive the same reset here so
+  // the placement UI can re-render.
+  useEffect(() => {
+    if (
+      gameMode === 'multiplayer' &&
+      matchmakingState === 'matched' &&
+      roomId &&
+      engine.phase === GamePhase.Finished
+    ) {
+      startMultiplayerGame();
+    }
+  }, [gameMode, matchmakingState, roomId, engine.phase, startMultiplayerGame]);
 
   // Start/stop ambient soundtrack
   useEffect(() => {
