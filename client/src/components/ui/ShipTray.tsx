@@ -73,6 +73,7 @@ export function ShipTray() {
         </button>
 
         <button
+          data-testid="btn-auto-place"
           onClick={autoPlaceShips}
           className="w-full px-3 py-2 bg-[#2a1410] text-[#d4c4a1] rounded text-sm hover:bg-[#4d2e22] transition-colors border border-[#8b0000]/30"
           style={labelStyle}
@@ -82,6 +83,7 @@ export function ShipTray() {
 
         {allPlaced && !isWaitingForOpponent && (
           <button
+            data-testid="btn-ready"
             onClick={confirmPlacement}
             className="w-full px-3 py-2 bg-gradient-to-b from-[#c41e3a] to-[#8b0000] text-[#e8dcc8] font-bold rounded text-sm hover:from-[#e74c3c] hover:to-[#c41e3a] transition-colors border border-[#c41e3a]"
             style={{ fontFamily: "'Pirata One', serif" }}
