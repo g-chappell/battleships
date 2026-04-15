@@ -83,165 +83,123 @@ test('ability rotation — each of 7 abilities produces correct hit/miss/sunk de
   // Overrides the captain's 2-ability loadout so we can test all 7 in one match.
   await page.evaluate(() => window.__ironclad!.injectAllAbilities());
 
-  // ── 5. Helpers ───────────────────────────────────────────────────────────
-
-  /** Re-fetch unhit opponent cells (refreshed after each ability use). */
-  const getUnhitCells = () =>
-    page.evaluate(() =>
-      window.__ironclad!.getOpponentShipCells().filter((c) => !c.isHit),
-    );
-
-  /** Wait for player's turn with no ongoing animation. */
-  const waitForPlayerTurn = () =>
-    page.waitForFunction(
-      () =>
-        window.__ironclad!.getPhase() === 'playing' &&
-        window.__ironclad!.isPlayerTurn() &&
-        !window.__ironclad!.isAnimating(),
-      { timeout: 10_000 },
-    );
-
-  /** True while the game is still in progress. */
-  const stillPlaying = () =>
-    page.evaluate(() => window.__ironclad!.getPhase() === 'playing');
-
-  /** Use an ability and wait for the game to settle. */
-  const useAbility = async (type: string, row: number, col: number) => {
-    await page.evaluate(
-      ([t, r, c]) => window.__ironclad!.useAbilityAndAdvance(t, r, c),
-      [type, row, col] as [string, number, number],
-    );
-    if (await stillPlaying()) {
-      await waitForPlayerTurn();
-    }
+  // ── 5. Run all 7 abilities in a single page.evaluate ────────────────────
+  // All bridge methods are synchronous — batching eliminates ~42 Playwright
+  // round trips that caused 30s timeouts in headless CI (SwiftShader renderer).
+  type AbilityStats = { hits: number; actions: number; sunk: number };
+  type AbilityResult = {
+    before: AbilityStats;
+    after: AbilityStats;
+    skipped: boolean;
   };
 
-  // ── 6. CannonBarrage — 2×2 area, must register ≥1 hit ───────────────────
-  {
-    const unhit = await getUnhitCells();
-    const target = unhit[0]; // first ship cell is always the topLeft of the 2×2
-    const before = await page.evaluate(() => window.__ironclad!.getEngineStats());
+  const results = await page.evaluate(() => {
+    const b = window.__ironclad!;
 
-    await useAbility('cannon_barrage', target.row, target.col);
+    const getUnhit = () => b.getOpponentShipCells().filter((c) => !c.isHit);
 
-    const after = await page.evaluate(() => window.__ironclad!.getEngineStats());
-    expect(after.actions, 'CannonBarrage: action recorded').toBeGreaterThan(before.actions);
-    // Primary regression assertion: shot on ship cell must NOT be recorded as miss
-    expect(after.hits, 'CannonBarrage: hit registered (not as miss)').toBeGreaterThan(before.hits);
-  }
+    const runAbility = (
+      type: string,
+      getCoords: () => { row: number; col: number },
+    ) => {
+      if (b.getPhase() !== 'playing') return { before: b.getEngineStats(), after: b.getEngineStats(), skipped: true };
+      b.resetAbilityCooldowns();
+      const { row, col } = getCoords();
+      const before = b.getEngineStats();
+      b.useAbilityAndAdvance(type, row, col);
+      const after = b.getEngineStats();
+      return { before, after, skipped: false };
+    };
 
-  if (!await stillPlaying()) return; // early win — all abilities that mattered fired correctly
-  await page.evaluate(() => window.__ironclad!.resetAbilityCooldowns());
-  await waitForPlayerTurn();
+    // CannonBarrage — 2×2 area
+    const cannonBarrage = runAbility('cannon_barrage', () => getUnhit()[0]);
 
-  // ── 7. ChainShot — 1×3 horizontal, must register ≥1 hit ─────────────────
-  {
-    const unhit = await getUnhitCells();
-    // Need col ≤ 7 so the 3-col range fits in the grid; at least the target cell is a ship
-    const target = unhit.find((c) => c.col <= 7) ?? unhit[0];
-    const before = await page.evaluate(() => window.__ironclad!.getEngineStats());
+    // ChainShot — 1×3 horizontal (needs col ≤ 7 so range fits grid)
+    const chainShot = runAbility('chain_shot', () => {
+      const cells = getUnhit();
+      return cells.find((c) => c.col <= 7) ?? cells[0];
+    });
 
-    await useAbility('chain_shot', target.row, target.col);
+    // Spyglass — single shot + row reveal
+    const spyglass = runAbility('spyglass', () => getUnhit()[0]);
 
-    const after = await page.evaluate(() => window.__ironclad!.getEngineStats());
-    expect(after.actions, 'ChainShot: action recorded').toBeGreaterThan(before.actions);
-    expect(after.hits, 'ChainShot: hit registered (not as miss)').toBeGreaterThan(before.hits);
-  }
+    // SonarPing — 3×3 scan; center on known ship cell → shipDetected=true → hits++
+    const sonarPing = runAbility('sonar_ping', () => getUnhit()[0]);
 
-  if (!await stillPlaying()) return;
-  await page.evaluate(() => window.__ironclad!.resetAbilityCooldowns());
-  await waitForPlayerTurn();
+    // SmokeScreen — defensive, targets player's own board; no hits expected
+    const smokeScreen = runAbility('smoke_screen', () => ({ row: 5, col: 5 }));
 
-  // ── 8. Spyglass — single shot + row reveal, must register ≥1 hit ─────────
-  {
-    const unhit = await getUnhitCells();
-    const target = unhit[0];
-    const before = await page.evaluate(() => window.__ironclad!.getEngineStats());
-
-    await useAbility('spyglass', target.row, target.col);
-
-    const after = await page.evaluate(() => window.__ironclad!.getEngineStats());
-    expect(after.actions, 'Spyglass: action recorded').toBeGreaterThan(before.actions);
-    expect(after.hits, 'Spyglass: hit registered (not as miss)').toBeGreaterThan(before.hits);
-  }
-
-  if (!await stillPlaying()) return;
-  await page.evaluate(() => window.__ironclad!.resetAbilityCooldowns());
-  await waitForPlayerTurn();
-
-  // ── 9. SonarPing — detects ships, counts as accuracy "hit" when detected ──
-  // recordPlayerAction(shipDetected): targeting a known ship cell → shipDetected=true → hits++
-  {
-    const unhit = await getUnhitCells();
-    const target = unhit[0]; // center the 3×3 scan on a known ship cell
-    const before = await page.evaluate(() => window.__ironclad!.getEngineStats());
-
-    await useAbility('sonar_ping', target.row, target.col);
-
-    const after = await page.evaluate(() => window.__ironclad!.getEngineStats());
-    expect(after.actions, 'SonarPing: action recorded').toBeGreaterThan(before.actions);
-    // Ship is in the 3×3 area → shipDetected=true → accuracy hit counted
-    expect(after.hits, 'SonarPing: ship detected counts as accuracy hit').toBeGreaterThan(before.hits);
-  }
-
-  if (!await stillPlaying()) return;
-  await page.evaluate(() => window.__ironclad!.resetAbilityCooldowns());
-  await waitForPlayerTurn();
-
-  // ── 10. SmokeScreen — defensive only, no hits ─────────────────────────────
-  // recordPlayerAction(false) — action counted but not a hit
-  {
-    const before = await page.evaluate(() => window.__ironclad!.getEngineStats());
-
-    // SmokeScreen targets player's own board — use center (5,5)
-    await useAbility('smoke_screen', 5, 5);
-
-    const after = await page.evaluate(() => window.__ironclad!.getEngineStats());
-    expect(after.actions, 'SmokeScreen: action recorded').toBeGreaterThan(before.actions);
-    expect(after.hits, 'SmokeScreen: no damage — hit count unchanged').toBe(before.hits);
-  }
-
-  if (!await stillPlaying()) return;
-  await page.evaluate(() => window.__ironclad!.resetAbilityCooldowns());
-  await waitForPlayerTurn();
-
-  // ── 11. RepairKit — heals player ship, no hits ────────────────────────────
-  // Precondition: damage one player ship cell so RepairKit has something to repair.
-  {
-    const hitCell = await page.evaluate(() => window.__ironclad!.damagePlayerShip());
-    if (hitCell !== null) {
-      const before = await page.evaluate(() => window.__ironclad!.getEngineStats());
-
-      await useAbility('repair_kit', hitCell.row, hitCell.col);
-
-      const after = await page.evaluate(() => window.__ironclad!.getEngineStats());
-      expect(after.actions, 'RepairKit: action recorded').toBeGreaterThan(before.actions);
-      expect(after.hits, 'RepairKit: no damage dealt — hit count unchanged').toBe(before.hits);
+    // RepairKit — precondition: damage one player ship cell first
+    let repairKit = { before: b.getEngineStats(), after: b.getEngineStats(), skipped: true };
+    if (b.getPhase() === 'playing') {
+      b.resetAbilityCooldowns();
+      const hitCell = b.damagePlayerShip();
+      if (hitCell !== null) {
+        const before = b.getEngineStats();
+        b.useAbilityAndAdvance('repair_kit', hitCell.row, hitCell.col);
+        repairKit = { before, after: b.getEngineStats(), skipped: false };
+      }
     }
-    // If damagePlayerShip returns null (all player ships somehow sunk), skip — game would be over.
+
+    // BoardingParty — intel on ship cell → result !== null → hits++
+    const boardingParty = runAbility('boarding_party', () => getUnhit()[0]);
+
+    return { cannonBarrage, chainShot, spyglass, sonarPing, smokeScreen, repairKit, boardingParty };
+  }) as {
+    cannonBarrage: AbilityResult;
+    chainShot: AbilityResult;
+    spyglass: AbilityResult;
+    sonarPing: AbilityResult;
+    smokeScreen: AbilityResult;
+    repairKit: AbilityResult;
+    boardingParty: AbilityResult;
+  };
+
+  // ── 6. Assert per-ability deltas ─────────────────────────────────────────
+
+  // CannonBarrage
+  if (!results.cannonBarrage.skipped) {
+    expect(results.cannonBarrage.after.actions, 'CannonBarrage: action recorded').toBeGreaterThan(results.cannonBarrage.before.actions);
+    expect(results.cannonBarrage.after.hits, 'CannonBarrage: hit registered (not as miss)').toBeGreaterThan(results.cannonBarrage.before.hits);
   }
 
-  if (!await stillPlaying()) return;
-  await page.evaluate(() => window.__ironclad!.resetAbilityCooldowns());
-  await waitForPlayerTurn();
-
-  // ── 12. BoardingParty — stealth intel on ship cell, counts as accuracy hit ─
-  // executeBoardingParty: returns { shipType, hitsTaken, totalCells } if ship present
-  // recordPlayerAction(result !== null) → true when ship found → hits++
-  {
-    const unhit = await getUnhitCells();
-    const target = unhit[0];
-    const before = await page.evaluate(() => window.__ironclad!.getEngineStats());
-
-    await useAbility('boarding_party', target.row, target.col);
-
-    const after = await page.evaluate(() => window.__ironclad!.getEngineStats());
-    expect(after.actions, 'BoardingParty: action recorded').toBeGreaterThan(before.actions);
-    // Intel on a ship cell → result !== null → accuracy hit counted
-    expect(after.hits, 'BoardingParty on ship: intel success counts as accuracy hit').toBeGreaterThan(before.hits);
+  // ChainShot
+  if (!results.chainShot.skipped) {
+    expect(results.chainShot.after.actions, 'ChainShot: action recorded').toBeGreaterThan(results.chainShot.before.actions);
+    expect(results.chainShot.after.hits, 'ChainShot: hit registered (not as miss)').toBeGreaterThan(results.chainShot.before.hits);
   }
 
-  // ── 13. Cross-check HUD sunk count ──────────────────────────────────────
+  // Spyglass
+  if (!results.spyglass.skipped) {
+    expect(results.spyglass.after.actions, 'Spyglass: action recorded').toBeGreaterThan(results.spyglass.before.actions);
+    expect(results.spyglass.after.hits, 'Spyglass: hit registered (not as miss)').toBeGreaterThan(results.spyglass.before.hits);
+  }
+
+  // SonarPing — ship is in scan area → shipDetected=true → accuracy hit
+  if (!results.sonarPing.skipped) {
+    expect(results.sonarPing.after.actions, 'SonarPing: action recorded').toBeGreaterThan(results.sonarPing.before.actions);
+    expect(results.sonarPing.after.hits, 'SonarPing: ship detected counts as accuracy hit').toBeGreaterThan(results.sonarPing.before.hits);
+  }
+
+  // SmokeScreen — no hits
+  if (!results.smokeScreen.skipped) {
+    expect(results.smokeScreen.after.actions, 'SmokeScreen: action recorded').toBeGreaterThan(results.smokeScreen.before.actions);
+    expect(results.smokeScreen.after.hits, 'SmokeScreen: no damage — hit count unchanged').toBe(results.smokeScreen.before.hits);
+  }
+
+  // RepairKit — no hits
+  if (!results.repairKit.skipped) {
+    expect(results.repairKit.after.actions, 'RepairKit: action recorded').toBeGreaterThan(results.repairKit.before.actions);
+    expect(results.repairKit.after.hits, 'RepairKit: no damage dealt — hit count unchanged').toBe(results.repairKit.before.hits);
+  }
+
+  // BoardingParty — intel on ship cell → hits++
+  if (!results.boardingParty.skipped) {
+    expect(results.boardingParty.after.actions, 'BoardingParty: action recorded').toBeGreaterThan(results.boardingParty.before.actions);
+    expect(results.boardingParty.after.hits, 'BoardingParty on ship: intel success counts as accuracy hit').toBeGreaterThan(results.boardingParty.before.hits);
+  }
+
+  // ── 7. Cross-check HUD sunk count ───────────────────────────────────────
   // At this point 3 damaging abilities (CannonBarrage, ChainShot, Spyglass) have fired.
   // The HUD enemy-remaining count must match the engine's sunk count.
   const finalStats = await page.evaluate(() => window.__ironclad!.getEngineStats());
