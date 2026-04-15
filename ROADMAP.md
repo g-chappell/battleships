@@ -662,7 +662,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-054
 - **title:** Build TopRightControls cluster (Profile / Settings / Sound / Logout)
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
