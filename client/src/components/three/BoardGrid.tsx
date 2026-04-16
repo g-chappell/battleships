@@ -42,10 +42,11 @@ interface BoardGridProps {
   isValidPlacement?: boolean;
   position?: [number, number, number];
   sonarZones?: SonarZone[];
-  // Coordinate of the most recently Ironclad-deflected shot on this board.
-  // Rendered as a ricochet spark so the player gets visual feedback even
-  // though the cell is still Ship (targetable again next turn).
+  // Coordinate of the most recently deflected shot on this board. Rendered
+  // as a ricochet / coastal marker depending on `deflectedSource` so the
+  // player gets visual feedback even though the cell is still Ship.
   deflectedCoord?: Coordinate | null;
+  deflectedSource?: 'ironclad' | 'coastal' | null;
 }
 
 export function BoardGrid({
@@ -59,6 +60,7 @@ export function BoardGrid({
   position = [0, 0, 0],
   sonarZones = [],
   deflectedCoord = null,
+  deflectedSource = null,
 }: BoardGridProps) {
   const groupRef = useRef<Group>(null);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
@@ -269,16 +271,27 @@ export function BoardGrid({
         })
       )}
 
-      {/* Ironclad deflection marker — pulsing armor ring + spark */}
+      {/* Deflection marker — Ironclad armor ring OR Coastal rocky splash */}
       {deflectedCoord && (
-        <DeflectMarker
-          key={`deflect-${deflectedCoord.row}-${deflectedCoord.col}`}
-          position={[
-            GRID_OFFSET + deflectedCoord.col * CELL_SIZE,
-            0.1,
-            GRID_OFFSET + deflectedCoord.row * CELL_SIZE,
-          ]}
-        />
+        deflectedSource === 'coastal' ? (
+          <CoastalDeflectMarker
+            key={`coastal-${deflectedCoord.row}-${deflectedCoord.col}`}
+            position={[
+              GRID_OFFSET + deflectedCoord.col * CELL_SIZE,
+              0.1,
+              GRID_OFFSET + deflectedCoord.row * CELL_SIZE,
+            ]}
+          />
+        ) : (
+          <DeflectMarker
+            key={`deflect-${deflectedCoord.row}-${deflectedCoord.col}`}
+            position={[
+              GRID_OFFSET + deflectedCoord.col * CELL_SIZE,
+              0.1,
+              GRID_OFFSET + deflectedCoord.row * CELL_SIZE,
+            ]}
+          />
+        )
       )}
     </group>
   );
@@ -525,6 +538,77 @@ function DeflectMarker({ position }: { position: [number, number, number] }) {
           </mesh>
         );
       })}
+    </group>
+  );
+}
+
+/**
+ * Coastal Cover deflect marker — rocky-shore splash with reef shards + water
+ * spray. Visually distinct from the Ironclad copper ring so players can tell
+ * which trait absorbed the shot at a glance.
+ */
+function CoastalDeflectMarker({ position }: { position: [number, number, number] }) {
+  const rockRef = useRef<Mesh>(null);
+  const sprayRef = useRef<Mesh>(null);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (rockRef.current) {
+      // Gentle bob to suggest wet rock re-emerging from spray
+      rockRef.current.position.y = 0.06 + Math.sin(t * 2) * 0.02;
+    }
+    if (sprayRef.current) {
+      const pulse = 0.8 + Math.sin(t * 3) * 0.2;
+      sprayRef.current.scale.setScalar(pulse);
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* Sandy base ring */}
+      <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.2, 0.38, 16]} />
+        <meshStandardMaterial
+          color={SCENE.coastalSand}
+          transparent
+          opacity={0.55}
+          side={2}
+        />
+      </mesh>
+      {/* Central rock outcrop — jagged */}
+      <mesh ref={rockRef} position={[0, 0.06, 0]}>
+        <icosahedronGeometry args={[0.14, 0]} />
+        <meshStandardMaterial
+          color={SCENE.coastalRock}
+          roughness={0.95}
+        />
+      </mesh>
+      {/* Secondary smaller shards around the outcrop */}
+      {[0, 1, 2].map((i) => {
+        const ang = (i / 3) * Math.PI * 2 + 0.3;
+        return (
+          <mesh
+            key={i}
+            position={[Math.cos(ang) * 0.22, 0.05, Math.sin(ang) * 0.22]}
+            rotation={[0.3, ang, 0]}
+          >
+            <icosahedronGeometry args={[0.06, 0]} />
+            <meshStandardMaterial
+              color={SCENE.coastalRock}
+              roughness={0.9}
+            />
+          </mesh>
+        );
+      })}
+      {/* Water spray halo — expanding sphere */}
+      <mesh ref={sprayRef} position={[0, 0.1, 0]}>
+        <sphereGeometry args={[0.25, 10, 8]} />
+        <meshStandardMaterial
+          color={SCENE.coastalSpray}
+          transparent
+          opacity={0.35}
+        />
+      </mesh>
     </group>
   );
 }

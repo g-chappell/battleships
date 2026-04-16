@@ -5,6 +5,7 @@ import { GameHUD } from '../components/ui/GameHUD';
 import { GameOverScreen } from '../components/ui/GameOverScreen';
 import { AbilityBar } from '../components/ui/AbilityBar';
 import { ChatPanel } from '../components/ui/ChatPanel';
+import { RitualOverlay } from '../components/ui/RitualOverlay';
 import { OpponentDisconnectOverlay } from '../components/ui/OpponentDisconnectOverlay';
 import { MissionOutro } from '../components/ui/MissionBriefing';
 import { useCampaignStore } from '../store/campaignStore';
@@ -19,6 +20,11 @@ import {
   playWaterSplash,
   playShipSinking,
   playRicochet,
+  playCoastalDeflect,
+  playDepthCharge,
+  playKrakenRitual,
+  stopKrakenRitual,
+  playKrakenRoar,
   startAmbientLoop,
   stopAmbientLoop,
   isAmbientRunning,
@@ -152,10 +158,15 @@ export function GamePage() {
   useEffect(() => {
     if (!lastOutcome || !isAnimating) return;
     playCannonFire();
-    const sfxTimer = setTimeout(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    timers.push(setTimeout(() => {
       if (lastOutcome.deflected) {
-        // Ironclad armor absorbed the hit — ricochet rather than explosion
-        playRicochet();
+        // Pick the right deflection sound based on source.
+        if (lastOutcome.deflectionSource === 'coastal') {
+          playCoastalDeflect();
+        } else {
+          playRicochet();
+        }
       } else if (lastOutcome.result === ShotResult.Sink) {
         playShipSinking();
       } else if (lastOutcome.result === ShotResult.Hit) {
@@ -163,9 +174,35 @@ export function GamePage() {
       } else {
         playWaterSplash();
       }
-    }, 350);
-    return () => clearTimeout(sfxTimer);
+    }, 350));
+    // Depth Charge retaliation plays after the primary shot sound.
+    if (lastOutcome.depthChargeShots && lastOutcome.depthChargeShots.length > 0) {
+      timers.push(setTimeout(() => {
+        playDepthCharge(lastOutcome.depthChargeShots!.length);
+      }, 700));
+    }
+    return () => timers.forEach(clearTimeout);
   }, [lastOutcome, isAnimating]);
+
+  // Kraken ritual drone — loops while either side is mid-ritual.
+  const playerRitual = useGameStore((s) => s.playerRitualTurnsRemaining);
+  const opponentRitual = useGameStore((s) => s.opponentRitualTurnsRemaining);
+  useEffect(() => {
+    const active = (playerRitual && playerRitual > 0) || (opponentRitual && opponentRitual > 0);
+    if (active) {
+      playKrakenRitual();
+    } else {
+      stopKrakenRitual();
+    }
+    return () => { if (!active) return; stopKrakenRitual(); };
+  }, [playerRitual, opponentRitual]);
+
+  // Kraken strike roar fires once when the strike resolves.
+  const krakenStrikeResult = useGameStore((s) => s.krakenStrikeResult);
+  useEffect(() => {
+    if (!krakenStrikeResult) return;
+    playKrakenRoar();
+  }, [krakenStrikeResult]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -190,6 +227,7 @@ export function GamePage() {
       <div className="flex-1 relative min-h-0">
         <GameScene />
         {isPlacing && <ShipTray />}
+        <RitualOverlay />
         <ChatPanel />
         <OpponentDisconnectOverlay />
         {gameMode === 'multiplayer' && socketStatus === 'reconnecting' && (

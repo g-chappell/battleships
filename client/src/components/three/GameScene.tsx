@@ -29,6 +29,8 @@ export function GameScene() {
   const sonarHistory = useGameStore((s) => s.sonarHistory);
   const playerDeflectedCoord = useGameStore((s) => s.playerDeflectedCoord);
   const opponentDeflectedCoord = useGameStore((s) => s.opponentDeflectedCoord);
+  const playerDeflectedSource = useGameStore((s) => s.playerDeflectedSource);
+  const opponentDeflectedSource = useGameStore((s) => s.opponentDeflectedSource);
   const placeShip = useGameStore((s) => s.placeShip);
   const playerFire = useGameStore((s) => s.playerFire);
   const useAbility = useGameStore((s) => s.useAbility);
@@ -270,6 +272,7 @@ export function GameScene() {
               interactive={isPlacing || (isPlaying && isPlayerTurn && activeAbility !== null)}
               onCellClick={handlePlayerBoardClick}
               deflectedCoord={playerDeflectedCoord}
+              deflectedSource={playerDeflectedSource}
             />
             {playerShips.map((ship) => (
               <ShipModelFromShip key={ship.type} ship={ship} />
@@ -311,6 +314,7 @@ export function GameScene() {
                 onCellClick={handleOpponentBoardClick}
                 sonarZones={sonarHistory}
                 deflectedCoord={opponentDeflectedCoord}
+                deflectedSource={opponentDeflectedSource}
               />
               {opponentSunkShips.map((ship) => (
                 <ShipModelFromShip key={ship.type} ship={ship} isSunk />

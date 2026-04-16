@@ -76,6 +76,11 @@ export const SCENE = {
   deflectCore: '#e8dcc8',
   deflectCoreEmissive: '#ffcc66',
 
+  // Coastal Cover deflection marker (rocky splash + sand)
+  coastalRock: '#5a4838',
+  coastalSand: '#a8855a',
+  coastalSpray: '#9ec4d4',
+
   // Coastal terrain
   terrainSand: '#8a6a44',
   terrainDirt: '#5a4030',
