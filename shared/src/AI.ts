@@ -10,220 +10,452 @@ import {
   coordKey,
   CellState,
 } from './types';
+import { AbilityType } from './abilities';
+
+/** What the AI decided to do this turn. */
+export interface AIAbilityChoice {
+  type: AbilityType;
+  coord: Coordinate;
+}
 
 export interface AIPlayer {
   chooseTarget(opponentBoard: Board): Coordinate;
   placeShips(board: Board): ShipPlacement[];
   notifyResult(coord: Coordinate, result: ShotResult): void;
+  /**
+   * Optional: decide whether to use an ability this turn instead of firing a
+   * normal shot. Returns `null` to fall through to `chooseTarget`.
+   *
+   * `available` is the filtered list of abilities that are off-cooldown AND
+   * have uses remaining. Caller must honour the returned choice (execute the
+   * ability, don't fire).
+   */
+  pickAbility?(
+    ownBoard: Board,
+    opponentBoard: Board,
+    available: AbilityType[]
+  ): AIAbilityChoice | null;
 }
 
-export class EasyAI implements AIPlayer {
-  private huntQueue: Coordinate[] = [];
-  private targeted: Set<string> = new Set();
-
-  chooseTarget(opponentBoard: Board): Coordinate {
-    // Hunt mode: try adjacent cells after a hit
-    while (this.huntQueue.length > 0) {
-      const next = this.huntQueue.shift()!;
-      const key = coordKey(next);
-      if (!this.targeted.has(key) && opponentBoard.isValidTarget(next)) {
-        this.targeted.add(key);
-        return next;
-      }
-    }
-
-    // Random targeting
-    const available: Coordinate[] = [];
-    for (let row = 0; row < GRID_SIZE; row++) {
-      for (let col = 0; col < GRID_SIZE; col++) {
-        const coord = { row, col };
-        if (!this.targeted.has(coordKey(coord)) && opponentBoard.isValidTarget(coord)) {
-          available.push(coord);
-        }
-      }
-    }
-
-    const chosen = available[Math.floor(Math.random() * available.length)];
-    this.targeted.add(coordKey(chosen));
-    return chosen;
-  }
-
-  notifyResult(coord: Coordinate, result: ShotResult): void {
-    if (result === ShotResult.Hit) {
-      // Add adjacent cells to hunt queue
-      const adjacents: Coordinate[] = [
-        { row: coord.row - 1, col: coord.col },
-        { row: coord.row + 1, col: coord.col },
-        { row: coord.row, col: coord.col - 1 },
-        { row: coord.row, col: coord.col + 1 },
-      ];
-      for (const adj of adjacents) {
-        if (adj.row >= 0 && adj.row < GRID_SIZE && adj.col >= 0 && adj.col < GRID_SIZE) {
-          this.huntQueue.push(adj);
-        }
-      }
-    } else if (result === ShotResult.Sink) {
-      // Ship sunk, clear hunt state
-      this.huntQueue = [];
-    }
-  }
-
-  placeShips(board: Board): ShipPlacement[] {
-    return randomPlacement(board);
-  }
-}
+// ─── Shared hunt-mode logic (used by every difficulty) ───────────────────────
 
 /**
- * Medium AI: Probability-density targeting.
- * Calculates which cells are most likely to contain a ship, targets the highest probability cell.
- * Uses abilities sub-optimally (random timing).
+ * Pick the best cell to follow up on known hits. Collinearity-aware: if the
+ * AI has 2+ hits in a line, it extends along that line before falling back to
+ * orthogonal neighbours. This is the "finish-off-a-ship" logic that every
+ * difficulty needs for consistent play.
  */
-export class MediumAI implements AIPlayer {
-  private targeted: Set<string> = new Set();
-  private hitCells: Coordinate[] = [];
-  private sunkShipCells: Set<string> = new Set();
+function findBestHuntTarget(
+  board: Board,
+  hits: Coordinate[],
+  targeted: Set<string>
+): Coordinate | null {
+  if (hits.length === 0) return null;
+
+  // If we have 2+ collinear hits, continue along the axis
+  if (hits.length >= 2) {
+    const sorted = [...hits].sort((a, b) => a.row - b.row || a.col - b.col);
+    const isHorizontal = sorted.every((c) => c.row === sorted[0].row);
+    const isVertical = sorted.every((c) => c.col === sorted[0].col);
+
+    if (isHorizontal) {
+      const row = sorted[0].row;
+      const minCol = Math.min(...sorted.map((c) => c.col));
+      const maxCol = Math.max(...sorted.map((c) => c.col));
+      const candidates = [
+        { row, col: minCol - 1 },
+        { row, col: maxCol + 1 },
+      ].filter(
+        (c) =>
+          c.col >= 0 &&
+          c.col < GRID_SIZE &&
+          board.isValidTarget(c) &&
+          !targeted.has(coordKey(c))
+      );
+      if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+    if (isVertical) {
+      const col = sorted[0].col;
+      const minRow = Math.min(...sorted.map((c) => c.row));
+      const maxRow = Math.max(...sorted.map((c) => c.row));
+      const candidates = [
+        { row: minRow - 1, col },
+        { row: maxRow + 1, col },
+      ].filter(
+        (c) =>
+          c.row >= 0 &&
+          c.row < GRID_SIZE &&
+          board.isValidTarget(c) &&
+          !targeted.has(coordKey(c))
+      );
+      if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+  }
+
+  // Otherwise target any valid adjacent cell to any hit
+  for (const hit of hits) {
+    const adjacents: Coordinate[] = [
+      { row: hit.row - 1, col: hit.col },
+      { row: hit.row + 1, col: hit.col },
+      { row: hit.row, col: hit.col - 1 },
+      { row: hit.row, col: hit.col + 1 },
+    ];
+    const valid = adjacents.filter(
+      (c) =>
+        c.row >= 0 &&
+        c.row < GRID_SIZE &&
+        c.col >= 0 &&
+        c.col < GRID_SIZE &&
+        board.isValidTarget(c) &&
+        !targeted.has(coordKey(c))
+    );
+    if (valid.length > 0) return valid[Math.floor(Math.random() * valid.length)];
+  }
+
+  return null;
+}
+
+/** Pick a random valid cell on a board. Returns null only if board is fully targeted. */
+function pickRandomValidCell(board: Board, targeted: Set<string>): Coordinate | null {
+  const available: Coordinate[] = [];
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      const coord = { row, col };
+      if (!targeted.has(coordKey(coord)) && board.isValidTarget(coord)) {
+        available.push(coord);
+      }
+    }
+  }
+  if (available.length === 0) return null;
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+/** Pick a random valid parity cell (checkerboard — half the cells). Falls back to any valid. */
+function pickRandomParityCell(board: Board, targeted: Set<string>): Coordinate | null {
+  const parityCells: Coordinate[] = [];
+  const anyValid: Coordinate[] = [];
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      const coord = { row, col };
+      if (targeted.has(coordKey(coord)) || !board.isValidTarget(coord)) continue;
+      anyValid.push(coord);
+      // Parity: only cells where (row+col) is even. The min ship length is 2,
+      // so a ship must cross at least one parity-even cell.
+      if ((row + col) % 2 === 0) parityCells.push(coord);
+    }
+  }
+  const pool = parityCells.length > 0 ? parityCells : anyValid;
+  if (pool.length === 0) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// ─── Probability density (shared by Medium's targeting + Hard's ability picks) ──
+
+function calculateDensity(board: Board, targeted: Set<string>): number[][] {
+  const density: number[][] = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+  const allLengths = Object.values(ShipType).map((t) => SHIP_LENGTHS[t]);
+
+  for (const length of allLengths) {
+    // Horizontal
+    for (let row = 0; row < GRID_SIZE; row++) {
+      for (let col = 0; col <= GRID_SIZE - length; col++) {
+        let valid = true;
+        for (let i = 0; i < length; i++) {
+          const state = board.grid[row][col + i];
+          if (
+            state === CellState.Miss ||
+            state === CellState.Hit ||
+            state === CellState.LandRevealed
+          ) {
+            valid = false;
+            break;
+          }
+          if (targeted.has(coordKey({ row, col: col + i }))) {
+            valid = false;
+            break;
+          }
+        }
+        if (valid) {
+          for (let i = 0; i < length; i++) density[row][col + i]++;
+        }
+      }
+    }
+    // Vertical
+    for (let row = 0; row <= GRID_SIZE - length; row++) {
+      for (let col = 0; col < GRID_SIZE; col++) {
+        let valid = true;
+        for (let i = 0; i < length; i++) {
+          const state = board.grid[row + i][col];
+          if (
+            state === CellState.Miss ||
+            state === CellState.Hit ||
+            state === CellState.LandRevealed
+          ) {
+            valid = false;
+            break;
+          }
+          if (targeted.has(coordKey({ row: row + i, col }))) {
+            valid = false;
+            break;
+          }
+        }
+        if (valid) {
+          for (let i = 0; i < length; i++) density[row + i][col]++;
+        }
+      }
+    }
+  }
+
+  return density;
+}
+
+function argmaxCell(density: number[][], filter: (c: Coordinate) => boolean): Coordinate | null {
+  let best = -1;
+  let bestCells: Coordinate[] = [];
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      const coord = { row, col };
+      if (!filter(coord)) continue;
+      const d = density[row][col];
+      if (d > best) {
+        best = d;
+        bestCells = [coord];
+      } else if (d === best) {
+        bestCells.push(coord);
+      }
+    }
+  }
+  if (bestCells.length === 0) return null;
+  return bestCells[Math.floor(Math.random() * bestCells.length)];
+}
+
+// ─── Ability picker helpers ──────────────────────────────────────────────────
+
+/** Count unsunk hit cells on one of the player's (opponent-from-AI's-POV) ships. */
+function damagedOwnShipCell(ownBoard: Board): Coordinate | null {
+  for (const ship of ownBoard.ships) {
+    const isSunk = ship.hits.size === ship.cells.length;
+    if (isSunk) continue;
+    const hitCell = ship.cells.find((c) => ship.hits.has(coordKey(c)));
+    if (hitCell) return hitCell;
+  }
+  return null;
+}
+
+/** Basic targeter for Medium: random valid cell, anchored so 2×2 / 1×3 fits on board. */
+function basicAbilityTarget(
+  ability: AbilityType,
+  ownBoard: Board,
+  opponentBoard: Board,
+  oppTargeted: Set<string>
+): Coordinate | null {
+  switch (ability) {
+    case AbilityType.CannonBarrage: {
+      // Anchor at top-left of a 2×2 area; ensure all cells are valid to target.
+      const candidates: Coordinate[] = [];
+      for (let row = 0; row < GRID_SIZE - 1; row++) {
+        for (let col = 0; col < GRID_SIZE - 1; col++) {
+          const anchor = { row, col };
+          const cells = [anchor, { row, col: col + 1 }, { row: row + 1, col }, { row: row + 1, col: col + 1 }];
+          if (cells.some((c) => !opponentBoard.isValidTarget(c))) continue;
+          candidates.push(anchor);
+        }
+      }
+      return candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : null;
+    }
+    case AbilityType.ChainShot: {
+      const candidates: Coordinate[] = [];
+      for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col <= GRID_SIZE - 3; col++) {
+          const cells = [
+            { row, col },
+            { row, col: col + 1 },
+            { row, col: col + 2 },
+          ];
+          if (cells.some((c) => !opponentBoard.isValidTarget(c))) continue;
+          candidates.push({ row, col });
+        }
+      }
+      return candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : null;
+    }
+    case AbilityType.SonarPing:
+    case AbilityType.BoardingParty:
+    case AbilityType.Spyglass:
+      return pickRandomValidCell(opponentBoard, oppTargeted);
+    case AbilityType.SmokeScreen: {
+      // Smoke is placed on AI's OWN board; pick any cell
+      const candidates: Coordinate[] = [];
+      for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col < GRID_SIZE; col++) {
+          candidates.push({ row, col });
+        }
+      }
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+    case AbilityType.RepairKit: {
+      return damagedOwnShipCell(ownBoard);
+    }
+    case AbilityType.SummonKraken:
+      // Coord irrelevant — the ritual targets a random non-warded ship on resolution.
+      return { row: 0, col: 0 };
+  }
+  return null;
+}
+
+/** Smart targeter for Hard: aim abilities where they actually pay off. */
+function smartAbilityTarget(
+  ability: AbilityType,
+  ownBoard: Board,
+  opponentBoard: Board,
+  oppTargeted: Set<string>,
+  unsunkHits: Coordinate[]
+): Coordinate | null {
+  const density = calculateDensity(opponentBoard, oppTargeted);
+
+  switch (ability) {
+    case AbilityType.CannonBarrage: {
+      // If we have hits, anchor the 2×2 so it overlaps a hit and 3 fresh cells.
+      if (unsunkHits.length > 0) {
+        for (const hit of unsunkHits) {
+          const anchorCandidates: Coordinate[] = [
+            { row: hit.row - 1, col: hit.col - 1 },
+            { row: hit.row - 1, col: hit.col },
+            { row: hit.row, col: hit.col - 1 },
+            { row: hit.row, col: hit.col },
+          ];
+          for (const a of anchorCandidates) {
+            if (a.row < 0 || a.col < 0 || a.row >= GRID_SIZE - 1 || a.col >= GRID_SIZE - 1) continue;
+            const cells = [a, { row: a.row, col: a.col + 1 }, { row: a.row + 1, col: a.col }, { row: a.row + 1, col: a.col + 1 }];
+            if (cells.some((c) => !opponentBoard.isValidTarget(c))) continue;
+            return a;
+          }
+        }
+      }
+      // Otherwise pick the 2×2 with highest density sum
+      let best = -1;
+      let bestAnchor: Coordinate | null = null;
+      for (let row = 0; row < GRID_SIZE - 1; row++) {
+        for (let col = 0; col < GRID_SIZE - 1; col++) {
+          const anchor = { row, col };
+          const cells = [anchor, { row, col: col + 1 }, { row: row + 1, col }, { row: row + 1, col: col + 1 }];
+          if (cells.some((c) => !opponentBoard.isValidTarget(c))) continue;
+          const score = cells.reduce((s, c) => s + density[c.row][c.col], 0);
+          if (score > best) {
+            best = score;
+            bestAnchor = anchor;
+          }
+        }
+      }
+      return bestAnchor;
+    }
+    case AbilityType.ChainShot: {
+      // Align with a hit row if possible
+      if (unsunkHits.length > 0) {
+        for (const hit of unsunkHits) {
+          // Find a valid 1×3 that includes the hit row
+          for (let startCol = Math.max(0, hit.col - 2); startCol <= Math.min(GRID_SIZE - 3, hit.col); startCol++) {
+            const cells = [
+              { row: hit.row, col: startCol },
+              { row: hit.row, col: startCol + 1 },
+              { row: hit.row, col: startCol + 2 },
+            ];
+            if (cells.some((c) => !opponentBoard.isValidTarget(c))) continue;
+            return { row: hit.row, col: startCol };
+          }
+        }
+      }
+      // Otherwise densest 1×3
+      let best = -1;
+      let bestAnchor: Coordinate | null = null;
+      for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col <= GRID_SIZE - 3; col++) {
+          const cells = [
+            { row, col },
+            { row, col: col + 1 },
+            { row, col: col + 2 },
+          ];
+          if (cells.some((c) => !opponentBoard.isValidTarget(c))) continue;
+          const score = cells.reduce((s, c) => s + density[c.row][c.col], 0);
+          if (score > best) {
+            best = score;
+            bestAnchor = { row, col };
+          }
+        }
+      }
+      return bestAnchor;
+    }
+    case AbilityType.SonarPing: {
+      // Scan the densest 3×3 we haven't pinged before (approximation: any 3×3 with highest sum)
+      let best = -1;
+      let bestCenter: Coordinate | null = null;
+      for (let row = 1; row < GRID_SIZE - 1; row++) {
+        for (let col = 1; col < GRID_SIZE - 1; col++) {
+          let score = 0;
+          let validCells = 0;
+          for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+              const c = { row: row + dr, col: col + dc };
+              if (!opponentBoard.isValidTarget(c)) continue;
+              score += density[c.row][c.col];
+              validCells++;
+            }
+          }
+          if (validCells < 4) continue; // area mostly already targeted
+          if (score > best) {
+            best = score;
+            bestCenter = { row, col };
+          }
+        }
+      }
+      return bestCenter;
+    }
+    case AbilityType.Spyglass:
+    case AbilityType.BoardingParty:
+      // Hit the highest-density cell
+      return argmaxCell(density, (c) => opponentBoard.isValidTarget(c) && !oppTargeted.has(coordKey(c)));
+    case AbilityType.SmokeScreen: {
+      // Cover an area containing an undamaged valuable ship (Carrier/Battleship cells)
+      for (const ship of ownBoard.ships) {
+        if (ship.type !== ShipType.Carrier && ship.type !== ShipType.Battleship) continue;
+        if (ship.hits.size === ship.cells.length) continue;
+        const cell = ship.cells[Math.floor(ship.cells.length / 2)];
+        return cell;
+      }
+      return { row: Math.floor(GRID_SIZE / 2), col: Math.floor(GRID_SIZE / 2) };
+    }
+    case AbilityType.RepairKit:
+      return damagedOwnShipCell(ownBoard);
+    case AbilityType.SummonKraken:
+      return { row: 0, col: 0 };
+  }
+  return null;
+}
+
+// ─── EasyAI: random search, no abilities ─────────────────────────────────────
+
+/**
+ * Easy AI — random search with simple hunt-follow-up.
+ * - Search phase: random valid cell.
+ * - Hunt phase: shared `findBestHuntTarget` so a found ship is actually finished.
+ * - Abilities: NONE. Easy AI ignores its ability loadout entirely.
+ */
+export class EasyAI implements AIPlayer {
+  protected targeted: Set<string> = new Set();
+  protected hitCells: Coordinate[] = [];
+  protected sunkShipCells: Set<string> = new Set();
 
   chooseTarget(opponentBoard: Board): Coordinate {
-    // If we have unsunk hit cells, target adjacent
     const unsunkHits = this.hitCells.filter((c) => !this.sunkShipCells.has(coordKey(c)));
     if (unsunkHits.length > 0) {
-      const target = this.findBestAdjacentTarget(opponentBoard, unsunkHits);
+      const target = findBestHuntTarget(opponentBoard, unsunkHits, this.targeted);
       if (target) {
         this.targeted.add(coordKey(target));
         return target;
       }
     }
-
-    // Probability density: for each empty cell, count how many ship placements could include it
-    const density = this.calculateDensity(opponentBoard);
-    let bestScore = -1;
-    let bestCells: Coordinate[] = [];
-
-    for (let row = 0; row < GRID_SIZE; row++) {
-      for (let col = 0; col < GRID_SIZE; col++) {
-        if (!this.targeted.has(coordKey({ row, col })) && opponentBoard.isValidTarget({ row, col })) {
-          if (density[row][col] > bestScore) {
-            bestScore = density[row][col];
-            bestCells = [{ row, col }];
-          } else if (density[row][col] === bestScore) {
-            bestCells.push({ row, col });
-          }
-        }
-      }
-    }
-
-    const chosen = bestCells[Math.floor(Math.random() * bestCells.length)];
+    const chosen = pickRandomValidCell(opponentBoard, this.targeted) ?? { row: 0, col: 0 };
     this.targeted.add(coordKey(chosen));
     return chosen;
-  }
-
-  private findBestAdjacentTarget(board: Board, hits: Coordinate[]): Coordinate | null {
-    // If we have 2+ collinear hits, continue in that direction
-    if (hits.length >= 2) {
-      const sorted = [...hits].sort((a, b) => a.row - b.row || a.col - b.col);
-      const isHorizontal = sorted.every((c) => c.row === sorted[0].row);
-      const isVertical = sorted.every((c) => c.col === sorted[0].col);
-
-      if (isHorizontal) {
-        const row = sorted[0].row;
-        const minCol = Math.min(...sorted.map((c) => c.col));
-        const maxCol = Math.max(...sorted.map((c) => c.col));
-        const candidates = [
-          { row, col: minCol - 1 },
-          { row, col: maxCol + 1 },
-        ].filter((c) => c.col >= 0 && c.col < GRID_SIZE && board.isValidTarget(c) && !this.targeted.has(coordKey(c)));
-        if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
-      }
-      if (isVertical) {
-        const col = sorted[0].col;
-        const minRow = Math.min(...sorted.map((c) => c.row));
-        const maxRow = Math.max(...sorted.map((c) => c.row));
-        const candidates = [
-          { row: minRow - 1, col },
-          { row: maxRow + 1, col },
-        ].filter((c) => c.row >= 0 && c.row < GRID_SIZE && board.isValidTarget(c) && !this.targeted.has(coordKey(c)));
-        if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
-      }
-    }
-
-    // Otherwise target any adjacent cell to any hit
-    for (const hit of hits) {
-      const adjacents: Coordinate[] = [
-        { row: hit.row - 1, col: hit.col },
-        { row: hit.row + 1, col: hit.col },
-        { row: hit.row, col: hit.col - 1 },
-        { row: hit.row, col: hit.col + 1 },
-      ];
-      const valid = adjacents.filter(
-        (c) => c.row >= 0 && c.row < GRID_SIZE && c.col >= 0 && c.col < GRID_SIZE
-          && board.isValidTarget(c) && !this.targeted.has(coordKey(c))
-      );
-      if (valid.length > 0) return valid[Math.floor(Math.random() * valid.length)];
-    }
-
-    return null;
-  }
-
-  private calculateDensity(board: Board): number[][] {
-    const density: number[][] = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
-    const remainingShips = this.getRemainingShipLengths(board);
-
-    for (const length of remainingShips) {
-      // Horizontal
-      for (let row = 0; row < GRID_SIZE; row++) {
-        for (let col = 0; col <= GRID_SIZE - length; col++) {
-          let valid = true;
-          for (let i = 0; i < length; i++) {
-            const state = board.grid[row][col + i];
-            if (state === CellState.Miss || state === CellState.Hit) {
-              valid = false;
-              break;
-            }
-            if (this.targeted.has(coordKey({ row, col: col + i }))) {
-              valid = false;
-              break;
-            }
-          }
-          if (valid) {
-            for (let i = 0; i < length; i++) {
-              density[row][col + i]++;
-            }
-          }
-        }
-      }
-      // Vertical
-      for (let row = 0; row <= GRID_SIZE - length; row++) {
-        for (let col = 0; col < GRID_SIZE; col++) {
-          let valid = true;
-          for (let i = 0; i < length; i++) {
-            const state = board.grid[row + i][col];
-            if (state === CellState.Miss || state === CellState.Hit) {
-              valid = false;
-              break;
-            }
-            if (this.targeted.has(coordKey({ row: row + i, col }))) {
-              valid = false;
-              break;
-            }
-          }
-          if (valid) {
-            for (let i = 0; i < length; i++) {
-              density[row + i][col]++;
-            }
-          }
-        }
-      }
-    }
-
-    return density;
-  }
-
-  private getRemainingShipLengths(_board: Board): number[] {
-    // We don't know which ships are sunk from the AI's perspective
-    // Use the known sunk ships to determine remaining lengths
-    const allLengths = Object.values(ShipType).map((t) => SHIP_LENGTHS[t]);
-    // For simplicity, return all ship lengths (Medium AI doesn't track sunk ships precisely)
-    return allLengths;
   }
 
   notifyResult(coord: Coordinate, result: ShotResult): void {
@@ -231,12 +463,7 @@ export class MediumAI implements AIPlayer {
       this.hitCells.push(coord);
     } else if (result === ShotResult.Sink) {
       this.hitCells.push(coord);
-      // Mark all connected hit cells as part of a sunk ship
-      // Simple approach: mark the last streak of hits as sunk
-      for (const hit of this.hitCells) {
-        this.sunkShipCells.add(coordKey(hit));
-      }
-      // Clear unsunk tracking — be conservative
+      for (const hit of this.hitCells) this.sunkShipCells.add(coordKey(hit));
       this.hitCells = this.hitCells.filter((c) => !this.sunkShipCells.has(coordKey(c)));
     }
   }
@@ -244,22 +471,133 @@ export class MediumAI implements AIPlayer {
   placeShips(board: Board): ShipPlacement[] {
     return randomPlacement(board);
   }
+
+  // No pickAbility — Easy AI never uses abilities.
+
+  /** Mark a coord as targeted without firing (used when AI fires an ability on that cell). */
+  markTargeted(coord: Coordinate): void {
+    this.targeted.add(coordKey(coord));
+  }
 }
 
+// ─── MediumAI: parity search + basic ability usage ───────────────────────────
+
+const MEDIUM_ABILITY_CHANCE = 0.25;
+
 /**
- * Hard AI: Optimal probability targeting with pattern adaptation.
- * Uses checkerboard parity to eliminate cells, targets highest-probability cells.
+ * Medium AI — parity search, shared hunt mode, uses abilities ~25% of turns
+ * with basic (random-valid) targeting. Summon Kraken triggers as early as
+ * possible because its ritual takes two turns.
  */
-export class HardAI extends MediumAI {
+export class MediumAI extends EasyAI {
   chooseTarget(opponentBoard: Board): Coordinate {
-    // Use parent's probability-based targeting (it's already very strong)
-    // Hard AI adds checkerboard parity optimization
-    return super.chooseTarget(opponentBoard);
+    const unsunkHits = this.hitCells.filter((c) => !this.sunkShipCells.has(coordKey(c)));
+    if (unsunkHits.length > 0) {
+      const target = findBestHuntTarget(opponentBoard, unsunkHits, this.targeted);
+      if (target) {
+        this.targeted.add(coordKey(target));
+        return target;
+      }
+    }
+    const chosen =
+      pickRandomParityCell(opponentBoard, this.targeted) ??
+      pickRandomValidCell(opponentBoard, this.targeted) ?? { row: 0, col: 0 };
+    this.targeted.add(coordKey(chosen));
+    return chosen;
   }
 
-  placeShips(board: Board): ShipPlacement[] {
-    // Hard AI uses edge/corner-weighted placement for better defense
-    return randomPlacement(board);
+  pickAbility(
+    ownBoard: Board,
+    opponentBoard: Board,
+    available: AbilityType[]
+  ): AIAbilityChoice | null {
+    if (available.length === 0) return null;
+
+    // Always use Summon Kraken ASAP when available — it's too strong to save.
+    if (available.includes(AbilityType.SummonKraken)) {
+      return { type: AbilityType.SummonKraken, coord: { row: 0, col: 0 } };
+    }
+
+    // Probabilistic usage
+    if (Math.random() >= MEDIUM_ABILITY_CHANCE) return null;
+
+    // Skip RepairKit unless we're actually damaged
+    const usable = available.filter((a) => {
+      if (a === AbilityType.RepairKit) return damagedOwnShipCell(ownBoard) !== null;
+      return true;
+    });
+    if (usable.length === 0) return null;
+
+    const pick = usable[Math.floor(Math.random() * usable.length)];
+    const target = basicAbilityTarget(pick, ownBoard, opponentBoard, this.targeted);
+    if (!target) return null;
+    return { type: pick, coord: target };
+  }
+}
+
+// ─── HardAI: probability-density search + smart ability usage ────────────────
+
+const HARD_ABILITY_CHANCE = 0.6;
+
+/**
+ * Hard AI — probability-density search, shared hunt mode, uses abilities
+ * ~60% of turns with smart targeting (Cannon/Chain on detected hits, Sonar
+ * on densest unexplored area, Repair on damaged ships, etc.).
+ */
+export class HardAI extends EasyAI {
+  chooseTarget(opponentBoard: Board): Coordinate {
+    const unsunkHits = this.hitCells.filter((c) => !this.sunkShipCells.has(coordKey(c)));
+    if (unsunkHits.length > 0) {
+      const target = findBestHuntTarget(opponentBoard, unsunkHits, this.targeted);
+      if (target) {
+        this.targeted.add(coordKey(target));
+        return target;
+      }
+    }
+
+    const density = calculateDensity(opponentBoard, this.targeted);
+    const chosen =
+      argmaxCell(density, (c) => opponentBoard.isValidTarget(c) && !this.targeted.has(coordKey(c))) ??
+      pickRandomValidCell(opponentBoard, this.targeted) ?? { row: 0, col: 0 };
+    this.targeted.add(coordKey(chosen));
+    return chosen;
+  }
+
+  pickAbility(
+    ownBoard: Board,
+    opponentBoard: Board,
+    available: AbilityType[]
+  ): AIAbilityChoice | null {
+    if (available.length === 0) return null;
+
+    if (available.includes(AbilityType.SummonKraken)) {
+      return { type: AbilityType.SummonKraken, coord: { row: 0, col: 0 } };
+    }
+
+    if (Math.random() >= HARD_ABILITY_CHANCE) return null;
+
+    const usable = available.filter((a) => {
+      if (a === AbilityType.RepairKit) return damagedOwnShipCell(ownBoard) !== null;
+      return true;
+    });
+    if (usable.length === 0) return null;
+
+    const unsunkHits = this.hitCells.filter((c) => !this.sunkShipCells.has(coordKey(c)));
+
+    // Prefer offensive abilities when we have hits to exploit; otherwise
+    // preference recon (Sonar / Spyglass / BoardingParty). Fall back to any.
+    const offensive = usable.filter((a) =>
+      [AbilityType.CannonBarrage, AbilityType.ChainShot, AbilityType.Spyglass].includes(a)
+    );
+    const recon = usable.filter((a) =>
+      [AbilityType.SonarPing, AbilityType.Spyglass, AbilityType.BoardingParty].includes(a)
+    );
+    const pool = unsunkHits.length > 0 && offensive.length > 0 ? offensive : (recon.length > 0 ? recon : usable);
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+
+    const target = smartAbilityTarget(pick, ownBoard, opponentBoard, this.targeted, unsunkHits);
+    if (!target) return null;
+    return { type: pick, coord: target };
   }
 }
 

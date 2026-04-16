@@ -89,12 +89,26 @@ export function AbilityBar() {
           )}
 
           {sonarResult && (
-            <span className={`text-xs font-bold px-2 py-1 rounded border ${
-              sonarResult.shipDetected
-                ? 'text-[#c41e3a] bg-[#5c0000]/40 border-[#c41e3a]/50'
-                : 'text-[#a06820] bg-[#3d1f17]/40 border-[#a06820]/40'
-            }`} style={labelStyle}>
-              Sonar: {sonarResult.shipDetected ? 'SHIP DETECTED' : 'All Clear'}
+            <span
+              className={`text-xs font-bold px-2 py-1 rounded border ${
+                sonarResult.shipDetected
+                  ? 'text-[#c41e3a] bg-[#5c0000]/40 border-[#c41e3a]/50'
+                  : 'text-[#a06820] bg-[#3d1f17]/40 border-[#a06820]/40'
+              }`}
+              style={labelStyle}
+              // Surface the Silent Running asymmetry: area tint alone (without
+              // a precise-reveal marker) suggests a Submarine is nearby.
+              title={
+                sonarResult.shipDetected && sonarResult.revealedShipCells.length === 0
+                  ? 'Ship detected but not pinpointed — likely a Submarine (Silent Running).'
+                  : undefined
+              }
+            >
+              Sonar: {sonarResult.shipDetected
+                ? sonarResult.revealedShipCells.length > 0
+                  ? `${sonarResult.revealedShipCells.length} CELL${sonarResult.revealedShipCells.length === 1 ? '' : 'S'} REVEALED`
+                  : 'SHIP DETECTED (no lock — possible Submarine)'
+                : 'All Clear'}
             </span>
           )}
         </>
