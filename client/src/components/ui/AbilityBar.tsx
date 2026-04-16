@@ -1,5 +1,5 @@
 import { useGameStore } from '../../store/gameStore';
-import { ABILITY_DEFS, canUseAbility, GamePhase } from '@shared/index';
+import { ABILITY_DEFS, AbilityType, canUseAbility, GamePhase } from '@shared/index';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../shadcn/tooltip';
 
 export function AbilityBar() {
@@ -12,9 +12,12 @@ export function AbilityBar() {
   const sonarResult = useGameStore((s) => s.sonarResult);
   const resetGame = useGameStore((s) => s.resetGame);
   const setScreen = useGameStore((s) => s.setScreen);
+  const summonKraken = useGameStore((s) => s.summonKraken);
+  const playerRitualTurnsRemaining = useGameStore((s) => s.playerRitualTurnsRemaining);
 
   const isPlaying = engine.phase === GamePhase.Playing || engine.phase === GamePhase.Placement;
   const isPlayerTurn = engine.currentTurn === 'player';
+  const inRitual = !!(playerRitualTurnsRemaining && playerRitualTurnsRemaining > 0);
 
   if (!isPlaying && engine.phase !== GamePhase.Finished) return null;
 
@@ -26,16 +29,31 @@ export function AbilityBar() {
         <>
           {playerAbilities.abilityStates.map((ability) => {
             const def = ABILITY_DEFS[ability.type];
-            const usable = canUseAbility(playerAbilities, ability.type) && isPlayerTurn && !isAnimating;
+            const usable =
+              canUseAbility(playerAbilities, ability.type) &&
+              isPlayerTurn &&
+              !isAnimating &&
+              !inRitual;
             const isActive = activeAbility === ability.type;
             const onCooldown = ability.cooldownRemaining > 0;
             const exhausted = ability.usesRemaining === 0;
+            const isKraken = ability.type === AbilityType.SummonKraken;
+
+            const handleClick = () => {
+              if (!usable) return;
+              if (isKraken) {
+                summonKraken();
+                setActiveAbility(null);
+              } else {
+                setActiveAbility(isActive ? null : ability.type);
+              }
+            };
 
             return (
               <Tooltip key={ability.type}>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => usable && setActiveAbility(isActive ? null : ability.type)}
+                    onClick={handleClick}
                     disabled={!usable}
                     className={`relative h-11 px-3 sm:px-4 rounded-full border transition-all flex items-center gap-2 text-sm whitespace-nowrap shrink-0 ${
                       isActive

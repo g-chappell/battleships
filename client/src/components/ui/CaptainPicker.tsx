@@ -14,7 +14,7 @@ export function CaptainPicker() {
       <p className="text-aged-gold/70 text-xs uppercase tracking-[0.25em] mb-3 text-center" style={labelStyle}>
         Choose yer Captain
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-3xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl mx-auto">
         {CAPTAIN_IDS.map((id) => {
           const captain = CAPTAIN_DEFS[id];
           const isSelected = selectedCaptain === id;
