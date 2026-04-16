@@ -1,5 +1,16 @@
-import { ShipType, SHIP_LENGTHS, SHIP_NAMES } from '@shared/types';
+import { ShipType, SHIP_LENGTHS, SHIP_NAMES, isCoastalShip } from '@shared/index';
 import { useGameStore } from '../../store/gameStore';
+
+// Passive trait per ship type, surfaced during placement so the player can
+// plan positions (e.g. coastal vs. open water). The Coastal Cover badge is
+// added separately when any ship cell is adjacent to a land tile.
+const SHIP_TRAIT: Record<ShipType, { name: string; blurb: string }> = {
+  [ShipType.Carrier]:    { name: 'Spotter',        blurb: 'On hit: reveal a random enemy cell.' },
+  [ShipType.Battleship]: { name: 'Ironclad',       blurb: 'First hit is deflected; cell stays targetable.' },
+  [ShipType.Cruiser]:    { name: 'Kraken Ward',    blurb: 'Never targeted by Summon Kraken.' },
+  [ShipType.Submarine]:  { name: 'Silent Running', blurb: 'Invisible to Sonar Ping precision reveal.' },
+  [ShipType.Destroyer]:  { name: 'Depth Charge',   blurb: 'First hit: 6 random shots back at attacker.' },
+};
 
 export function ShipTray() {
   const placingShipType = useGameStore((s) => s.placingShipType);
@@ -11,6 +22,8 @@ export function ShipTray() {
   const confirmPlacement = useGameStore((s) => s.confirmPlacement);
   const gameMode = useGameStore((s) => s.gameMode);
   const mpPlacementSubmitted = useGameStore((s) => s.mpPlacementSubmitted);
+  const engine = useGameStore((s) => s.engine);
+  useGameStore((s) => s.tick); // re-render on grid/placement changes
 
   const allPlaced = placedShips.length === Object.values(ShipType).length;
   const isWaitingForOpponent = gameMode === 'multiplayer' && mpPlacementSubmitted;
@@ -27,6 +40,8 @@ export function ShipTray() {
         {Object.values(ShipType).map((type) => {
           const isPlaced = placedShips.includes(type);
           const isSelected = placingShipType === type;
+          const trait = SHIP_TRAIT[type];
+          const coastal = isPlaced && isCoastalShip(engine.playerBoard, type);
 
           return (
             <button
@@ -58,9 +73,23 @@ export function ShipTray() {
                   />
                 ))}
               </div>
+              <div className="mt-1.5 flex items-center gap-1 text-[10px] leading-tight">
+                <span className="font-bold text-[#d4a040]">{trait.name}</span>
+                {coastal && (
+                  <span className="px-1 rounded bg-[#3a6028]/50 text-[#a8d68a] border border-[#3a6028]/70" title="Adjacent to land — gets Coastal Cover (one-time deflect, replaces Ironclad if a Battleship)">
+                    🜂 Coastal
+                  </span>
+                )}
+              </div>
+              <div className="mt-0.5 text-[10px] opacity-70 leading-snug italic">
+                {trait.blurb}
+              </div>
             </button>
           );
         })}
+        <div className="mt-2 text-[10px] text-parchment/50 italic leading-snug" style={{ fontFamily: "'IM Fell English', serif" }}>
+          Place a ship adjacent to land for <span className="text-[#a8d68a]">Coastal Cover</span> — one free deflect on its first hit. Does not stack with Ironclad.
+        </div>
       </div>
 
       <div className="space-y-2">

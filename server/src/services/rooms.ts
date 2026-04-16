@@ -584,6 +584,8 @@ export function buildPublicState(room: GameRoom, playerId: string): PublicGameSt
       isReady: opponent.hasPlaced,
     },
     isRanked: room.isRanked,
+    ownRitualTurnsRemaining: self.ritualTurnsRemaining ?? null,
+    opponentRitualTurnsRemaining: opponent.ritualTurnsRemaining ?? null,
   };
 }
 
