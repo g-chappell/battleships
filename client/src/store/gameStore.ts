@@ -78,10 +78,13 @@ interface GameStore {
   isAnimating: boolean;
   viewingBoard: 'player' | 'opponent';
 
-  // Transient ricochet markers for Ironclad-deflected shots. Cleared when
-  // the next shot fires on the same board. Rendered by BoardGrid.
+  // Transient deflect markers. Cleared when the next shot fires on the same
+  // board. Rendered by BoardGrid, keyed by source so Coastal and Ironclad
+  // show visually distinct markers.
   opponentDeflectedCoord: Coordinate | null; // your shot deflected on enemy board
   playerDeflectedCoord: Coordinate | null;   // enemy shot deflected on your board
+  opponentDeflectedSource: 'ironclad' | 'coastal' | null;
+  playerDeflectedSource: 'ironclad' | 'coastal' | null;
 
   // Kraken ritual state. Each side tracks turns-remaining; a value > 0 means
   // the caster's turn is consumed by the ritual (no fire, no abilities).
@@ -178,6 +181,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   opponentDeflectedCoord: null,
   playerDeflectedCoord: null,
+  opponentDeflectedSource: null,
+  playerDeflectedSource: null,
 
   playerRitualTurnsRemaining: null,
   opponentRitualTurnsRemaining: null,
@@ -220,7 +225,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isAnimating: false,
       viewingBoard: 'player',
       opponentDeflectedCoord: null,
+      opponentDeflectedSource: null,
       playerDeflectedCoord: null,
+      playerDeflectedSource: null,
       playerRitualTurnsRemaining: null,
       opponentRitualTurnsRemaining: null,
       krakenStrikeResult: null,
@@ -262,7 +269,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isAnimating: false,
       viewingBoard: 'player',
       opponentDeflectedCoord: null,
+      opponentDeflectedSource: null,
       playerDeflectedCoord: null,
+      playerDeflectedSource: null,
       playerRitualTurnsRemaining: null,
       opponentRitualTurnsRemaining: null,
       krakenStrikeResult: null,
@@ -301,7 +310,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isAnimating: false,
       viewingBoard: 'player',
       opponentDeflectedCoord: null,
+      opponentDeflectedSource: null,
       playerDeflectedCoord: null,
+      playerDeflectedSource: null,
       playerRitualTurnsRemaining: null,
       opponentRitualTurnsRemaining: null,
       krakenStrikeResult: null,
@@ -447,6 +458,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Unified deflection: Coastal Cover > Ironclad (see applyDeflectionTrait).
     // Revert the grid to Ship so the cell stays targetable on a future turn.
     let deflectedHere: Coordinate | null = null;
+    let deflectedSource: 'ironclad' | 'coastal' | null = null;
     if (opponentTraits && outcome.result === ShotResult.Hit) {
       const source = applyDeflectionTrait(engine.opponentBoard, coord, opponentTraits);
       if (source) {
@@ -458,6 +470,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         outcome.deflected = true;
         outcome.deflectionSource = source;
         deflectedHere = coord;
+        deflectedSource = source;
         engine.currentTurn = 'opponent';
       }
     }
@@ -486,6 +499,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastShotOutcome: outcome,
       isAnimating: true,
       opponentDeflectedCoord: deflectedHere,
+      opponentDeflectedSource: deflectedSource,
       lastDepthCharge: depthChargePayload
         ? { onBoard: 'player', shots: depthChargePayload }
         : null,
@@ -511,9 +525,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Apply Ironclad/Nimble traits to ability-based shots (same as playerFire).
     // Returns the last coord where Ironclad deflected a hit, if any — the
     // caller uses it to pin the ricochet marker on the enemy board.
-    const applyTraits = (outcomes: ShotOutcome[]): { deflected: Coordinate | null; depthCharge: DepthChargeShot[] | null } => {
-      if (!opponentTraits) return { deflected: null, depthCharge: null };
+    const applyTraits = (outcomes: ShotOutcome[]): { deflected: Coordinate | null; deflectedSource: 'ironclad' | 'coastal' | null; depthCharge: DepthChargeShot[] | null } => {
+      if (!opponentTraits) return { deflected: null, deflectedSource: null, depthCharge: null };
       let deflected: Coordinate | null = null;
+      let deflectedSource: 'ironclad' | 'coastal' | null = null;
       let depthCharge: DepthChargeShot[] | null = null;
       for (const outcome of outcomes) {
         const c = outcome.coordinate;
@@ -530,6 +545,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               outcome.deflected = true;
               outcome.deflectionSource = source;
               deflected = c;
+              deflectedSource = source;
               continue; // deflected shots do not trigger Depth Charge
             }
           }
@@ -541,7 +557,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           }
         }
       }
-      return { deflected, depthCharge };
+      return { deflected, deflectedSource, depthCharge };
     };
 
     switch (type) {
@@ -562,6 +578,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             lastShotOutcome: lastOutcome,
             isAnimating: true,
             opponentDeflectedCoord: traitsResult.deflected,
+            opponentDeflectedSource: traitsResult.deflectedSource,
             lastDepthCharge: traitsResult.depthCharge
               ? { onBoard: 'player', shots: traitsResult.depthCharge }
               : null,
@@ -619,6 +636,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             lastShotOutcome: lastOutcome,
             isAnimating: true,
             opponentDeflectedCoord: traitsResult.deflected,
+            opponentDeflectedSource: traitsResult.deflectedSource,
             lastDepthCharge: traitsResult.depthCharge
               ? { onBoard: 'player', shots: traitsResult.depthCharge }
               : null,
@@ -644,6 +662,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             spyglassResult: { row: coord.row, shipCount: result.rowShipCount },
             isAnimating: true,
             opponentDeflectedCoord: traitsResult.deflected,
+            opponentDeflectedSource: traitsResult.deflectedSource,
             lastDepthCharge: traitsResult.depthCharge
               ? { onBoard: 'player', shots: traitsResult.depthCharge }
               : null,
@@ -785,6 +804,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       // Unified deflection: Coastal Cover > Ironclad (applyDeflectionTrait)
       let aiDeflectedCoord: Coordinate | null = null;
+      let aiDeflectedSource: 'ironclad' | 'coastal' | null = null;
       if (playerTraits && outcome.result === ShotResult.Hit) {
         const source = applyDeflectionTrait(engine.playerBoard, target, playerTraits);
         if (source) {
@@ -796,6 +816,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           outcome.deflected = true;
           outcome.deflectionSource = source;
           aiDeflectedCoord = target;
+          aiDeflectedSource = source;
           engine.currentTurn = 'player';
           engine.turnCount++;
         }
@@ -834,6 +855,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         isAnimating: true,
         revealedCells: new Set(revealedCells),
         playerDeflectedCoord: aiDeflectedCoord,
+        playerDeflectedSource: aiDeflectedSource,
         lastDepthCharge: aiDepthCharge
           ? { onBoard: 'opponent', shots: aiDepthCharge }
           : null,

@@ -456,6 +456,224 @@ export function playRicochet() {
   sparkSrc.start(now);
 }
 
+// === COASTAL DEFLECT === Wet rock scrape + reef spray — distinct from Ironclad's ring
+export function playCoastalDeflect() {
+  const ctx = getContext();
+  const now = ctx.currentTime;
+
+  // Dull thud — cannonball striking stone
+  const thudGain = ctx.createGain();
+  thudGain.connect(ctx.destination);
+  thudGain.gain.setValueAtTime(vol() * 0.5, now);
+  thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+  const thud = ctx.createOscillator();
+  thud.type = 'sine';
+  thud.frequency.setValueAtTime(140, now);
+  thud.frequency.exponentialRampToValueAtTime(55, now + 0.3);
+  thud.connect(thudGain);
+  thud.start(now);
+  thud.stop(now + 0.3);
+
+  // Rocky scrape — filtered noise with sweep
+  const scrapeGain = ctx.createGain();
+  scrapeGain.connect(ctx.destination);
+  scrapeGain.gain.setValueAtTime(vol() * 0.35, now);
+  scrapeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+  const scrapeFilter = ctx.createBiquadFilter();
+  scrapeFilter.type = 'bandpass';
+  scrapeFilter.Q.value = 2;
+  scrapeFilter.frequency.setValueAtTime(900, now);
+  scrapeFilter.frequency.exponentialRampToValueAtTime(300, now + 0.4);
+  scrapeFilter.connect(scrapeGain);
+  const scrapeSrc = ctx.createBufferSource();
+  scrapeSrc.buffer = makeNoiseBuffer(ctx, 0.45, 2);
+  scrapeSrc.connect(scrapeFilter);
+  scrapeSrc.start(now);
+
+  // Water spray afterwards
+  const sprayGain = ctx.createGain();
+  sprayGain.connect(ctx.destination);
+  sprayGain.gain.setValueAtTime(0, now + 0.15);
+  sprayGain.gain.linearRampToValueAtTime(vol() * 0.3, now + 0.2);
+  sprayGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+  const sprayFilter = ctx.createBiquadFilter();
+  sprayFilter.type = 'highpass';
+  sprayFilter.frequency.value = 2500;
+  sprayFilter.connect(sprayGain);
+  const spraySrc = ctx.createBufferSource();
+  spraySrc.buffer = makeNoiseBuffer(ctx, 0.6, 2);
+  spraySrc.connect(sprayFilter);
+  spraySrc.start(now + 0.15);
+}
+
+// === DEPTH CHARGE === Barrel drop + underwater concussion × 6
+export function playDepthCharge(shotCount = 6) {
+  const ctx = getContext();
+  const now = ctx.currentTime;
+
+  // Barrel hitting water — short high splash
+  const splashGain = ctx.createGain();
+  splashGain.connect(ctx.destination);
+  splashGain.gain.setValueAtTime(vol() * 0.4, now);
+  splashGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+  const splashFilter = ctx.createBiquadFilter();
+  splashFilter.type = 'bandpass';
+  splashFilter.frequency.value = 2800;
+  splashFilter.Q.value = 2;
+  splashFilter.connect(splashGain);
+  const splashSrc = ctx.createBufferSource();
+  splashSrc.buffer = makeNoiseBuffer(ctx, 0.25, 2);
+  splashSrc.connect(splashFilter);
+  splashSrc.start(now);
+
+  // N underwater concussions, spaced out
+  for (let i = 0; i < shotCount; i++) {
+    const t = now + 0.15 + i * 0.22;
+    const pitch = 60 + Math.random() * 40;
+
+    const boomGain = ctx.createGain();
+    boomGain.connect(ctx.destination);
+    boomGain.gain.setValueAtTime(vol() * 0.6, t);
+    boomGain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    const boom = ctx.createOscillator();
+    boom.type = 'sine';
+    boom.frequency.setValueAtTime(pitch, t);
+    boom.frequency.exponentialRampToValueAtTime(pitch * 0.3, t + 0.35);
+    boom.connect(boomGain);
+    boom.start(t);
+    boom.stop(t + 0.4);
+  }
+}
+
+// === KRAKEN RITUAL === Low chanting drone — loopable while ritual active
+let krakenRitualNodes: AudioNode[] = [];
+let krakenRitualGain: GainNode | null = null;
+export function playKrakenRitual() {
+  if (krakenRitualGain) return; // already playing
+  const ctx = getContext();
+  const now = ctx.currentTime;
+
+  const master = ctx.createGain();
+  master.connect(ctx.destination);
+  master.gain.setValueAtTime(0, now);
+  master.gain.linearRampToValueAtTime(vol() * 0.35, now + 0.8);
+  krakenRitualGain = master;
+
+  // Deep drone
+  const drone = ctx.createOscillator();
+  drone.type = 'sawtooth';
+  drone.frequency.value = 58;
+  const droneFilter = ctx.createBiquadFilter();
+  droneFilter.type = 'lowpass';
+  droneFilter.frequency.value = 220;
+  drone.connect(droneFilter);
+  droneFilter.connect(master);
+  drone.start(now);
+
+  // Slow LFO for warble
+  const lfo = ctx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.value = 0.45;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 5;
+  lfo.connect(lfoGain);
+  lfoGain.connect(drone.frequency);
+  lfo.start(now);
+
+  // Hollow overtone
+  const overtone = ctx.createOscillator();
+  overtone.type = 'triangle';
+  overtone.frequency.value = 87;
+  const overtoneGain = ctx.createGain();
+  overtoneGain.gain.value = 0.4;
+  overtone.connect(overtoneGain);
+  overtoneGain.connect(master);
+  overtone.start(now);
+
+  krakenRitualNodes.push(drone, droneFilter, lfo, lfoGain, overtone, overtoneGain);
+}
+export function stopKrakenRitual() {
+  if (!krakenRitualGain || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  krakenRitualGain.gain.cancelScheduledValues(now);
+  krakenRitualGain.gain.setTargetAtTime(0, now, 0.1);
+  setTimeout(() => {
+    for (const node of krakenRitualNodes) {
+      try {
+        if (node instanceof OscillatorNode) node.stop();
+        node.disconnect();
+      } catch { /* ok */ }
+    }
+    krakenRitualNodes = [];
+    if (krakenRitualGain) {
+      try { krakenRitualGain.disconnect(); } catch { /* ok */ }
+      krakenRitualGain = null;
+    }
+  }, 800);
+}
+
+// === KRAKEN ROAR === Giant bellow + crashing wave on strike
+export function playKrakenRoar() {
+  const ctx = getContext();
+  const now = ctx.currentTime;
+
+  // Massive low roar with pitch bend
+  const roarGain = ctx.createGain();
+  roarGain.connect(ctx.destination);
+  roarGain.gain.setValueAtTime(vol() * 0.9, now);
+  roarGain.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+  const roar = ctx.createOscillator();
+  roar.type = 'sawtooth';
+  roar.frequency.setValueAtTime(90, now);
+  roar.frequency.linearRampToValueAtTime(40, now + 1.8);
+  const roarFilter = ctx.createBiquadFilter();
+  roarFilter.type = 'lowpass';
+  roarFilter.frequency.setValueAtTime(400, now);
+  roarFilter.frequency.exponentialRampToValueAtTime(120, now + 2);
+  roar.connect(roarFilter);
+  roarFilter.connect(roarGain);
+  roar.start(now);
+  roar.stop(now + 2.2);
+
+  // Growl layer — vibrato sawtooth
+  const growl = ctx.createOscillator();
+  growl.type = 'sawtooth';
+  growl.frequency.value = 55;
+  const growlGain = ctx.createGain();
+  growlGain.gain.setValueAtTime(vol() * 0.35, now);
+  growlGain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+  const growlVib = ctx.createOscillator();
+  growlVib.type = 'sine';
+  growlVib.frequency.value = 7;
+  const growlVibGain = ctx.createGain();
+  growlVibGain.gain.value = 6;
+  growlVib.connect(growlVibGain);
+  growlVibGain.connect(growl.frequency);
+  growl.connect(growlGain);
+  growlGain.connect(ctx.destination);
+  growl.start(now);
+  growl.stop(now + 1.5);
+  growlVib.start(now);
+  growlVib.stop(now + 1.5);
+
+  // Crashing wave aftershock
+  const waveGain = ctx.createGain();
+  waveGain.connect(ctx.destination);
+  waveGain.gain.setValueAtTime(0, now + 0.3);
+  waveGain.gain.linearRampToValueAtTime(vol() * 0.55, now + 0.5);
+  waveGain.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+  const waveFilter = ctx.createBiquadFilter();
+  waveFilter.type = 'bandpass';
+  waveFilter.frequency.setValueAtTime(1800, now + 0.3);
+  waveFilter.frequency.exponentialRampToValueAtTime(350, now + 1.4);
+  waveFilter.Q.value = 1.2;
+  waveFilter.connect(waveGain);
+  const waveSrc = ctx.createBufferSource();
+  waveSrc.buffer = makeNoiseBuffer(ctx, 1.5, 1.8);
+  waveSrc.connect(waveFilter);
+  waveSrc.start(now + 0.3);
+}
+
 // === ABILITY ACTIVATE === Rising synth sweep
 export function playAbilityActivate() {
   const ctx = getContext();
