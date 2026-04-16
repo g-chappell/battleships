@@ -680,12 +680,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-055
 - **title:** Fix in-game narrative / HUD collisions with new top-right cluster
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** small
 - **depends_on:** [TASK-054]
 - **description:** Audit GamePage narrative panel, AbilityBar, and HUD for any visual overlap with the new top-right cluster. Adjust narrative panel position/sizing so controls remain visible and clickable during missions. Verify via `verify-ui` skill at desktop and tablet widths.
+- **pr:** https://github.com/g-chappell/battleships/pull/67
+- **completed:** 2026-04-16
 
 ### Story: Settings modal rebuild
 

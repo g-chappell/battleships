@@ -103,11 +103,11 @@ export function GameHUD() {
         </div>
       )}
 
-      <div className="flex-1" />
-
       <div className="hidden sm:block text-lg italic text-[#c41e3a] truncate max-w-md" style={{ fontFamily: "'IM Fell English', serif", textShadow: '0 0 8px rgba(196, 30, 58, 0.3)' }}>
         {commentary}
       </div>
+
+      <div className="flex-1" />
     </div>
   );
 }
