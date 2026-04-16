@@ -30,6 +30,10 @@ function cellColor(state: CellState, isHovered: boolean, isPlacementPreview: boo
 interface SonarZone {
   center: Coordinate;
   shipDetected: boolean;
+  /** Exact coords of non-Submarine ship cells revealed by the Ping.
+   *  Submarine cells are excluded (Silent Running) — they still count toward
+   *  `shipDetected` but stay hidden in the coarse-area feedback only. */
+  revealedShipCells: Coordinate[];
 }
 
 interface BoardGridProps {
@@ -174,9 +178,12 @@ export function BoardGrid({
       {/* Sonar zone overlays */}
       {sonarZones.map((zone, idx) => {
         const color = zone.shipDetected ? SCENE.sonarShipDetected : SCENE.sonarClear;
+        const revealedKeys = new Set(
+          zone.revealedShipCells.map((c) => `${c.row},${c.col}`)
+        );
         return (
           <group key={`sonar-${idx}`}>
-            {/* 3x3 area highlight */}
+            {/* 3x3 area highlight — coarse tint */}
             {[-1, 0, 1].flatMap((dr) =>
               [-1, 0, 1].map((dc) => {
                 const r = zone.center.row + dr;
@@ -211,6 +218,22 @@ export function BoardGrid({
                 side={2}
               />
             </mesh>
+            {/* Precise reveals — bright markers on each non-Submarine ship cell
+                in the area. Submarine cells are intentionally excluded (Silent
+                Running) so attackers see "something nearby" without pinpointing. */}
+            {[...revealedKeys].map((key) => {
+              const [r, c] = key.split(',').map(Number);
+              return (
+                <SonarReveal
+                  key={`sonar-reveal-${idx}-${key}`}
+                  position={[
+                    GRID_OFFSET + c * CELL_SIZE,
+                    0.14,
+                    GRID_OFFSET + r * CELL_SIZE,
+                  ]}
+                />
+              );
+            })}
           </group>
         );
       })}
@@ -538,6 +561,58 @@ function DeflectMarker({ position }: { position: [number, number, number] }) {
           </mesh>
         );
       })}
+    </group>
+  );
+}
+
+/**
+ * Sonar precise-reveal marker — pulsing diamond + crosshair that points
+ * directly at a non-Submarine ship cell detected by a Sonar Ping. Persistent
+ * while the ping is in history; clearly distinct from both the coarse sonar
+ * tint and from post-shot hit/miss markers.
+ */
+function SonarReveal({ position }: { position: [number, number, number] }) {
+  const diamondRef = useRef<Mesh>(null);
+  const ringRef = useRef<Mesh>(null);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (diamondRef.current) {
+      diamondRef.current.rotation.y = t * 1.5;
+      const bob = 0.9 + Math.sin(t * 3) * 0.1;
+      diamondRef.current.scale.setScalar(bob);
+    }
+    if (ringRef.current) {
+      const pulse = 0.7 + Math.sin(t * 4) * 0.3;
+      ringRef.current.scale.setScalar(pulse);
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* Pulsing ring on the deck */}
+      <mesh ref={ringRef} position={[0, -0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.28, 0.38, 16]} />
+        <meshStandardMaterial
+          color={SCENE.sonarShipDetected}
+          emissive={SCENE.sonarShipDetected}
+          emissiveIntensity={0.9}
+          transparent
+          opacity={0.8}
+          side={2}
+        />
+      </mesh>
+      {/* Suspended diamond pointer */}
+      <mesh ref={diamondRef} position={[0, 0.1, 0]}>
+        <octahedronGeometry args={[0.18, 0]} />
+        <meshStandardMaterial
+          color={SCENE.sonarShipDetected}
+          emissive={SCENE.sonarShipDetected}
+          emissiveIntensity={1.2}
+          transparent
+          opacity={0.95}
+        />
+      </mesh>
     </group>
   );
 }

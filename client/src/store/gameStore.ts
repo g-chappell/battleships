@@ -105,7 +105,7 @@ interface GameStore {
   activeAbility: AbilityType | null; // ability being targeted this turn
   sonarResult: SonarPingResult | null;
   spAbilitiesUsed: Record<string, number>; // single-player ability usage count
-  sonarHistory: { center: Coordinate; shipDetected: boolean }[];
+  sonarHistory: { center: Coordinate; shipDetected: boolean; revealedShipCells: Coordinate[] }[];
   spyglassResult: { row: number; shipCount: number } | null;
   boardingPartyResult: { shipType: string; hitsTaken: number; totalCells: number } | null;
   revealedCells: Set<string>; // cells revealed by Spotter trait
@@ -594,7 +594,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
           engine.currentTurn = 'opponent';
           set((s) => ({
             sonarResult: result,
-            sonarHistory: [...s.sonarHistory, { center: coord, shipDetected: result.shipDetected }],
+            sonarHistory: [
+              ...s.sonarHistory,
+              {
+                center: coord,
+                shipDetected: result.shipDetected,
+                revealedShipCells: result.revealedShipCells,
+              },
+            ],
             isAnimating: true,
             tick: s.tick + 1,
           }));
@@ -762,6 +769,141 @@ export const useGameStore = create<GameStore>((set, get) => ({
       tickCooldowns(opponentAbilities);
     }
 
+    // Helper: execute an AI-picked ability. Mirrors the player-side
+    // `useAbility` flow but with swapped sides (AI attacks playerBoard,
+    // defends on opponentBoard). Returns true if the ability fired.
+    const aiExecuteAbility = (choice: { type: AbilityType; coord: Coordinate }): boolean => {
+      if (!opponentAbilities) return false;
+      const targetBoard = engine.playerBoard;
+      const ownBoard = engine.opponentBoard;
+
+      const applyPlayerTraits = (outcomes: ShotOutcome[]) => {
+        let deflected: Coordinate | null = null;
+        let deflectedSource: 'ironclad' | 'coastal' | null = null;
+        let depthCharge: DepthChargeShot[] | null = null;
+        if (!playerTraits) return { deflected, deflectedSource, depthCharge };
+        for (const outcome of outcomes) {
+          const c = outcome.coordinate;
+          if (outcome.result === ShotResult.Hit) {
+            const source = applyDeflectionTrait(targetBoard, c, playerTraits);
+            if (source) {
+              const ship = targetBoard.getShipAt(c);
+              if (ship) ship.hits.delete(coordKey(c));
+              targetBoard.grid[c.row][c.col] = CellState.Ship;
+              outcome.result = ShotResult.Miss;
+              outcome.sunkShip = undefined;
+              outcome.deflected = true;
+              outcome.deflectionSource = source;
+              deflected = c;
+              deflectedSource = source;
+              continue;
+            }
+          }
+          if (
+            !depthCharge &&
+            (outcome.result === ShotResult.Hit || outcome.result === ShotResult.Sink) &&
+            processDepthCharge(targetBoard, c, playerTraits)
+          ) {
+            depthCharge = resolveDepthChargeShots(ownBoard, 6);
+            outcome.depthChargeShots = depthCharge;
+          }
+        }
+        return { deflected, deflectedSource, depthCharge };
+      };
+
+      const finishOffensive = (outcomes: ShotOutcome[], lastOutcome: ShotOutcome) => {
+        const traitsResult = applyPlayerTraits(outcomes);
+        fixStaleOutcomes(outcomes, targetBoard);
+        const didHit = outcomes.some((o) => o.result === ShotResult.Hit || o.result === ShotResult.Sink);
+        engine.recordOpponentAction(didHit);
+        engine.currentTurn = 'player';
+        engine.turnCount++;
+        if (targetBoard.allShipsSunk()) {
+          engine.phase = GamePhase.Finished;
+          engine.winner = 'opponent';
+        }
+        set((s) => ({
+          lastShotOutcome: lastOutcome,
+          isAnimating: true,
+          playerDeflectedCoord: traitsResult.deflected,
+          playerDeflectedSource: traitsResult.deflectedSource,
+          lastDepthCharge: traitsResult.depthCharge
+            ? { onBoard: 'opponent', shots: traitsResult.depthCharge }
+            : null,
+          tick: s.tick + 1,
+        }));
+      };
+
+      switch (choice.type) {
+        case AbilityType.CannonBarrage: {
+          const result = executeCannonBarrage(targetBoard, choice.coord, opponentAbilities);
+          if (!result || result.outcomes.length === 0) return false;
+          finishOffensive(result.outcomes, result.outcomes[result.outcomes.length - 1]);
+          return true;
+        }
+        case AbilityType.ChainShot: {
+          const result = executeChainShot(targetBoard, choice.coord, opponentAbilities);
+          if (!result || result.outcomes.length === 0) return false;
+          finishOffensive(result.outcomes, result.outcomes[result.outcomes.length - 1]);
+          return true;
+        }
+        case AbilityType.Spyglass: {
+          const result = executeSpyglass(targetBoard, choice.coord, opponentAbilities);
+          if (!result) return false;
+          finishOffensive([result.shotOutcome], result.shotOutcome);
+          return true;
+        }
+        case AbilityType.SonarPing: {
+          const result = executeSonarPing(targetBoard, choice.coord, opponentAbilities);
+          if (!result) return false;
+          engine.recordOpponentAction(result.shipDetected);
+          engine.currentTurn = 'player';
+          engine.turnCount++;
+          set((s) => ({ isAnimating: true, tick: s.tick + 1 }));
+          return true;
+        }
+        case AbilityType.SmokeScreen: {
+          const ok = executeSmokeScreen(choice.coord, opponentAbilities);
+          if (!ok) return false;
+          engine.recordOpponentAction(false);
+          engine.currentTurn = 'player';
+          engine.turnCount++;
+          set((s) => ({ isAnimating: true, tick: s.tick + 1 }));
+          return true;
+        }
+        case AbilityType.RepairKit: {
+          const result = executeRepairKit(ownBoard, choice.coord, opponentAbilities);
+          if (!result) return false;
+          engine.recordOpponentAction(false);
+          engine.currentTurn = 'player';
+          engine.turnCount++;
+          set((s) => ({ isAnimating: true, tick: s.tick + 1 }));
+          return true;
+        }
+        case AbilityType.BoardingParty: {
+          const result = executeBoardingParty(targetBoard, choice.coord, opponentAbilities);
+          engine.recordOpponentAction(result !== null);
+          engine.currentTurn = 'player';
+          engine.turnCount++;
+          set((s) => ({ isAnimating: true, tick: s.tick + 1 }));
+          return true;
+        }
+        case AbilityType.SummonKraken: {
+          const ritual = executeSummonKraken(opponentAbilities);
+          if (!ritual) return false;
+          engine.currentTurn = 'player';
+          engine.turnCount++;
+          set((s) => ({
+            opponentRitualTurnsRemaining: ritual.turnsRemaining,
+            isAnimating: true,
+            tick: s.tick + 1,
+          }));
+          return true;
+        }
+      }
+      return false;
+    };
+
     // If the AI is in the middle of a Kraken ritual, it forfeits this turn.
     // Decrement and either continue ritual or resolve the strike.
     if (opponentRitualTurnsRemaining && opponentRitualTurnsRemaining > 0) {
@@ -796,6 +938,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // AI keeps shooting while it's still their turn (hits give consecutive shots)
     while (engine.phase === GamePhase.Playing && engine.currentTurn === 'opponent') {
       await new Promise((r) => setTimeout(r, 1200));
+
+      // ─── AI ability pick ─────────────────────────────────────────────────
+      // Let the AI (Medium/Hard) decide whether to use an ability this turn
+      // instead of firing a normal shot. Easy's pickAbility is undefined.
+      if (ai.pickAbility && opponentAbilities) {
+        const available = opponentAbilities.abilityStates
+          .filter((a) => canUseAbility(opponentAbilities, a.type))
+          .map((a) => a.type);
+        const choice = ai.pickAbility(engine.opponentBoard, engine.playerBoard, available);
+        if (choice && aiExecuteAbility(choice)) {
+          // Ability ends the AI's current action. The ritual driver / next
+          // loop iteration will take over from here.
+          break;
+        }
+      }
 
       const target = ai.chooseTarget(engine.playerBoard);
 
