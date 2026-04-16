@@ -680,7 +680,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-055
 - **title:** Fix in-game narrative / HUD collisions with new top-right cluster
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** small
