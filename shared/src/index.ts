@@ -56,6 +56,8 @@ export {
   executeChainShot,
   executeSpyglass,
   executeBoardingParty,
+  executeSummonKraken,
+  resolveKrakenStrike,
   fixStaleOutcomes,
 } from './abilities';
 export type {
@@ -69,6 +71,8 @@ export type {
   ChainShotResult,
   SpyglassResult,
   BoardingPartyResult,
+  KrakenRitualState,
+  KrakenStrikeResult,
 } from './abilities';
 
 // Campaign

@@ -74,10 +74,17 @@ export interface ShotOutcome {
   coordinate: Coordinate;
   sunkShip?: ShipType;
   // True when the shot landed on a ship but was absorbed by a defensive
-  // trait (currently Ironclad armor on the Battleship). UI uses this to
-  // render a ricochet marker and play a deflection sound so the player
-  // knows the shot did something even though `result` is downgraded to Miss.
+  // trait (Ironclad armor or Coastal Cover). UI uses this to render a
+  // ricochet marker and play a deflection sound so the player knows the
+  // shot did something even though `result` is downgraded to Miss.
   deflected?: boolean;
+  // Which trait caused the deflect. Used by UI/audio to pick the right
+  // visual/sound channel (copper-ring vs rocky-shore splash).
+  deflectionSource?: 'ironclad' | 'coastal';
+  // Depth Charge retaliation: if hitting a Destroyer cell triggered the
+  // Destroyer's Depth Charge, the 6 retaliatory outcomes are attached here
+  // so the UI can replay them on the attacker's board.
+  depthChargeShots?: ShotOutcome[];
 }
 
 export interface GameState {

@@ -3,7 +3,6 @@ import {
   ShipType,
   type Coordinate,
   ShotResult,
-  coordKey,
   GRID_SIZE,
 } from './types';
 

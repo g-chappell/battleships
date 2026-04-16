@@ -17,7 +17,6 @@ import {
   ShotResult,
   CellState,
   coordKey,
-  type Coordinate,
 } from '../types';
 
 function placeShip(board: Board, type: ShipType, row: number, col: number, orientation: Orientation = Orientation.Horizontal) {
