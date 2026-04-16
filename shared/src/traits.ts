@@ -2,6 +2,7 @@ import { Board } from './Board';
 import {
   ShipType,
   type Coordinate,
+  type ShotOutcome,
   ShotResult,
   GRID_SIZE,
 } from './types';
@@ -181,11 +182,8 @@ export function processDepthCharge(
   return true;
 }
 
-export interface DepthChargeShot {
-  coord: Coordinate;
-  result: ShotResult;
-  sunkShip?: ShipType;
-}
+/** Alias of ShotOutcome for readability at call sites. */
+export type DepthChargeShot = ShotOutcome;
 
 /**
  * Fire `count` retaliatory shots at random unshot cells on the attacker's board.
@@ -201,7 +199,7 @@ export interface DepthChargeShot {
 export function resolveDepthChargeShots(
   attackerBoard: Board,
   count = 6
-): DepthChargeShot[] {
+): ShotOutcome[] {
   const candidates: Coordinate[] = [];
   for (let row = 0; row < GRID_SIZE; row++) {
     for (let col = 0; col < GRID_SIZE; col++) {
@@ -211,16 +209,12 @@ export function resolveDepthChargeShots(
     }
   }
 
-  const shots: DepthChargeShot[] = [];
+  const shots: ShotOutcome[] = [];
   for (let i = 0; i < count && candidates.length > 0; i++) {
     const idx = Math.floor(Math.random() * candidates.length);
     const [coord] = candidates.splice(idx, 1);
     const outcome = attackerBoard.receiveShot(coord);
-    shots.push({
-      coord: outcome.coordinate,
-      result: outcome.result,
-      sunkShip: outcome.sunkShip,
-    });
+    shots.push(outcome);
   }
   return shots;
 }

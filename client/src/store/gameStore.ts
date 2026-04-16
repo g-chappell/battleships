@@ -22,10 +22,14 @@ import {
   executeChainShot,
   executeSpyglass,
   executeBoardingParty,
+  executeSummonKraken,
+  resolveKrakenStrike,
   fixStaleOutcomes,
   createTraitState,
-  processIronclad,
   processSpotter,
+  applyDeflectionTrait,
+  processDepthCharge,
+  resolveDepthChargeShots,
   coordKey,
   CAPTAIN_DEFS,
   DEFAULT_CAPTAIN,
@@ -38,6 +42,8 @@ import type {
   AbilitySystemState,
   TraitState,
   SonarPingResult,
+  KrakenStrikeResult,
+  DepthChargeShot,
 } from '@shared/index';
 
 export type AppScreen = 'menu' | 'game' | 'setup_ai' | 'guide' | 'dashboard' | 'lobby' | 'leaderboard' | 'campaign' | 'friends' | 'settings' | 'shop' | 'tournaments' | 'clans' | 'replay' | 'spectate' | 'multiplayer';
@@ -76,6 +82,15 @@ interface GameStore {
   // the next shot fires on the same board. Rendered by BoardGrid.
   opponentDeflectedCoord: Coordinate | null; // your shot deflected on enemy board
   playerDeflectedCoord: Coordinate | null;   // enemy shot deflected on your board
+
+  // Kraken ritual state. Each side tracks turns-remaining; a value > 0 means
+  // the caster's turn is consumed by the ritual (no fire, no abilities).
+  playerRitualTurnsRemaining: number | null;
+  opponentRitualTurnsRemaining: number | null;
+  krakenStrikeResult: KrakenStrikeResult | null;
+
+  // Depth Charge UI payload: last Destroyer retaliation (attacker, shots).
+  lastDepthCharge: { onBoard: 'player' | 'opponent'; shots: DepthChargeShot[] } | null;
 
   // MP placement: true after the player has submitted their placements to the server
   mpPlacementSubmitted: boolean;
@@ -121,6 +136,8 @@ interface GameStore {
 
   // Firing actions
   playerFire: (coord: Coordinate) => ShotOutcome | null;
+  summonKraken: () => boolean;
+  advancePlayerRitual: () => boolean;
   useAbility: (type: AbilityType, coord: Coordinate) => void;
   setActiveAbility: (type: AbilityType | null) => void;
   processAITurn: () => Promise<ShotOutcome | null>;
@@ -162,6 +179,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   opponentDeflectedCoord: null,
   playerDeflectedCoord: null,
 
+  playerRitualTurnsRemaining: null,
+  opponentRitualTurnsRemaining: null,
+  krakenStrikeResult: null,
+  lastDepthCharge: null,
+
   playerAbilities: null,
   opponentAbilities: null,
   selectedCaptain: DEFAULT_CAPTAIN,
@@ -199,6 +221,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       viewingBoard: 'player',
       opponentDeflectedCoord: null,
       playerDeflectedCoord: null,
+      playerRitualTurnsRemaining: null,
+      opponentRitualTurnsRemaining: null,
+      krakenStrikeResult: null,
+      lastDepthCharge: null,
       mpPlacementSubmitted: false,
       playerAbilities: null,
       opponentAbilities: null,
@@ -237,6 +263,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       viewingBoard: 'player',
       opponentDeflectedCoord: null,
       playerDeflectedCoord: null,
+      playerRitualTurnsRemaining: null,
+      opponentRitualTurnsRemaining: null,
+      krakenStrikeResult: null,
+      lastDepthCharge: null,
       mpPlacementSubmitted: false,
       playerAbilities: null,
       opponentAbilities: null,
@@ -272,6 +302,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       viewingBoard: 'player',
       opponentDeflectedCoord: null,
       playerDeflectedCoord: null,
+      playerRitualTurnsRemaining: null,
+      opponentRitualTurnsRemaining: null,
+      krakenStrikeResult: null,
+      lastDepthCharge: null,
       mpPlacementSubmitted: false,
       playerAbilities: null,
       opponentAbilities: null,
@@ -399,28 +433,45 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   playerFire: (coord) => {
-    const { engine, isAnimating, opponentTraits, playerAbilities } = get();
+    const { engine, isAnimating, opponentTraits, playerAbilities, playerRitualTurnsRemaining } = get();
     if (isAnimating) return null;
     if (engine.phase !== GamePhase.Playing || engine.currentTurn !== 'player') return null;
+    // Ritual in progress — caster cannot fire. (UI should not allow this but
+    // we guard anyway.)
+    if (playerRitualTurnsRemaining && playerRitualTurnsRemaining > 0) return null;
 
     // Fire normally through the engine
     const outcome = engine.playerShoot(coord);
     if (!outcome) return null;
 
-    // Ironclad: if hit was on Battleship and armor unused, deflect the shot.
-    // Revert grid to Ship state so the cell remains targetable on a future turn.
+    // Unified deflection: Coastal Cover > Ironclad (see applyDeflectionTrait).
+    // Revert the grid to Ship so the cell stays targetable on a future turn.
     let deflectedHere: Coordinate | null = null;
     if (opponentTraits && outcome.result === ShotResult.Hit) {
-      const negated = processIronclad(engine.opponentBoard, coord, opponentTraits);
-      if (negated) {
+      const source = applyDeflectionTrait(engine.opponentBoard, coord, opponentTraits);
+      if (source) {
         const ship = engine.opponentBoard.getShipAt(coord);
         if (ship) ship.hits.delete(coordKey(coord));
         engine.opponentBoard.grid[coord.row][coord.col] = CellState.Ship;
         outcome.result = ShotResult.Miss;
         outcome.sunkShip = undefined;
         outcome.deflected = true;
+        outcome.deflectionSource = source;
         deflectedHere = coord;
         engine.currentTurn = 'opponent';
+      }
+    }
+
+    // Depth Charge retaliation: if the shot hit the OPPONENT's Destroyer for
+    // the first time, the Destroyer fires 6 retaliatory shots at the PLAYER's
+    // board. (Undeflected hits only — a deflected cell is not a true hit.)
+    let depthChargePayload: DepthChargeShot[] | null = null;
+    const hitLanded = outcome.result === ShotResult.Hit || outcome.result === ShotResult.Sink;
+    if (opponentTraits && hitLanded) {
+      const triggered = processDepthCharge(engine.opponentBoard, coord, opponentTraits);
+      if (triggered) {
+        depthChargePayload = resolveDepthChargeShots(engine.playerBoard, 6);
+        outcome.depthChargeShots = depthChargePayload;
       }
     }
 
@@ -435,16 +486,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastShotOutcome: outcome,
       isAnimating: true,
       opponentDeflectedCoord: deflectedHere,
+      lastDepthCharge: depthChargePayload
+        ? { onBoard: 'player', shots: depthChargePayload }
+        : null,
       tick: s.tick + 1,
     }));
     return outcome;
   },
 
   useAbility: (type, coord) => {
-    const { engine, isAnimating, playerAbilities, opponentTraits } = get();
+    const { engine, isAnimating, playerAbilities, opponentTraits, playerRitualTurnsRemaining } = get();
     if (isAnimating || !playerAbilities) return;
     if (engine.phase !== GamePhase.Playing || engine.currentTurn !== 'player') return;
+    if (playerRitualTurnsRemaining && playerRitualTurnsRemaining > 0) return;
     if (!canUseAbility(playerAbilities, type)) return;
+    // SummonKraken has its own dedicated action (summonKraken) because it
+    // doesn't take a coordinate and starts a multi-turn ritual.
+    if (type === AbilityType.SummonKraken) return;
     playAbilityActivate();
 
     // Track ability usage for post-game summary (single-player only)
@@ -453,33 +511,44 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Apply Ironclad/Nimble traits to ability-based shots (same as playerFire).
     // Returns the last coord where Ironclad deflected a hit, if any — the
     // caller uses it to pin the ricochet marker on the enemy board.
-    const applyTraits = (outcomes: ShotOutcome[]): Coordinate | null => {
-      if (!opponentTraits) return null;
+    const applyTraits = (outcomes: ShotOutcome[]): { deflected: Coordinate | null; depthCharge: DepthChargeShot[] | null } => {
+      if (!opponentTraits) return { deflected: null, depthCharge: null };
       let deflected: Coordinate | null = null;
+      let depthCharge: DepthChargeShot[] | null = null;
       for (const outcome of outcomes) {
         const c = outcome.coordinate;
-        // Ironclad: absorb first hit on Battleship
-        if (outcome.result === ShotResult.Hit) {
-          const negated = processIronclad(engine.opponentBoard, c, opponentTraits);
-          if (negated) {
-            const ship = engine.opponentBoard.getShipAt(c);
-            if (ship) ship.hits.delete(coordKey(c));
-            engine.opponentBoard.grid[c.row][c.col] = CellState.Ship;
-            outcome.result = ShotResult.Miss;
-            outcome.sunkShip = undefined;
-            outcome.deflected = true;
-            deflected = c;
+        if (outcome.result === ShotResult.Hit || outcome.result === ShotResult.Sink) {
+          // Unified Coastal/Ironclad deflection
+          if (outcome.result === ShotResult.Hit) {
+            const source = applyDeflectionTrait(engine.opponentBoard, c, opponentTraits);
+            if (source) {
+              const ship = engine.opponentBoard.getShipAt(c);
+              if (ship) ship.hits.delete(coordKey(c));
+              engine.opponentBoard.grid[c.row][c.col] = CellState.Ship;
+              outcome.result = ShotResult.Miss;
+              outcome.sunkShip = undefined;
+              outcome.deflected = true;
+              outcome.deflectionSource = source;
+              deflected = c;
+              continue; // deflected shots do not trigger Depth Charge
+            }
+          }
+          // Depth Charge retaliation (only the first Destroyer hit in this
+          // batch fires, per processDepthCharge's one-shot guard).
+          if (!depthCharge && processDepthCharge(engine.opponentBoard, c, opponentTraits)) {
+            depthCharge = resolveDepthChargeShots(engine.playerBoard, 6);
+            outcome.depthChargeShots = depthCharge;
           }
         }
       }
-      return deflected;
+      return { deflected, depthCharge };
     };
 
     switch (type) {
       case AbilityType.CannonBarrage: {
         const result = executeCannonBarrage(engine.opponentBoard, coord, playerAbilities);
         if (result && result.outcomes.length > 0) {
-          const deflected = applyTraits(result.outcomes);
+          const traitsResult = applyTraits(result.outcomes);
           fixStaleOutcomes(result.outcomes, engine.opponentBoard);
           const didHit = result.outcomes.some(o => o.result === ShotResult.Hit || o.result === ShotResult.Sink);
           engine.recordPlayerAction(didHit);
@@ -492,7 +561,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           set((s) => ({
             lastShotOutcome: lastOutcome,
             isAnimating: true,
-            opponentDeflectedCoord: deflected,
+            opponentDeflectedCoord: traitsResult.deflected,
+            lastDepthCharge: traitsResult.depthCharge
+              ? { onBoard: 'player', shots: traitsResult.depthCharge }
+              : null,
             tick: s.tick + 1,
           }));
         }
@@ -533,7 +605,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case AbilityType.ChainShot: {
         const result = executeChainShot(engine.opponentBoard, coord, playerAbilities);
         if (result && result.outcomes.length > 0) {
-          const deflected = applyTraits(result.outcomes);
+          const traitsResult = applyTraits(result.outcomes);
           fixStaleOutcomes(result.outcomes, engine.opponentBoard);
           const didHit = result.outcomes.some(o => o.result === ShotResult.Hit || o.result === ShotResult.Sink);
           engine.recordPlayerAction(didHit);
@@ -546,7 +618,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           set((s) => ({
             lastShotOutcome: lastOutcome,
             isAnimating: true,
-            opponentDeflectedCoord: deflected,
+            opponentDeflectedCoord: traitsResult.deflected,
+            lastDepthCharge: traitsResult.depthCharge
+              ? { onBoard: 'player', shots: traitsResult.depthCharge }
+              : null,
             tick: s.tick + 1,
           }));
         }
@@ -555,7 +630,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case AbilityType.Spyglass: {
         const result = executeSpyglass(engine.opponentBoard, coord, playerAbilities);
         if (result) {
-          const deflected = applyTraits([result.shotOutcome]);
+          const traitsResult = applyTraits([result.shotOutcome]);
           fixStaleOutcomes([result.shotOutcome], engine.opponentBoard);
           const didHit = result.shotOutcome.result === ShotResult.Hit || result.shotOutcome.result === ShotResult.Sink;
           engine.recordPlayerAction(didHit);
@@ -568,7 +643,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
             lastShotOutcome: result.shotOutcome,
             spyglassResult: { row: coord.row, shipCount: result.rowShipCount },
             isAnimating: true,
-            opponentDeflectedCoord: deflected,
+            opponentDeflectedCoord: traitsResult.deflected,
+            lastDepthCharge: traitsResult.depthCharge
+              ? { onBoard: 'player', shots: traitsResult.depthCharge }
+              : null,
             tick: s.tick + 1,
           }));
         }
@@ -590,13 +668,107 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setActiveAbility: (type) => set({ activeAbility: type }),
 
+  /**
+   * Start the Kraken summoning ritual (Seawitch). Caster forfeits their next
+   * 2 own-turns; on the 3rd own-turn the Kraken strikes.
+   */
+  summonKraken: () => {
+    const { engine, playerAbilities, playerRitualTurnsRemaining } = get();
+    if (!playerAbilities) return false;
+    if (engine.phase !== GamePhase.Playing || engine.currentTurn !== 'player') return false;
+    if (playerRitualTurnsRemaining && playerRitualTurnsRemaining > 0) return false;
+    const ritual = executeSummonKraken(playerAbilities);
+    if (!ritual) return false;
+    playAbilityActivate();
+    // Ritual start consumes this turn — switch to opponent immediately.
+    engine.currentTurn = 'opponent';
+    engine.turnCount++;
+    set((s) => ({
+      playerRitualTurnsRemaining: ritual.turnsRemaining,
+      isAnimating: true,
+      spAbilitiesUsed: { ...s.spAbilitiesUsed, [AbilityType.SummonKraken]: (s.spAbilitiesUsed[AbilityType.SummonKraken] ?? 0) + 1 },
+      tick: s.tick + 1,
+    }));
+    return true;
+  },
+
+  /**
+   * Advance the player's Kraken ritual by one turn. Called by the UI when
+   * it's the player's turn AND a ritual is in progress — they cannot fire,
+   * so we consume the turn here. When turns reach 0 the Kraken strikes.
+   *
+   * Returns true if a tick occurred (turn consumed).
+   */
+  advancePlayerRitual: () => {
+    const { engine, playerRitualTurnsRemaining } = get();
+    if (engine.phase !== GamePhase.Playing) return false;
+    if (engine.currentTurn !== 'player') return false;
+    if (!playerRitualTurnsRemaining || playerRitualTurnsRemaining <= 0) return false;
+
+    const remaining = playerRitualTurnsRemaining - 1;
+    if (remaining > 0) {
+      engine.currentTurn = 'opponent';
+      engine.turnCount++;
+      set((s) => ({
+        playerRitualTurnsRemaining: remaining,
+        isAnimating: true,
+        tick: s.tick + 1,
+      }));
+      return true;
+    }
+    // Ritual completes — resolve strike with Cruiser ward
+    const strike = resolveKrakenStrike(engine.opponentBoard, new Set([ShipType.Cruiser]));
+    engine.currentTurn = 'opponent';
+    engine.turnCount++;
+    if (engine.opponentBoard.allShipsSunk()) {
+      engine.phase = GamePhase.Finished;
+      engine.winner = 'player';
+    }
+    set((s) => ({
+      playerRitualTurnsRemaining: null,
+      krakenStrikeResult: strike,
+      isAnimating: true,
+      tick: s.tick + 1,
+    }));
+    return true;
+  },
+
   processAITurn: async () => {
-    const { engine, ai, playerTraits, opponentAbilities } = get();
+    const { engine, ai, playerTraits, opponentAbilities, opponentRitualTurnsRemaining } = get();
     if (engine.phase !== GamePhase.Playing || engine.currentTurn !== 'opponent') return null;
 
     // Tick opponent ability cooldowns once per AI turn sequence
     if (opponentAbilities) {
       tickCooldowns(opponentAbilities);
+    }
+
+    // If the AI is in the middle of a Kraken ritual, it forfeits this turn.
+    // Decrement and either continue ritual or resolve the strike.
+    if (opponentRitualTurnsRemaining && opponentRitualTurnsRemaining > 0) {
+      await new Promise((r) => setTimeout(r, 1200));
+      const remaining = opponentRitualTurnsRemaining - 1;
+      if (remaining > 0) {
+        engine.currentTurn = 'player';
+        engine.turnCount++;
+        set((s) => ({ opponentRitualTurnsRemaining: remaining, isAnimating: true, tick: s.tick + 1 }));
+        return null;
+      }
+      // Ritual complete — resolve the strike with Cruiser ward
+      const strike = resolveKrakenStrike(engine.playerBoard, new Set([ShipType.Cruiser]));
+      engine.currentTurn = 'player';
+      engine.turnCount++;
+      // Check for Finished phase in case the Kraken sinks the last non-Cruiser ship
+      if (engine.playerBoard.allShipsSunk()) {
+        engine.phase = GamePhase.Finished;
+        engine.winner = 'opponent';
+      }
+      set((s) => ({
+        opponentRitualTurnsRemaining: null,
+        krakenStrikeResult: strike,
+        isAnimating: true,
+        tick: s.tick + 1,
+      }));
+      return null;
     }
 
     let lastOutcome: ShotOutcome | null = null;
@@ -610,21 +782,37 @@ export const useGameStore = create<GameStore>((set, get) => ({
       const outcome = engine.opponentShoot(target);
       if (!outcome) break;
 
-      // Ironclad: deflect hit on Battleship — revert cell to Ship so it stays targetable.
-      // Also set `outcome.deflected` so the UI can play the ricochet feedback.
+      // Unified deflection: Coastal Cover > Ironclad (applyDeflectionTrait)
       let aiDeflectedCoord: Coordinate | null = null;
       if (playerTraits && outcome.result === ShotResult.Hit) {
-        const negated = processIronclad(engine.playerBoard, target, playerTraits);
-        if (negated) {
+        const source = applyDeflectionTrait(engine.playerBoard, target, playerTraits);
+        if (source) {
           const ship = engine.playerBoard.getShipAt(target);
           if (ship) ship.hits.delete(coordKey(target));
           engine.playerBoard.grid[target.row][target.col] = CellState.Ship;
           outcome.result = ShotResult.Miss;
           outcome.sunkShip = undefined;
           outcome.deflected = true;
+          outcome.deflectionSource = source;
           aiDeflectedCoord = target;
           engine.currentTurn = 'player';
           engine.turnCount++;
+        }
+      }
+
+      // Depth Charge retaliation: AI hit player's Destroyer → retaliate on
+      // the opponent's (AI) board. (The AI doesn't react in strategy, but
+      // the damage is real.)
+      let aiDepthCharge: DepthChargeShot[] | null = null;
+      if (
+        playerTraits &&
+        !outcome.deflected &&
+        (outcome.result === ShotResult.Hit || outcome.result === ShotResult.Sink)
+      ) {
+        const triggered = processDepthCharge(engine.playerBoard, target, playerTraits);
+        if (triggered) {
+          aiDepthCharge = resolveDepthChargeShots(engine.opponentBoard, 6);
+          outcome.depthChargeShots = aiDepthCharge;
         }
       }
 
@@ -644,9 +832,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
         lastShotOutcome: outcome,
         isAnimating: true,
         revealedCells: new Set(revealedCells),
-        // Pin ricochet marker on the player's own board if AI's shot was
-        // deflected by Ironclad this loop iteration; otherwise clear it.
         playerDeflectedCoord: aiDeflectedCoord,
+        lastDepthCharge: aiDepthCharge
+          ? { onBoard: 'opponent', shots: aiDepthCharge }
+          : null,
         tick: s.tick + 1,
       }));
     }

@@ -203,7 +203,7 @@ describe('Traits', () => {
       placeShip(board, ShipType.Carrier, 0, 0);
       const shots = resolveDepthChargeShots(board, 6);
       expect(shots).toHaveLength(6);
-      const coords = new Set(shots.map(s => coordKey(s.coord)));
+      const coords = new Set(shots.map(s => coordKey(s.coordinate)));
       expect(coords.size).toBe(6);
     });
 
