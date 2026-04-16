@@ -1,7 +1,6 @@
 import { Board } from './Board';
 import {
   ShipType,
-  CellState,
   type Coordinate,
   ShotResult,
   coordKey,
@@ -11,66 +10,30 @@ import {
 export interface TraitEffect {
   // Returned after a shot resolves, describes any trait side effects
   revealedCells?: Coordinate[];   // Spotter: cells revealed to the attacker
-  negated?: boolean;              // Ironclad: shot was absorbed by armor
-  adjacentMissForced?: boolean;   // Nimble: adjacent miss was forced
+  negated?: boolean;              // Ironclad / Coastal Cover: shot was absorbed
 }
 
 export interface TraitState {
   ironcladUsed: Set<ShipType>;          // Ships that have used their armor
-  swiftUsed: boolean;                    // Whether cruiser reposition was used
-  nimbleFirstShotAdjacent: Set<string>; // "row,col" of cells adjacent to destroyer that auto-miss
+  coastalCoverUsed: Set<ShipType>;      // Ships that have consumed their coastal deflect
+  depthChargeUsed: boolean;             // Whether Destroyer's retaliation has fired this match
 }
 
 export function createTraitState(): TraitState {
   return {
     ironcladUsed: new Set(),
-    swiftUsed: false,
-    nimbleFirstShotAdjacent: new Set(),
+    coastalCoverUsed: new Set(),
+    depthChargeUsed: false,
   };
-}
-
-/**
- * Initialize nimble adjacent cells based on destroyer position.
- * Called after ship placement is finalized.
- */
-export function initNimbleCells(board: Board): Set<string> {
-  const destroyer = board.ships.find((s) => s.type === ShipType.Destroyer);
-  if (!destroyer) return new Set();
-
-  // Exclude every ship's cells, not just the Destroyer's. If another ship
-  // happens to sit adjacent to the Destroyer, its cells must NOT be forced
-  // to miss — otherwise those cells become permanently marked as Miss and
-  // that ship becomes unsinkable (grid locked + hit deleted from ship.hits).
-  const allShipCells = new Set<string>();
-  for (const s of board.ships) {
-    for (const c of s.cells) allShipCells.add(coordKey(c));
-  }
-
-  const adjacent = new Set<string>();
-
-  for (const cell of destroyer.cells) {
-    const neighbors: Coordinate[] = [
-      { row: cell.row - 1, col: cell.col },
-      { row: cell.row + 1, col: cell.col },
-      { row: cell.row, col: cell.col - 1 },
-      { row: cell.row, col: cell.col + 1 },
-    ];
-    for (const n of neighbors) {
-      if (n.row >= 0 && n.row < GRID_SIZE && n.col >= 0 && n.col < GRID_SIZE) {
-        const key = coordKey(n);
-        if (!allShipCells.has(key)) {
-          adjacent.add(key);
-        }
-      }
-    }
-  }
-
-  return adjacent;
 }
 
 /**
  * Process Ironclad trait: Battleship's first hit is negated.
  * Returns true if the hit was negated (should be converted to a "miss" effectively).
+ *
+ * NOTE: callers must check Coastal Cover first via `processCoastalCover` — a
+ * Battleship placed adjacent to land gets Coastal Cover *instead of* Ironclad
+ * (deflect traits do not stack). See `applyDeflectionTrait`.
  */
 export function processIronclad(
   board: Board,
@@ -118,88 +81,147 @@ export function processSpotter(
 }
 
 /**
- * Process Nimble trait: First shot on cells adjacent to Destroyer auto-misses.
- * Returns true if the shot should be forced to miss.
+ * Return true if any cell of the ship is orthogonally adjacent to a Land or
+ * LandRevealed cell. Used to determine Coastal Cover eligibility.
  */
-export function processNimble(
-  coord: Coordinate,
-  traitState: TraitState
-): boolean {
-  const key = coordKey(coord);
-  if (traitState.nimbleFirstShotAdjacent.has(key)) {
-    // Remove it — only works once per adjacent cell
-    traitState.nimbleFirstShotAdjacent.delete(key);
-    return true;
+export function isCoastalShip(board: Board, shipType: ShipType): boolean {
+  const ship = board.ships.find((s) => s.type === shipType);
+  if (!ship) return false;
+  for (const cell of ship.cells) {
+    const neighbors: Coordinate[] = [
+      { row: cell.row - 1, col: cell.col },
+      { row: cell.row + 1, col: cell.col },
+      { row: cell.row, col: cell.col - 1 },
+      { row: cell.row, col: cell.col + 1 },
+    ];
+    for (const n of neighbors) {
+      if (n.row < 0 || n.row >= GRID_SIZE || n.col < 0 || n.col >= GRID_SIZE) continue;
+      const state = board.grid[n.row][n.col];
+      if (state === 'land' || state === 'land_revealed') return true;
+    }
   }
   return false;
 }
 
 /**
- * Attempt Swift reposition: Move Cruiser by 1 cell in any direction.
- * Returns true if reposition succeeded.
+ * Return true if the given coord belongs to a Submarine on this board.
+ * Used by Sonar Ping to exclude Submarine cells from precise reveal.
  */
-export function processSwift(
+export function isSubmarineCell(board: Board, coord: Coordinate): boolean {
+  const ship = board.getShipAt(coord);
+  return ship?.type === ShipType.Submarine;
+}
+
+/**
+ * Process Coastal Cover: the first hit on any cell of a land-adjacent ship is
+ * deflected. One-shot per ship. Returns true if the hit should be treated as
+ * deflected.
+ */
+export function processCoastalCover(
   board: Board,
-  direction: 'up' | 'down' | 'left' | 'right',
+  coord: Coordinate,
   traitState: TraitState
 ): boolean {
-  if (traitState.swiftUsed) return false;
+  const ship = board.getShipAt(coord);
+  if (!ship) return false;
+  if (traitState.coastalCoverUsed.has(ship.type)) return false;
+  if (!isCoastalShip(board, ship.type)) return false;
+  traitState.coastalCoverUsed.add(ship.type);
+  return true;
+}
 
-  const cruiser = board.ships.find((s) => s.type === ShipType.Cruiser);
-  if (!cruiser) return false;
+/**
+ * Decide which single first-hit deflect (if any) applies for the given cell.
+ * Coastal Cover has priority over Ironclad (they never stack — see plan). For
+ * any other ship, only Coastal Cover can apply.
+ *
+ * Returns the deflection source, or null if no deflect fires.
+ */
+export type DeflectionSource = 'ironclad' | 'coastal';
 
-  // Check if cruiser is still alive (not fully sunk)
-  if (cruiser.hits.size === cruiser.cells.length) return false;
+export function applyDeflectionTrait(
+  board: Board,
+  coord: Coordinate,
+  traitState: TraitState
+): DeflectionSource | null {
+  const ship = board.getShipAt(coord);
+  if (!ship) return null;
 
-  const delta: Coordinate = {
-    up: { row: -1, col: 0 },
-    down: { row: 1, col: 0 },
-    left: { row: 0, col: -1 },
-    right: { row: 0, col: 1 },
-  }[direction];
+  // Coastal Cover first — wins where eligible, consuming the ship's one deflect.
+  if (processCoastalCover(board, coord, traitState)) {
+    return 'coastal';
+  }
 
-  const newCells = cruiser.cells.map((c) => ({
-    row: c.row + delta.row,
-    col: c.col + delta.col,
-  }));
+  // Ironclad only applies to Battleship. It also requires that Coastal Cover
+  // has NOT already fired on this Battleship (deflects don't stack).
+  if (
+    ship.type === ShipType.Battleship &&
+    !traitState.coastalCoverUsed.has(ShipType.Battleship) &&
+    processIronclad(board, coord, traitState)
+  ) {
+    return 'ironclad';
+  }
 
-  // Validate new position
-  for (const cell of newCells) {
-    if (cell.row < 0 || cell.row >= GRID_SIZE || cell.col < 0 || cell.col >= GRID_SIZE) {
-      return false;
-    }
-    // Check no overlap with other ships (excluding cruiser's current cells)
-    const cruiserCellKeys = new Set(cruiser.cells.map(coordKey));
-    const key = coordKey(cell);
-    if (!cruiserCellKeys.has(key)) {
-      const existing = board.getShipAt(cell);
-      if (existing && existing.type !== ShipType.Cruiser) {
-        return false;
+  return null;
+}
+
+/**
+ * Process Depth Charge trigger: first hit on ANY Destroyer cell fires 6
+ * retaliatory shots on the attacker's board. Returns true if the trigger
+ * should fire; callers run `resolveDepthChargeShots` afterwards.
+ */
+export function processDepthCharge(
+  board: Board,
+  coord: Coordinate,
+  traitState: TraitState
+): boolean {
+  if (traitState.depthChargeUsed) return false;
+  const ship = board.getShipAt(coord);
+  if (!ship || ship.type !== ShipType.Destroyer) return false;
+  traitState.depthChargeUsed = true;
+  return true;
+}
+
+export interface DepthChargeShot {
+  coord: Coordinate;
+  result: ShotResult;
+  sunkShip?: ShipType;
+}
+
+/**
+ * Fire `count` retaliatory shots at random unshot cells on the attacker's board.
+ * Each shot resolves through `Board.receiveShot` so Hit/Sink is recorded.
+ *
+ * IMPORTANT: these shots bypass retaliation-based traits in the calling code
+ * to prevent cascading Depth Charges (if a shot lands on the attacker's own
+ * Destroyer). Callers must NOT invoke `processDepthCharge` on these outcomes.
+ * They DO still interact with Ironclad / Coastal Cover via normal trait
+ * processing at the caller site, which is fair (retaliation still respects
+ * armor).
+ */
+export function resolveDepthChargeShots(
+  attackerBoard: Board,
+  count = 6
+): DepthChargeShot[] {
+  const candidates: Coordinate[] = [];
+  for (let row = 0; row < GRID_SIZE; row++) {
+    for (let col = 0; col < GRID_SIZE; col++) {
+      if (attackerBoard.isValidTarget({ row, col })) {
+        candidates.push({ row, col });
       }
     }
   }
 
-  // Clear old cells from grid
-  for (const cell of cruiser.cells) {
-    if (!cruiser.hits.has(coordKey(cell))) {
-      board.grid[cell.row][cell.col] = CellState.Empty;
-    }
+  const shots: DepthChargeShot[] = [];
+  for (let i = 0; i < count && candidates.length > 0; i++) {
+    const idx = Math.floor(Math.random() * candidates.length);
+    const [coord] = candidates.splice(idx, 1);
+    const outcome = attackerBoard.receiveShot(coord);
+    shots.push({
+      coord: outcome.coordinate,
+      result: outcome.result,
+      sunkShip: outcome.sunkShip,
+    });
   }
-
-  // Update cells
-  cruiser.cells.length = 0;
-  cruiser.hits.clear();
-
-  for (let i = 0; i < newCells.length; i++) {
-    cruiser.cells.push(newCells[i]);
-    board.grid[newCells[i].row][newCells[i].col] = CellState.Ship;
-  }
-
-  // Transfer hit status to new positions
-  // (hits move with the ship conceptually — same relative positions)
-  // Actually hits stay relative to original — this is simpler: just mark the ship cells as Ship
-  // Old hits don't transfer since the ship moved
-
-  traitState.swiftUsed = true;
-  return true;
+  return shots;
 }

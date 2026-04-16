@@ -33,9 +33,7 @@ import {
 } from '../../../shared/src/abilities.ts';
 import {
   createTraitState,
-  initNimbleCells,
   processIronclad,
-  processNimble,
   type TraitState,
 } from '../../../shared/src/traits.ts';
 import type {
@@ -203,7 +201,6 @@ export function placeShips(
 
   // Initialize traits + abilities for this player
   player.traits = createTraitState();
-  player.traits.nimbleFirstShotAdjacent = initNimbleCells(board);
   player.abilities = createAbilitySystemState(player.selectedAbilities);
   player.hasPlaced = true;
   room.lastActivityAt = Date.now();
@@ -236,26 +233,6 @@ export function fireShot(
 
   const opponent = room.players[isPlayer1 ? 1 : 0];
   if (!opponent || !opponent.traits) return null;
-
-  // Nimble check
-  if (processNimble(coord, opponent.traits)) {
-    const outcome = isPlayer1
-      ? room.engine.playerShoot(coord)
-      : room.engine.opponentShoot(coord);
-    if (outcome && outcome.result !== ShotResult.Miss) {
-      const board = isPlayer1 ? room.engine.opponentBoard : room.engine.playerBoard;
-      const ship = board.getShipAt(coord);
-      if (ship) ship.hits.delete(coordKey(coord));
-      board.grid[coord.row][coord.col] = CellState.Miss;
-      outcome.result = ShotResult.Miss;
-      outcome.sunkShip = undefined;
-      // Force turn switch
-      room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
-      if (!isPlayer1) room.engine.turnCount++;
-    }
-    room.lastActivityAt = Date.now();
-    return outcome;
-  }
 
   const outcome = isPlayer1
     ? room.engine.playerShoot(coord)
@@ -326,13 +303,6 @@ export function useAbility(
     if (!opponentTraits) return;
     for (const outcome of outcomes) {
       const c = outcome.coordinate;
-      if (outcome.result === ShotResult.Hit && processNimble(c, opponentTraits)) {
-        const ship = targetBoard.getShipAt(c);
-        if (ship) ship.hits.delete(coordKey(c));
-        targetBoard.grid[c.row][c.col] = CellState.Miss;
-        outcome.result = ShotResult.Miss;
-        outcome.sunkShip = undefined;
-      }
       if (outcome.result === ShotResult.Hit) {
         const negated = processIronclad(targetBoard, c, opponentTraits);
         if (negated) {

@@ -3,9 +3,7 @@ import { Board } from '../Board';
 import { GameEngine } from '../GameEngine';
 import {
   createTraitState,
-  initNimbleCells,
   processIronclad,
-  processNimble,
 } from '../traits';
 import {
   ShipType,
@@ -35,23 +33,15 @@ function placeAllShips(board: Board): void {
   }
 }
 
-// Simulates the store/rooms fire path with traits applied: Nimble forces miss
-// on adjacent empty water; Ironclad absorbs first Battleship hit; every other
-// hit is normal. Returns the outcome that would be shown to the attacker.
+// Simulates the store/rooms fire path with traits applied: Ironclad absorbs
+// first Battleship hit; every other hit is normal. Returns the outcome that
+// would be shown to the attacker. (Nimble was removed as a no-op.)
 function fireWithTraits(
   board: Board,
   coord: Coordinate,
   traitState: ReturnType<typeof createTraitState>
 ): ShotOutcome {
-  if (processNimble(coord, traitState)) {
-    // Post-fix, Nimble only ever matches empty-water cells. Forced miss,
-    // no ship mutation needed.
-    board.grid[coord.row][coord.col] = CellState.Miss;
-    return { result: ShotResult.Miss, coordinate: coord, deflected: false };
-  }
-
   if (!board.isValidTarget(coord)) {
-    // Cell already shot — shouldn't happen in well-formed tests but guard it.
     return { result: ShotResult.Miss, coordinate: coord };
   }
 
@@ -80,7 +70,6 @@ describe('Sinkability invariant — every ship can be sunk regardless of trait p
     placeAllShips(board);
 
     const traitState = createTraitState();
-    traitState.nimbleFirstShotAdjacent = initNimbleCells(board);
 
     // Fire at every Submarine cell.
     const subCells: Coordinate[] = [
@@ -105,7 +94,6 @@ describe('Sinkability invariant — every ship can be sunk regardless of trait p
     placeAllShips(board);
 
     const traitState = createTraitState();
-    traitState.nimbleFirstShotAdjacent = initNimbleCells(board);
 
     const shotsByShip: Record<ShipType, Coordinate[]> = {
       [ShipType.Carrier]:    [0,1,2,3,4].map(c => ({ row: 0, col: c })),
@@ -147,7 +135,6 @@ describe('Sinkability invariant — every ship can be sunk regardless of trait p
     engine.startGame();
 
     const traitState = createTraitState();
-    traitState.nimbleFirstShotAdjacent = initNimbleCells(engine.opponentBoard);
 
     const allTargets: Coordinate[] = [];
     for (let r = 0; r <= 4; r++) {

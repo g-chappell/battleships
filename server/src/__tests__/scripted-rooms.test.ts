@@ -118,53 +118,8 @@ describe('fireShot — Ironclad trait pipeline', () => {
   });
 });
 
-describe('fireShot — Nimble trait pipeline', () => {
-  it('first shot on empty-water adjacent cell forced to miss; turn switches', () => {
-    const room = createPlayingRoom();
-    // (5,0) is empty water adjacent to P2's Destroyer at (4,0)-(4,1).
-    // Post-fix, Nimble only protects empty water (not other ships' cells).
-    const outcome = fireShot(room, 'p1', { row: 5, col: 0 });
-    expect(outcome).not.toBeNull();
-    expect(outcome!.result).toBe(ShotResult.Miss);
-    // Turn forced to opponent
-    expect(room.engine.currentTurn).toBe('opponent');
-    // No accuracy credited for Nimble-forced shots (Nimble branch returns early)
-    expect(room.engine.totalPlayerActions).toBe(0);
-    deleteRoom(room.id);
-  });
-
-  it('ship cells adjacent to Destroyer are NOT protected by Nimble (post-fix)', () => {
-    // Regression: previously Nimble locked other ships' adjacent cells as
-    // Miss permanently, making those ships unsinkable.
-    const room = createPlayingRoom();
-    // (3,0) is a Submarine cell adjacent to the Destroyer at (4,0)-(4,1).
-    // Post-fix it is NOT in the Nimble set and must register as a hit.
-    const outcome = fireShot(room, 'p1', { row: 3, col: 0 });
-    expect(outcome).not.toBeNull();
-    expect(outcome!.result).toBe(ShotResult.Hit);
-    const submarine = room.engine.opponentBoard.ships.find(s => s.type === ShipType.Submarine)!;
-    expect(submarine.hits.size).toBe(1);
-    expect(room.engine.opponentBoard.grid[3][0]).toBe(CellState.Hit);
-    deleteRoom(room.id);
-  });
-
-  it('same empty-water cell after Nimble fires normally as a miss (cell now targeted)', () => {
-    const room = createPlayingRoom();
-
-    // First shot at (5,0): Nimble forces miss, turn=opponent
-    fireShot(room, 'p1', { row: 5, col: 0 });
-    expect(room.engine.currentTurn).toBe('opponent');
-
-    // P2 fires miss to return turn to P1
-    fireShot(room, 'p2', { row: 9, col: 9 });
-
-    // (5,0) is now Miss on grid and cannot be re-targeted
-    expect(room.engine.opponentBoard.grid[5][0]).toBe(CellState.Miss);
-    const outcome2 = fireShot(room, 'p1', { row: 5, col: 0 });
-    expect(outcome2).toBeNull();
-    deleteRoom(room.id);
-  });
-});
+// Nimble removed as a no-op trait; ship cells adjacent to the Destroyer
+// are now normal targets (covered by sinkability tests).
 
 // ─── useAbility pipeline — all 7 abilities ────────────────────────────────────
 

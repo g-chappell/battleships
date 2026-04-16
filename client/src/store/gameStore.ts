@@ -24,10 +24,8 @@ import {
   executeBoardingParty,
   fixStaleOutcomes,
   createTraitState,
-  initNimbleCells,
   processIronclad,
   processSpotter,
-  processNimble,
   coordKey,
   CAPTAIN_DEFS,
   DEFAULT_CAPTAIN,
@@ -379,8 +377,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const playerTraits = createTraitState();
     const opponentTraits = createTraitState();
-    playerTraits.nimbleFirstShotAdjacent = initNimbleCells(engine.playerBoard);
-    opponentTraits.nimbleFirstShotAdjacent = initNimbleCells(engine.opponentBoard);
 
     const captainAbilities = [...(CAPTAIN_DEFS[selectedCaptain]?.abilities ?? CAPTAIN_DEFS[DEFAULT_CAPTAIN].abilities)];
     const playerAbilities = createAbilitySystemState(captainAbilities);
@@ -406,33 +402,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { engine, isAnimating, opponentTraits, playerAbilities } = get();
     if (isAnimating) return null;
     if (engine.phase !== GamePhase.Playing || engine.currentTurn !== 'player') return null;
-
-    // Nimble: forced miss on cells adjacent to destroyer
-    if (opponentTraits && processNimble(coord, opponentTraits)) {
-      const forcedOutcome = engine.playerShoot(coord);
-      if (forcedOutcome) {
-        // Nimble forces it to miss — revert any hit.
-        // NOTE: post-initNimbleCells fix, the adjacent set excludes all ship
-        // cells, so forcedOutcome.result should already be Miss here. This
-        // branch remains as a safety net for future trait additions.
-        if (forcedOutcome.result !== ShotResult.Miss) {
-          const ship = engine.opponentBoard.getShipAt(coord);
-          if (ship) ship.hits.delete(coordKey(coord));
-          engine.opponentBoard.grid[coord.row][coord.col] = CellState.Miss;
-          forcedOutcome.result = ShotResult.Miss;
-          forcedOutcome.sunkShip = undefined;
-          // Engine kept turn on player (hit doesn't switch). Force switch since it's actually a miss.
-          engine.currentTurn = 'opponent';
-        }
-        set((s) => ({
-          lastShotOutcome: forcedOutcome,
-          isAnimating: true,
-          opponentDeflectedCoord: null, // clear ricochet marker on next shot
-          tick: s.tick + 1,
-        }));
-      }
-      return forcedOutcome;
-    }
 
     // Fire normally through the engine
     const outcome = engine.playerShoot(coord);
@@ -489,14 +458,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       let deflected: Coordinate | null = null;
       for (const outcome of outcomes) {
         const c = outcome.coordinate;
-        // Nimble: forced miss adjacent to destroyer
-        if (outcome.result === ShotResult.Hit && processNimble(c, opponentTraits)) {
-          const ship = engine.opponentBoard.getShipAt(c);
-          if (ship) ship.hits.delete(coordKey(c));
-          engine.opponentBoard.grid[c.row][c.col] = CellState.Miss;
-          outcome.result = ShotResult.Miss;
-          outcome.sunkShip = undefined;
-        }
         // Ironclad: absorb first hit on Battleship
         if (outcome.result === ShotResult.Hit) {
           const negated = processIronclad(engine.opponentBoard, c, opponentTraits);
@@ -645,26 +606,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       await new Promise((r) => setTimeout(r, 1200));
 
       const target = ai.chooseTarget(engine.playerBoard);
-      const nimbleForced = playerTraits ? processNimble(target, playerTraits) : false;
 
       const outcome = engine.opponentShoot(target);
       if (!outcome) break;
 
-      // Nimble: revert hit to miss
-      if (nimbleForced && outcome.result !== ShotResult.Miss) {
-        const ship = engine.playerBoard.getShipAt(target);
-        if (ship) ship.hits.delete(coordKey(target));
-        engine.playerBoard.grid[target.row][target.col] = CellState.Miss;
-        outcome.result = ShotResult.Miss;
-        outcome.sunkShip = undefined;
-        engine.currentTurn = 'player';
-        engine.turnCount++;
-      }
-
       // Ironclad: deflect hit on Battleship — revert cell to Ship so it stays targetable.
       // Also set `outcome.deflected` so the UI can play the ricochet feedback.
       let aiDeflectedCoord: Coordinate | null = null;
-      if (!nimbleForced && playerTraits && outcome.result === ShotResult.Hit) {
+      if (playerTraits && outcome.result === ShotResult.Hit) {
         const negated = processIronclad(engine.playerBoard, target, playerTraits);
         if (negated) {
           const ship = engine.playerBoard.getShipAt(target);

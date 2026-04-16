@@ -2,17 +2,22 @@ import { describe, it, expect } from 'vitest';
 import { Board } from '../Board';
 import {
   createTraitState,
-  initNimbleCells,
   processIronclad,
   processSpotter,
-  processNimble,
-  processSwift,
+  processCoastalCover,
+  processDepthCharge,
+  resolveDepthChargeShots,
+  applyDeflectionTrait,
+  isCoastalShip,
+  isSubmarineCell,
 } from '../traits';
 import {
   ShipType,
   Orientation,
   ShotResult,
+  CellState,
   coordKey,
+  type Coordinate,
 } from '../types';
 
 function placeShip(board: Board, type: ShipType, row: number, col: number, orientation: Orientation = Orientation.Horizontal) {
@@ -82,105 +87,146 @@ describe('Traits', () => {
     });
   });
 
-  describe('Nimble (Destroyer)', () => {
-    it('initializes adjacent cells', () => {
+  describe('Coastal Cover (land adjacency)', () => {
+    function boardWithShipNextToLand(): Board {
       const board = new Board();
-      placeShip(board, ShipType.Destroyer, 5, 5);
+      // Manually place a land cell at (0,2) and a Cruiser at (0,3)-(0,5)
+      board.grid[0][2] = CellState.Land;
+      placeShip(board, ShipType.Cruiser, 0, 3);
+      return board;
+    }
 
-      const nimbleCells = initNimbleCells(board);
-      // Destroyer at (5,5) and (5,6) - adjacent cells should include
-      // (4,5), (6,5), (5,4), (4,6), (6,6), (5,7)
-      expect(nimbleCells.has(coordKey({ row: 4, col: 5 }))).toBe(true);
-      expect(nimbleCells.has(coordKey({ row: 6, col: 5 }))).toBe(true);
-      expect(nimbleCells.has(coordKey({ row: 5, col: 4 }))).toBe(true);
-      expect(nimbleCells.has(coordKey({ row: 5, col: 7 }))).toBe(true);
+    it('isCoastalShip returns true when any cell of the ship is adjacent to Land', () => {
+      const board = boardWithShipNextToLand();
+      expect(isCoastalShip(board, ShipType.Cruiser)).toBe(true);
     });
 
-    it('forces a miss on adjacent cell (once)', () => {
+    it('isCoastalShip returns false when no ship cell is adjacent to Land', () => {
       const board = new Board();
-      placeShip(board, ShipType.Destroyer, 5, 5);
+      placeShip(board, ShipType.Cruiser, 5, 5);
+      expect(isCoastalShip(board, ShipType.Cruiser)).toBe(false);
+    });
 
+    it('deflects the first hit on a coastal ship; subsequent hits land normally', () => {
+      const board = boardWithShipNextToLand();
       const state = createTraitState();
-      state.nimbleFirstShotAdjacent = initNimbleCells(board);
 
-      const forced = processNimble({ row: 4, col: 5 }, state);
-      expect(forced).toBe(true);
+      const firstDeflect = processCoastalCover(board, { row: 0, col: 3 }, state);
+      expect(firstDeflect).toBe(true);
 
-      // Second shot on same cell is not forced
-      const forced2 = processNimble({ row: 4, col: 5 }, state);
-      expect(forced2).toBe(false);
+      // Second hit (any cell of the same ship) no longer deflects — cover consumed
+      const secondDeflect = processCoastalCover(board, { row: 0, col: 4 }, state);
+      expect(secondDeflect).toBe(false);
     });
 
-    it('excludes cells belonging to OTHER ships adjacent to the Destroyer', () => {
-      // Regression: Nimble used to include other ships' cells, which caused
-      // them to be permanently locked as Miss when fired upon, making the
-      // ship unsinkable. Ensure only empty-water neighbours are protected.
+    it('does not trigger on a non-coastal ship', () => {
       const board = new Board();
-      // Submarine occupies (3,5)-(3,7); Destroyer occupies (4,5)-(4,6).
-      // Submarine cell (3,5) and (3,6) are orthogonally adjacent to the Destroyer.
-      placeShip(board, ShipType.Submarine, 3, 5);
-      placeShip(board, ShipType.Destroyer, 4, 5);
-
-      const nimbleCells = initNimbleCells(board);
-
-      // Ship cells must NOT be in the Nimble set — they are legitimate targets.
-      expect(nimbleCells.has(coordKey({ row: 3, col: 5 }))).toBe(false);
-      expect(nimbleCells.has(coordKey({ row: 3, col: 6 }))).toBe(false);
-      // Empty-water cells still protected.
-      expect(nimbleCells.has(coordKey({ row: 5, col: 5 }))).toBe(true);
-      expect(nimbleCells.has(coordKey({ row: 5, col: 6 }))).toBe(true);
-      expect(nimbleCells.has(coordKey({ row: 4, col: 4 }))).toBe(true);
-      expect(nimbleCells.has(coordKey({ row: 4, col: 7 }))).toBe(true);
-    });
-
-    it('still includes empty-water cells adjacent to the Destroyer', () => {
-      const board = new Board();
-      placeShip(board, ShipType.Destroyer, 5, 5);
-
-      const nimbleCells = initNimbleCells(board);
-      expect(nimbleCells.size).toBeGreaterThan(0);
-      // All entries must be empty cells (no ships placed other than Destroyer)
-      for (const key of nimbleCells) {
-        expect(board.getShipAt({
-          row: Number(key.split(',')[0]),
-          col: Number(key.split(',')[1]),
-        })).toBeUndefined();
-      }
+      placeShip(board, ShipType.Cruiser, 5, 5);
+      const state = createTraitState();
+      const deflect = processCoastalCover(board, { row: 5, col: 5 }, state);
+      expect(deflect).toBe(false);
     });
   });
 
-  describe('Swift (Cruiser)', () => {
-    it('repositions cruiser by one cell', () => {
+  describe('applyDeflectionTrait — Coastal + Ironclad exclusivity', () => {
+    it('coastal Battleship triggers Coastal, NOT Ironclad', () => {
+      const board = new Board();
+      board.grid[0][0] = CellState.Land;
+      placeShip(board, ShipType.Battleship, 1, 0);
+      const state = createTraitState();
+
+      const source = applyDeflectionTrait(board, { row: 1, col: 0 }, state);
+      expect(source).toBe('coastal');
+      expect(state.ironcladUsed.has(ShipType.Battleship)).toBe(false);
+      expect(state.coastalCoverUsed.has(ShipType.Battleship)).toBe(true);
+    });
+
+    it('non-coastal Battleship triggers Ironclad', () => {
+      const board = new Board();
+      placeShip(board, ShipType.Battleship, 5, 5);
+      const state = createTraitState();
+
+      const source = applyDeflectionTrait(board, { row: 5, col: 5 }, state);
+      expect(source).toBe('ironclad');
+      expect(state.ironcladUsed.has(ShipType.Battleship)).toBe(true);
+    });
+
+    it('second hit on a coastal Battleship does NOT re-deflect via Ironclad', () => {
+      const board = new Board();
+      board.grid[0][0] = CellState.Land;
+      placeShip(board, ShipType.Battleship, 1, 0);
+      const state = createTraitState();
+
+      applyDeflectionTrait(board, { row: 1, col: 0 }, state); // coastal consumed
+      const second = applyDeflectionTrait(board, { row: 1, col: 1 }, state);
+      expect(second).toBeNull();
+    });
+
+    it('non-battleship, non-coastal ship gets no deflect', () => {
       const board = new Board();
       placeShip(board, ShipType.Cruiser, 5, 5);
       const state = createTraitState();
+      const source = applyDeflectionTrait(board, { row: 5, col: 5 }, state);
+      expect(source).toBeNull();
+    });
+  });
 
-      const success = processSwift(board, 'right', state);
-      expect(success).toBe(true);
-      expect(state.swiftUsed).toBe(true);
-
-      const cruiser = board.ships.find((s) => s.type === ShipType.Cruiser)!;
-      expect(cruiser.cells[0]).toEqual({ row: 5, col: 6 });
+  describe('Depth Charge (Destroyer)', () => {
+    it('triggers on the first hit on a Destroyer cell', () => {
+      const board = new Board();
+      placeShip(board, ShipType.Destroyer, 5, 5);
+      const state = createTraitState();
+      const triggered = processDepthCharge(board, { row: 5, col: 5 }, state);
+      expect(triggered).toBe(true);
+      expect(state.depthChargeUsed).toBe(true);
     });
 
-    it('cannot reposition twice', () => {
+    it('does NOT re-trigger on a second hit', () => {
       const board = new Board();
-      placeShip(board, ShipType.Cruiser, 5, 5);
+      placeShip(board, ShipType.Destroyer, 5, 5);
       const state = createTraitState();
-
-      processSwift(board, 'right', state);
-      const success = processSwift(board, 'right', state);
-      expect(success).toBe(false);
+      processDepthCharge(board, { row: 5, col: 5 }, state);
+      const triggered2 = processDepthCharge(board, { row: 5, col: 6 }, state);
+      expect(triggered2).toBe(false);
     });
 
-    it('rejects out of bounds reposition', () => {
+    it('does NOT trigger on non-Destroyer ships', () => {
       const board = new Board();
-      placeShip(board, ShipType.Cruiser, 0, 0, Orientation.Vertical);
+      placeShip(board, ShipType.Cruiser, 0, 0);
       const state = createTraitState();
+      const triggered = processDepthCharge(board, { row: 0, col: 0 }, state);
+      expect(triggered).toBe(false);
+      expect(state.depthChargeUsed).toBe(false);
+    });
 
-      const success = processSwift(board, 'up', state);
-      expect(success).toBe(false);
-      expect(state.swiftUsed).toBe(false);
+    it('resolveDepthChargeShots fires exactly N shots on unique unshot cells', () => {
+      const board = new Board();
+      placeShip(board, ShipType.Carrier, 0, 0);
+      const shots = resolveDepthChargeShots(board, 6);
+      expect(shots).toHaveLength(6);
+      const coords = new Set(shots.map(s => coordKey(s.coord)));
+      expect(coords.size).toBe(6);
+    });
+
+    it('resolveDepthChargeShots marks hits and sinks', () => {
+      const board = new Board();
+      placeShip(board, ShipType.Destroyer, 0, 0); // 2 cells at (0,0) and (0,1)
+      const shots = resolveDepthChargeShots(board, 100); // enough to cover full board
+      const hits = shots.filter(s => s.result === ShotResult.Hit || s.result === ShotResult.Sink);
+      expect(hits.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Silent Running (Submarine)', () => {
+    it('isSubmarineCell returns true only for Submarine cells', () => {
+      const board = new Board();
+      placeShip(board, ShipType.Submarine, 2, 2); // cells (2,2)(2,3)(2,4)
+      placeShip(board, ShipType.Cruiser, 5, 5);   // cells (5,5)(5,6)(5,7)
+
+      expect(isSubmarineCell(board, { row: 2, col: 2 })).toBe(true);
+      expect(isSubmarineCell(board, { row: 2, col: 4 })).toBe(true);
+      expect(isSubmarineCell(board, { row: 5, col: 5 })).toBe(false);
+      expect(isSubmarineCell(board, { row: 0, col: 0 })).toBe(false);
     });
   });
 });

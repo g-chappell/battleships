@@ -30,13 +30,16 @@ export type { AIPlayer } from './AI';
 // Traits
 export {
   createTraitState,
-  initNimbleCells,
   processIronclad,
   processSpotter,
-  processNimble,
-  processSwift,
+  processCoastalCover,
+  processDepthCharge,
+  resolveDepthChargeShots,
+  applyDeflectionTrait,
+  isCoastalShip,
+  isSubmarineCell,
 } from './traits';
-export type { TraitEffect, TraitState } from './traits';
+export type { TraitEffect, TraitState, DeflectionSource, DepthChargeShot } from './traits';
 
 // Abilities
 export {

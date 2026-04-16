@@ -14,7 +14,6 @@ import {
   CellState,
   ShotResult,
   createTraitState,
-  initNimbleCells,
   type ShipPlacement,
 } from '@shared/index';
 
@@ -34,9 +33,7 @@ function installReadyGame() {
   }
   engine.startGame();
   const playerTraits = createTraitState();
-  playerTraits.nimbleFirstShotAdjacent = initNimbleCells(engine.playerBoard);
   const opponentTraits = createTraitState();
-  opponentTraits.nimbleFirstShotAdjacent = initNimbleCells(engine.opponentBoard);
   useGameStore.setState({
     engine,
     playerTraits,
