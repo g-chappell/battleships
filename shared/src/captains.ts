@@ -34,6 +34,14 @@ export const CAPTAIN_DEFS: Record<string, CaptainDef> = {
     abilities: [AbilityType.RepairKit, AbilityType.CannonBarrage, AbilityType.SonarPing],
     color: '#a06820',
   },
+  seawitch: {
+    id: 'seawitch',
+    name: 'Seawitch Morgana',
+    title: 'Keeper of the Deep',
+    description: 'A storm-witch who parleys with leviathans. Commands sea beasts but slow to wield them.',
+    abilities: [AbilityType.SummonKraken, AbilityType.SonarPing, AbilityType.SmokeScreen],
+    color: '#4a2858',
+  },
 };
 
 export const CAPTAIN_IDS = Object.keys(CAPTAIN_DEFS);

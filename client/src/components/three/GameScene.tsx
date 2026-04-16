@@ -73,6 +73,27 @@ export function GameScene() {
     };
   }, [engine.phase, spawnCreature, pruneCreatures]);
 
+  // Kraken ritual flow: the Seawitch's summonKraken action swaps the turn to
+  // the opponent but doesn't feed through the board-click afterShot callback.
+  // Watch for that state transition and kick off the AI turn chain manually.
+  const ritualTurns = useGameStore((s) => s.playerRitualTurnsRemaining);
+  useEffect(() => {
+    // Ritual just started (turns=2) and turn is on opponent → run AI loop.
+    if (
+      gameMode === 'ai' &&
+      engine.phase === GamePhase.Playing &&
+      engine.currentTurn === 'opponent' &&
+      ritualTurns === 2
+    ) {
+      const id = setTimeout(() => {
+        processAITurn().then(() => {
+          setTimeout(() => setAnimating(false), 800);
+        });
+      }, 600);
+      return () => clearTimeout(id);
+    }
+  }, [ritualTurns, gameMode, engine.phase, engine.currentTurn, processAITurn, setAnimating]);
+
   const isPlacing = engine.phase === GamePhase.Placement;
   const isPlaying = engine.phase === GamePhase.Playing;
   const isPlayerTurn = engine.currentTurn === 'player';
@@ -83,15 +104,36 @@ export function GameScene() {
       setAnimating(false);
       if (engine.phase !== GamePhase.Playing) return;
 
-      // If it's still the player's turn (hit), let them fire again
-      if (engine.currentTurn === 'player') return;
+      // If it's still the player's turn (hit and not in ritual), let them fire again.
+      const { playerRitualTurnsRemaining, advancePlayerRitual } = useGameStore.getState();
+      if (engine.currentTurn === 'player' && !(playerRitualTurnsRemaining && playerRitualTurnsRemaining > 0)) {
+        return;
+      }
 
-      // It's now the opponent's turn — run AI
-      processAITurn().then(() => {
-        setTimeout(() => {
-          setAnimating(false);
-        }, 800);
-      });
+      const chainAITurn = () => {
+        processAITurn().then(() => {
+          setTimeout(() => {
+            setAnimating(false);
+            // After AI turn, if it's back to player's turn AND they're in
+            // ritual, auto-advance (they cannot fire) and run AI again.
+            const s = useGameStore.getState();
+            if (
+              s.engine.phase === GamePhase.Playing &&
+              s.engine.currentTurn === 'player' &&
+              s.playerRitualTurnsRemaining && s.playerRitualTurnsRemaining > 0
+            ) {
+              setTimeout(() => {
+                advancePlayerRitual();
+                setTimeout(chainAITurn, 600);
+              }, 600);
+            }
+          }, 800);
+        });
+      };
+
+      // If player just triggered ritual, the turn is already opponent — run AI.
+      // If player fired normally and missed, same thing.
+      chainAITurn();
     }, 1200);
   }, [engine.phase, engine.currentTurn, setAnimating, processAITurn]);
 

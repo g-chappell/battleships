@@ -2,6 +2,8 @@ import { Board } from './Board';
 import {
   type Coordinate,
   type ShotOutcome,
+  type Ship,
+  ShipType,
   CellState,
   ShotResult,
   coordKey,
@@ -16,6 +18,7 @@ export enum AbilityType {
   ChainShot = 'chain_shot',
   Spyglass = 'spyglass',
   BoardingParty = 'boarding_party',
+  SummonKraken = 'summon_kraken',
 }
 
 export interface AbilityDef {
@@ -73,6 +76,13 @@ export const ABILITY_DEFS: Record<AbilityType, AbilityDef> = {
     type: AbilityType.BoardingParty,
     name: 'Boarding Party',
     description: 'Passive: next hit reveals ship type and HP',
+    cooldown: 0,
+    maxUses: 1,
+  },
+  [AbilityType.SummonKraken]: {
+    type: AbilityType.SummonKraken,
+    name: 'Summon Kraken',
+    description: 'Ritual: forfeit 2 turns, then sink a random enemy ship (not the Cruiser)',
     cooldown: 0,
     maxUses: 1,
   },
@@ -173,11 +183,20 @@ export function executeCannonBarrage(
 
 export interface SonarPingResult {
   area: Coordinate[];
+  /** True if any non-Submarine ship cell is in the area, OR a Submarine is in
+   *  the area (coarse detection still works for subs). */
   shipDetected: boolean;
+  /** Precise coordinates of non-Submarine ship cells detected in the area.
+   *  Submarine cells are EXCLUDED from this list due to Silent Running. */
+  revealedShipCells: Coordinate[];
 }
 
 /**
- * Sonar Ping: Reveal whether a 3x3 area contains a ship.
+ * Sonar Ping: Scan a 3×3 area.
+ * - For non-Submarine ships: returns precise coordinates in `revealedShipCells`.
+ * - For a Submarine: contributes to `shipDetected=true` (coarse) but NOT to
+ *   `revealedShipCells` (Silent Running). The attacker can tell there's
+ *   something there but not exactly where.
  */
 export function executeSonarPing(
   targetBoard: Board,
@@ -187,6 +206,7 @@ export function executeSonarPing(
   if (!canUseAbility(abilityState, AbilityType.SonarPing)) return null;
 
   const area: Coordinate[] = [];
+  const revealedShipCells: Coordinate[] = [];
   let shipDetected = false;
 
   for (let dr = -1; dr <= 1; dr++) {
@@ -198,12 +218,17 @@ export function executeSonarPing(
       const cell = targetBoard.grid[coord.row][coord.col];
       if (cell === CellState.Ship) {
         shipDetected = true;
+        // Silent Running: Submarine cells contribute to coarse detection only.
+        const ship = targetBoard.getShipAt(coord);
+        if (ship && ship.type !== ShipType.Submarine) {
+          revealedShipCells.push(coord);
+        }
       }
     }
   }
 
   consumeAbility(abilityState, AbilityType.SonarPing);
-  return { area, shipDetected };
+  return { area, shipDetected, revealedShipCells };
 }
 
 /**
@@ -389,4 +414,59 @@ export function fixStaleOutcomes(outcomes: ShotOutcome[], board: Board): void {
       }
     }
   }
+}
+
+/**
+ * Summon Kraken — ritual state.
+ * The caster sets `turnsRemaining = 2` via executeSummonKraken, then loses
+ * their next 2 own-turns without firing. On the 3rd own-turn the ritual
+ * resolves via resolveKrakenStrike.
+ */
+export interface KrakenRitualState {
+  turnsRemaining: number;
+}
+
+/**
+ * Start the Kraken summoning ritual. Consumes the ability. Returns the
+ * initial ritual state (or null if the ability can't be used).
+ */
+export function executeSummonKraken(
+  abilityState: AbilitySystemState
+): KrakenRitualState | null {
+  if (!canUseAbility(abilityState, AbilityType.SummonKraken)) return null;
+  consumeAbility(abilityState, AbilityType.SummonKraken);
+  return { turnsRemaining: 2 };
+}
+
+export interface KrakenStrikeResult {
+  sunkShip: Ship;
+  cells: Coordinate[];
+}
+
+/**
+ * Resolve the Kraken strike. Picks one random unsunk ship on the target board
+ * that is NOT warded (e.g. Cruiser with Kraken Ward), marks every cell as Hit,
+ * and returns the sunk ship.
+ *
+ * Returns null when EVERY unsunk ship is warded — the ritual is wasted. In
+ * the current design this happens when only the Cruiser is left on the board.
+ */
+export function resolveKrakenStrike(
+  targetBoard: Board,
+  wardShipTypes: Set<ShipType> = new Set()
+): KrakenStrikeResult | null {
+  const unsunk = targetBoard.ships.filter(s => s.hits.size < s.cells.length);
+  if (unsunk.length === 0) return null;
+
+  const candidates = unsunk.filter(s => !wardShipTypes.has(s.type));
+  if (candidates.length === 0) return null; // every unsunk ship is warded
+
+  const target = candidates[Math.floor(Math.random() * candidates.length)];
+  const cells: Coordinate[] = [];
+  for (const cell of target.cells) {
+    target.hits.add(coordKey(cell));
+    targetBoard.grid[cell.row][cell.col] = CellState.Hit;
+    cells.push(cell);
+  }
+  return { sunkShip: target, cells };
 }

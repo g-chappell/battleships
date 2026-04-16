@@ -12,6 +12,8 @@ import {
   executeChainShot,
   executeSpyglass,
   executeBoardingParty,
+  executeSummonKraken,
+  resolveKrakenStrike,
   isCellSmoked,
 } from '../abilities';
 import { ShipType, Orientation, CellState } from '../types';
@@ -239,6 +241,125 @@ describe('Abilities', () => {
       const result = executeBoardingParty(board, { row: 0, col: 0 }, state);
       expect(result).toBeNull();
       expect(canUseAbility(state, AbilityType.BoardingParty)).toBe(false);
+    });
+  });
+
+  describe('Sonar Ping — precision upgrade + Silent Running', () => {
+    it('returns precise revealedShipCells for non-Submarine ships in the 3x3 area', () => {
+      const board = new Board();
+      // Cruiser at (5,5)-(5,7)
+      board.placeShip({ type: ShipType.Cruiser, start: { row: 5, col: 5 }, orientation: Orientation.Horizontal });
+      const state = createAbilitySystemState([AbilityType.SonarPing]);
+      const result = executeSonarPing(board, { row: 5, col: 6 }, state)!;
+      expect(result.shipDetected).toBe(true);
+      // All 3 cruiser cells are inside the 3x3 centred at (5,6)
+      const reported = new Set(result.revealedShipCells.map(c => `${c.row},${c.col}`));
+      expect(reported.has('5,5')).toBe(true);
+      expect(reported.has('5,6')).toBe(true);
+      expect(reported.has('5,7')).toBe(true);
+    });
+
+    it('reports shipDetected=true for Submarine but does NOT include its cells in revealedShipCells', () => {
+      const board = new Board();
+      board.placeShip({ type: ShipType.Submarine, start: { row: 5, col: 5 }, orientation: Orientation.Horizontal });
+      const state = createAbilitySystemState([AbilityType.SonarPing]);
+      const result = executeSonarPing(board, { row: 5, col: 6 }, state)!;
+      expect(result.shipDetected).toBe(true);
+      expect(result.revealedShipCells).toHaveLength(0);
+    });
+
+    it('reveals only non-Submarine cells when both ship types are in the area', () => {
+      const board = new Board();
+      // Submarine at (5,5)-(5,7) and Cruiser at (6,5)-(6,7) — both in 3x3 at (6,6)
+      board.placeShip({ type: ShipType.Submarine, start: { row: 5, col: 5 }, orientation: Orientation.Horizontal });
+      board.placeShip({ type: ShipType.Cruiser, start: { row: 6, col: 5 }, orientation: Orientation.Horizontal });
+      const state = createAbilitySystemState([AbilityType.SonarPing]);
+      const result = executeSonarPing(board, { row: 6, col: 6 }, state)!;
+      expect(result.shipDetected).toBe(true);
+      // Only Cruiser cells revealed; Submarine cells NOT revealed
+      for (const c of result.revealedShipCells) {
+        const ship = board.getShipAt(c);
+        expect(ship?.type).toBe(ShipType.Cruiser);
+      }
+      expect(result.revealedShipCells.length).toBeGreaterThan(0);
+    });
+
+    it('returns shipDetected=false and empty revealedShipCells for a clear area', () => {
+      const board = new Board();
+      board.placeShip({ type: ShipType.Cruiser, start: { row: 0, col: 0 }, orientation: Orientation.Horizontal });
+      const state = createAbilitySystemState([AbilityType.SonarPing]);
+      const result = executeSonarPing(board, { row: 8, col: 8 }, state)!;
+      expect(result.shipDetected).toBe(false);
+      expect(result.revealedShipCells).toHaveLength(0);
+    });
+  });
+
+  describe('Summon Kraken — ritual', () => {
+    it('starts a 2-turn ritual and consumes the ability', () => {
+      const state = createAbilitySystemState([AbilityType.SummonKraken]);
+      const ritual = executeSummonKraken(state);
+      expect(ritual).not.toBeNull();
+      expect(ritual!.turnsRemaining).toBe(2);
+      expect(canUseAbility(state, AbilityType.SummonKraken)).toBe(false);
+    });
+
+    it('cannot summon twice in one match', () => {
+      const state = createAbilitySystemState([AbilityType.SummonKraken]);
+      executeSummonKraken(state);
+      const second = executeSummonKraken(state);
+      expect(second).toBeNull();
+    });
+  });
+
+  describe('Kraken strike + Kraken Ward', () => {
+    function fullFleet(board: Board) {
+      board.placeShip({ type: ShipType.Carrier,    start: { row: 0, col: 0 }, orientation: Orientation.Horizontal });
+      board.placeShip({ type: ShipType.Battleship, start: { row: 1, col: 0 }, orientation: Orientation.Horizontal });
+      board.placeShip({ type: ShipType.Cruiser,    start: { row: 2, col: 0 }, orientation: Orientation.Horizontal });
+      board.placeShip({ type: ShipType.Submarine,  start: { row: 3, col: 0 }, orientation: Orientation.Horizontal });
+      board.placeShip({ type: ShipType.Destroyer,  start: { row: 4, col: 0 }, orientation: Orientation.Horizontal });
+    }
+
+    it('sinks one non-warded ship fully; ward set skips the Cruiser', () => {
+      const board = new Board();
+      fullFleet(board);
+      const result = resolveKrakenStrike(board, new Set([ShipType.Cruiser]));
+      expect(result).not.toBeNull();
+      expect(result!.sunkShip.type).not.toBe(ShipType.Cruiser);
+      expect(result!.sunkShip.hits.size).toBe(result!.sunkShip.cells.length);
+      // Cruiser is still alive
+      const cruiser = board.ships.find(s => s.type === ShipType.Cruiser)!;
+      expect(cruiser.hits.size).toBe(0);
+    });
+
+    it('returns null when the Cruiser is the last unsunk ship (ward holds absolutely)', () => {
+      const board = new Board();
+      fullFleet(board);
+      // Pre-sink every ship except the Cruiser
+      for (const ship of board.ships) {
+        if (ship.type === ShipType.Cruiser) continue;
+        for (const cell of ship.cells) {
+          ship.hits.add(`${cell.row},${cell.col}`);
+          board.grid[cell.row][cell.col] = CellState.Hit;
+        }
+      }
+      const result = resolveKrakenStrike(board, new Set([ShipType.Cruiser]));
+      expect(result).toBeNull();
+      const cruiser = board.ships.find(s => s.type === ShipType.Cruiser)!;
+      expect(cruiser.hits.size).toBe(0);
+    });
+
+    it('returns null if all ships are already sunk', () => {
+      const board = new Board();
+      fullFleet(board);
+      for (const ship of board.ships) {
+        for (const cell of ship.cells) {
+          ship.hits.add(`${cell.row},${cell.col}`);
+          board.grid[cell.row][cell.col] = CellState.Hit;
+        }
+      }
+      const result = resolveKrakenStrike(board, new Set([ShipType.Cruiser]));
+      expect(result).toBeNull();
     });
   });
 });

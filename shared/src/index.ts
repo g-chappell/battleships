@@ -30,13 +30,16 @@ export type { AIPlayer } from './AI';
 // Traits
 export {
   createTraitState,
-  initNimbleCells,
   processIronclad,
   processSpotter,
-  processNimble,
-  processSwift,
+  processCoastalCover,
+  processDepthCharge,
+  resolveDepthChargeShots,
+  applyDeflectionTrait,
+  isCoastalShip,
+  isSubmarineCell,
 } from './traits';
-export type { TraitEffect, TraitState } from './traits';
+export type { TraitEffect, TraitState, DeflectionSource, DepthChargeShot } from './traits';
 
 // Abilities
 export {
@@ -53,6 +56,8 @@ export {
   executeChainShot,
   executeSpyglass,
   executeBoardingParty,
+  executeSummonKraken,
+  resolveKrakenStrike,
   fixStaleOutcomes,
 } from './abilities';
 export type {
@@ -66,6 +71,8 @@ export type {
   ChainShotResult,
   SpyglassResult,
   BoardingPartyResult,
+  KrakenRitualState,
+  KrakenStrikeResult,
 } from './abilities';
 
 // Campaign

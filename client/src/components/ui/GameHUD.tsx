@@ -5,18 +5,36 @@ import { GamePhase, ShotResult, SHIP_NAMES } from '@shared/index';
 const PLAYER_HIT = ['Direct Hit!', 'Bullseye!', 'Target struck!', 'A solid hit!'];
 const PLAYER_MISS = ['Splash! Missed.', 'Nothing but ocean...', 'The shot goes wide.'];
 const PLAYER_SINK = ['sinks beneath the waves!', 'has been destroyed!', 'is going down!'];
-const PLAYER_DEFLECT = [
+const PLAYER_IRONCLAD = [
   'Shot deflected — Ironclad armor holds!',
   'Ricochet! Their armor turned the ball.',
   'Our cannonball glances off enemy plating.',
 ];
+const PLAYER_COASTAL = [
+  'Your shot scattered off the shoals!',
+  'The coast obscured our aim — reef spray everywhere!',
+  'Rocks and reef deflected the ball.',
+];
+const PLAYER_DEPTH_CHARGE = [
+  'Depth charges scatter the waters! Enemy retaliation incoming!',
+  'Their Destroyer unleashes depth charges on our fleet!',
+];
 const AI_HIT = ["We've been hit!", 'Hull breach!', 'Enemy fire connects!'];
 const AI_MISS = ['They missed!', 'Their aim falters!', 'The enemy shot goes wide.'];
 const AI_SINK = ['has been lost...', 'is sinking!', 'takes a fatal blow!'];
-const AI_DEFLECT = [
+const AI_IRONCLAD = [
   'Their shot ricochets off our Ironclad armor!',
   'Enemy cannonball glances off the Battleship!',
   'Our armor plating turned their shot!',
+];
+const AI_COASTAL = [
+  'Their shot scattered off our shoals!',
+  'The shore protected our fleet — reef spray!',
+  'Our coastal hide threw off their aim.',
+];
+const AI_DEPTH_CHARGE = [
+  'Our Destroyer returns fire with depth charges!',
+  'Depth charges away! Enemy takes retaliatory damage!',
 ];
 
 function pick(arr: string[]) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -43,10 +61,20 @@ export function GameHUD() {
       || (engine.currentTurn === 'player' && lastOutcome.result !== ShotResult.Miss)
       || (engine.phase === GamePhase.Finished && engine.winner === 'player');
 
-    if (lastOutcome.deflected) {
-      // Ironclad absorbed a hit — result is reported as Miss but the player
-      // should see specific feedback rather than the generic miss line.
-      setCommentary(playerShot ? pick(PLAYER_DEFLECT) : pick(AI_DEFLECT));
+    // Depth Charge commentary wins precedence when retaliation fired — the
+    // attacker's hit is less interesting than "you just took 6 counter-shots".
+    if (lastOutcome.depthChargeShots && lastOutcome.depthChargeShots.length > 0) {
+      const hits = lastOutcome.depthChargeShots.filter(s => s.result === ShotResult.Hit || s.result === ShotResult.Sink).length;
+      const total = lastOutcome.depthChargeShots.length;
+      const base = playerShot ? pick(PLAYER_DEPTH_CHARGE) : pick(AI_DEPTH_CHARGE);
+      setCommentary(`${base} (${hits}/${total} struck home)`);
+    } else if (lastOutcome.deflected) {
+      const source = lastOutcome.deflectionSource ?? 'ironclad';
+      const pool =
+        source === 'coastal'
+          ? playerShot ? PLAYER_COASTAL : AI_COASTAL
+          : playerShot ? PLAYER_IRONCLAD : AI_IRONCLAD;
+      setCommentary(pick(pool));
     } else if (lastOutcome.result === ShotResult.Sink && lastOutcome.sunkShip) {
       setCommentary(playerShot
         ? `${SHIP_NAMES[lastOutcome.sunkShip]} ${pick(PLAYER_SINK)}`
@@ -57,6 +85,25 @@ export function GameHUD() {
       setCommentary(playerShot ? pick(PLAYER_MISS) : pick(AI_MISS));
     }
   }, [lastOutcome, isAnimating]);
+
+  // Separate effect: Kraken strike commentary (it doesn't flow through lastShotOutcome).
+  const krakenStrikeResult = useGameStore((s) => s.krakenStrikeResult);
+  useEffect(() => {
+    if (!krakenStrikeResult) return;
+    const shipName = SHIP_NAMES[krakenStrikeResult.sunkShip.type];
+    setCommentary(`The Kraken drags the ${shipName} beneath the waves!`);
+  }, [krakenStrikeResult]);
+
+  // Ritual status line overrides commentary while active.
+  const playerRitual = useGameStore((s) => s.playerRitualTurnsRemaining);
+  const opponentRitual = useGameStore((s) => s.opponentRitualTurnsRemaining);
+  useEffect(() => {
+    if (playerRitual && playerRitual > 0) {
+      setCommentary(`Chanting to the deep... ${playerRitual} turn${playerRitual === 1 ? '' : 's'} remain.`);
+    } else if (opponentRitual && opponentRitual > 0) {
+      setCommentary(`Enemy summons the Kraken! ${opponentRitual} turn${opponentRitual === 1 ? '' : 's'} remain.`);
+    }
+  }, [playerRitual, opponentRitual]);
 
   if (!isPlaying && !isFinished) return null;
 

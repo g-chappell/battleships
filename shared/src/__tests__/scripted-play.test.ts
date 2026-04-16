@@ -21,11 +21,8 @@ import {
 } from '../abilities';
 import {
   createTraitState,
-  initNimbleCells,
   processIronclad,
-  processNimble,
   processSpotter,
-  processSwift,
 } from '../traits';
 import {
   ShipType,
@@ -267,47 +264,27 @@ describe('CannonBarrage scripted play', () => {
   });
 });
 
-// ─── ChainShot + Nimble + fixStaleOutcomes ────────────────────────────────────
+// ─── ChainShot + fixStaleOutcomes ────────────────────────────────────
 
-describe('ChainShot + Nimble trait + fixStaleOutcomes', () => {
-  it('ChainShot on Submarine cells adjacent to Destroyer: all hits register, Submarine sinks', () => {
-    // Regression for the Nimble "unsinkable ship" bug.
-    // Standard placement: Destroyer at (4,0)-(4,1), Submarine at (3,0)-(3,2).
-    // Submarine cells (3,0) and (3,1) sit next to the Destroyer. Post-fix,
-    // initNimbleCells excludes all ship cells, so Nimble must NOT interfere
-    // here. ChainShot at (3,0) fires (3,0),(3,1),(3,2) and sinks the Submarine.
+describe('ChainShot + fixStaleOutcomes', () => {
+  it('ChainShot on Submarine: all hits register, Submarine sinks', () => {
+    // Nimble no longer exists. This test verifies ChainShot sinks the
+    // Submarine cleanly without any trait interference on ship cells.
     const engine = new GameEngine();
     placeAllShips(engine);
     engine.startGame();
 
     const targetBoard = engine.opponentBoard;
-    const traitState = createTraitState();
-    traitState.nimbleFirstShotAdjacent = initNimbleCells(targetBoard);
-
-    // Nimble set must not contain the Submarine cells adjacent to Destroyer.
-    expect(traitState.nimbleFirstShotAdjacent.has(coordKey({ row: 3, col: 0 }))).toBe(false);
-    expect(traitState.nimbleFirstShotAdjacent.has(coordKey({ row: 3, col: 1 }))).toBe(false);
 
     const abilityState = createAbilitySystemState([AbilityType.ChainShot]);
     const result = executeChainShot(targetBoard, { row: 3, col: 0 }, abilityState);
     expect(result).not.toBeNull();
     expect(result!.outcomes).toHaveLength(3);
 
-    // Apply the same pipeline the store/rooms use: Nimble on Hit, Ironclad on Hit.
-    for (const outcome of result!.outcomes) {
-      if (outcome.result === ShotResult.Hit && processNimble(outcome.coordinate, traitState)) {
-        const ship = targetBoard.getShipAt(outcome.coordinate);
-        if (ship) ship.hits.delete(coordKey(outcome.coordinate));
-        targetBoard.grid[outcome.coordinate.row][outcome.coordinate.col] = CellState.Miss;
-        outcome.result = ShotResult.Miss;
-        outcome.sunkShip = undefined;
-      }
-    }
     fixStaleOutcomes(result!.outcomes, targetBoard);
 
     const submarine = targetBoard.ships.find(s => s.type === ShipType.Submarine)!;
     expect(submarine.hits.size).toBe(submarine.cells.length);
-    // Final outcome is Sink because the Submarine was fully hit.
     const sinkOutcome = result!.outcomes.find(o => o.sunkShip === ShipType.Submarine);
     expect(sinkOutcome).toBeDefined();
     expect(sinkOutcome!.result).toBe(ShotResult.Sink);
@@ -508,96 +485,6 @@ describe('BoardingParty intel without firing', () => {
     expect(result).toBeNull();
     expect(canUseAbility(abilityState, AbilityType.BoardingParty)).toBe(false); // still consumed
     expect(engine.opponentBoard.grid[9][9]).toBe(CellState.Empty); // untouched
-  });
-});
-
-// ─── Nimble mid-game ──────────────────────────────────────────────────────────
-
-describe('Nimble trait mid-game scripted play', () => {
-  it('first shot on empty-water adjacent cell forced to miss; same cell second attempt not forced', () => {
-    const engine = new GameEngine();
-    placeAllShips(engine);
-    engine.startGame();
-
-    const traitState = createTraitState();
-    traitState.nimbleFirstShotAdjacent = initNimbleCells(engine.opponentBoard);
-
-    // (5,0) is empty water adjacent to Destroyer at (4,0) — Nimble forces miss
-    const forced = processNimble({ row: 5, col: 0 }, traitState);
-    expect(forced).toBe(true);
-
-    // Second attempt at same cell — removed from set, not forced
-    const forced2 = processNimble({ row: 5, col: 0 }, traitState);
-    expect(forced2).toBe(false);
-  });
-
-  it('ship cells adjacent to the Destroyer are NOT protected by Nimble (post-fix behavior)', () => {
-    // Regression: previously Nimble locked another ship's adjacent cells as
-    // Miss permanently, making that ship unsinkable. Post-fix, Nimble only
-    // kicks in on empty water.
-    const engine = new GameEngine();
-    placeAllShips(engine);
-    engine.startGame();
-
-    const traitState = createTraitState();
-    traitState.nimbleFirstShotAdjacent = initNimbleCells(engine.opponentBoard);
-
-    // (3,0) is a Submarine cell adjacent to Destroyer at (4,0). Post-fix it
-    // is NOT in the Nimble set.
-    const forced = processNimble({ row: 3, col: 0 }, traitState);
-    expect(forced).toBe(false);
-  });
-
-  it('non-adjacent cell is not forced', () => {
-    const engine = new GameEngine();
-    placeAllShips(engine);
-    engine.startGame();
-
-    const traitState = createTraitState();
-    traitState.nimbleFirstShotAdjacent = initNimbleCells(engine.opponentBoard);
-
-    // (0,0) is Carrier cell, far from Destroyer at (4,0) — not in nimbleCells
-    const forced = processNimble({ row: 0, col: 0 }, traitState);
-    expect(forced).toBe(false);
-  });
-});
-
-// ─── Swift trait mid-game ────────────────────────────────────────────────────
-
-describe('Swift trait mid-game scripted play', () => {
-  it('repositions Cruiser one cell right; old leftmost cell cleared; new cells are Ship', () => {
-    const engine = new GameEngine();
-    placeAllShips(engine);
-    engine.startGame();
-
-    const board = engine.playerBoard; // repositioning own board's cruiser
-    const traitState = createTraitState();
-
-    // Cruiser at (2,0)-(2,2) — reposition right → (2,1)-(2,3)
-    const success = processSwift(board, 'right', traitState);
-    expect(success).toBe(true);
-    expect(traitState.swiftUsed).toBe(true);
-
-    const cruiser = board.ships.find(s => s.type === ShipType.Cruiser)!;
-    expect(cruiser.cells[0]).toEqual({ row: 2, col: 1 });
-    expect(cruiser.cells[2]).toEqual({ row: 2, col: 3 });
-
-    // Old leftmost cell (2,0) cleared to Empty
-    expect(board.grid[2][0]).toBe(CellState.Empty);
-    // New cells (2,1)-(2,3) marked Ship
-    expect(board.grid[2][1]).toBe(CellState.Ship);
-    expect(board.grid[2][3]).toBe(CellState.Ship);
-  });
-
-  it('Swift cannot reposition twice', () => {
-    const engine = new GameEngine();
-    placeAllShips(engine);
-    engine.startGame();
-
-    const traitState = createTraitState();
-    processSwift(engine.playerBoard, 'right', traitState);
-    const success2 = processSwift(engine.playerBoard, 'right', traitState);
-    expect(success2).toBe(false);
   });
 });
 

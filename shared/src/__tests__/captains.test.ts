@@ -10,14 +10,15 @@ describe('CAPTAIN_DEFS', () => {
     expect(Object.keys(CAPTAIN_DEFS).length).toBeGreaterThan(0);
   });
 
-  it('has exactly 3 captains', () => {
-    expect(Object.keys(CAPTAIN_DEFS).length).toBe(3);
+  it('has exactly 4 captains', () => {
+    expect(Object.keys(CAPTAIN_DEFS).length).toBe(4);
   });
 
-  it('contains entries for ironbeard, mistral, and blackheart', () => {
+  it('contains entries for ironbeard, mistral, blackheart, and seawitch', () => {
     expect(CAPTAIN_DEFS['ironbeard']).toBeDefined();
     expect(CAPTAIN_DEFS['mistral']).toBeDefined();
     expect(CAPTAIN_DEFS['blackheart']).toBeDefined();
+    expect(CAPTAIN_DEFS['seawitch']).toBeDefined();
   });
 
   it('all captain keys match their id field', () => {
@@ -90,6 +91,7 @@ describe('CAPTAIN_IDS', () => {
     expect(CAPTAIN_IDS).toContain('ironbeard');
     expect(CAPTAIN_IDS).toContain('mistral');
     expect(CAPTAIN_IDS).toContain('blackheart');
+    expect(CAPTAIN_IDS).toContain('seawitch');
   });
 
   it('has no duplicate IDs', () => {
@@ -136,6 +138,13 @@ describe('Individual captain ability loadouts', () => {
     expect(abilities).toContain(AbilityType.RepairKit);
     expect(abilities).toContain(AbilityType.CannonBarrage);
     expect(abilities).toContain(AbilityType.SonarPing);
+  });
+
+  it('seawitch has SummonKraken, SonarPing, SmokeScreen', () => {
+    const { abilities } = CAPTAIN_DEFS['seawitch'];
+    expect(abilities).toContain(AbilityType.SummonKraken);
+    expect(abilities).toContain(AbilityType.SonarPing);
+    expect(abilities).toContain(AbilityType.SmokeScreen);
   });
 });
 
