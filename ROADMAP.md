@@ -652,7 +652,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-053
 - **title:** Reproduce and fix hit-recording / ability-conflict bugs found by the harness
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** shared, server, client
 - **complexity:** medium
