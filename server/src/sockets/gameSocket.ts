@@ -14,6 +14,7 @@ import {
   placeShips,
   fireShot,
   useAbility,
+  advanceRitual,
   resignPlayer,
   addChatMessage,
   buildPublicState,
@@ -27,6 +28,7 @@ import {
   buildSpectatorState,
   listSpectatableRooms,
   type RoomPlayer,
+  type GameRoom,
 } from '../services/rooms.js';
 import {
   joinQueue,
@@ -39,7 +41,7 @@ import {
 } from '../services/matchmaking.js';
 import { persistMatch } from '../services/persistence.js';
 import { prisma } from '../services/db.js';
-import { GamePhase, ShotResult } from '../../../shared/src/types.ts';
+import { GamePhase, ShotResult, ShipType } from '../../../shared/src/types.ts';
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -229,6 +231,28 @@ export function setupGameSocket(io: Server<ClientToServerEvents, ServerToClientE
           outcome,
         });
       }
+      // If the Destroyer's Depth Charge retaliated, broadcast the shot list
+      // to both sides so the burst animation plays on the correct board.
+      // `side` describes who TRIGGERED the retaliation from that client's POV:
+      //   - Attacker (firer) sees shots landing on their OWN board, triggered
+      //     by the OPPONENT's Destroyer → side='opponent'.
+      //   - Defender sees their OWN Destroyer fire onto the ATTACKER's board
+      //     (visible as hits on their opponent panel) → side='self'.
+      if (outcome.depthChargeShots && outcome.depthChargeShots.length > 0 && opponentSocketId) {
+        io.to(socket.id).emit('game:depth_charge', {
+          side: 'opponent',
+          triggeringShip: ShipType.Destroyer,
+          shots: outcome.depthChargeShots,
+        });
+        io.to(opponentSocketId).emit('game:depth_charge', {
+          side: 'self',
+          triggeringShip: ShipType.Destroyer,
+          shots: outcome.depthChargeShots,
+        });
+      }
+      // If the shot ended the firer's turn and it's now a ritual caster's
+      // turn, auto-advance the ritual and emit any kraken_strike.
+      autoAdvanceRitualsIfActive(io, room);
       sendStateToBoth(io, room.id);
       checkGameEnd(io, room.id);
     });
@@ -250,6 +274,10 @@ export function setupGameSocket(io: Server<ClientToServerEvents, ServerToClientE
           outcome: { result: ShotResult.Miss, coordinate: coord },
         });
       }
+      // Same as game:fire: Summon Kraken may have started a ritual; the
+      // defender's fire next turn may end with the caster's ritual due to
+      // resolve. Advance here in case.
+      autoAdvanceRitualsIfActive(io, room);
       sendStateToBoth(io, room.id);
       checkGameEnd(io, room.id);
     });
@@ -376,6 +404,54 @@ function sendStateToBoth(io: Server<ClientToServerEvents, ServerToClientEvents, 
   if (room.spectators.size > 0) {
     const specState = buildSpectatorState(room);
     if (specState) io.to(`${roomId}:spectators`).emit('spectator:state', specState);
+  }
+}
+
+/**
+ * If the current-turn player is in a Kraken ritual, automatically advance it
+ * (caster cannot fire/use-ability while ritual ticks). Emits game:kraken_strike
+ * when the ritual resolves. Loops until the ritual is resolved or the current
+ * player is out of ritual — handles the rare case where the 2 turn forfeits
+ * are back-to-back (e.g. opponent's last shot was a hit keeping the turn).
+ */
+function autoAdvanceRitualsIfActive(
+  io: Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>,
+  room: GameRoom
+): void {
+  // Safety bound — a ritual is at most 2 turns.
+  for (let i = 0; i < 4; i++) {
+    if (room.engine.phase !== GamePhase.Playing) return;
+    const p1 = room.players[0];
+    const p2 = room.players[1];
+    const current = room.engine.currentTurn === 'player' ? p1 : p2;
+    if (!current) return;
+    if (!current.ritualTurnsRemaining || current.ritualTurnsRemaining <= 0) return;
+
+    const result = advanceRitual(room, current.id);
+    if (result.status === 'none') return;
+
+    if (result.status === 'strike') {
+      const otherIdx = room.engine.currentTurn === 'player' ? 1 : 0;
+      const other = room.players[otherIdx];
+      // caster's POV: side='self'; defender's POV: side='opponent'
+      if (current.socketId) {
+        io.to(current.socketId).emit('game:kraken_strike', {
+          caster: 'self',
+          sunkShipType: result.sunkShipType,
+          cells: result.cells,
+        });
+      }
+      if (other?.socketId) {
+        io.to(other.socketId).emit('game:kraken_strike', {
+          caster: 'opponent',
+          sunkShipType: result.sunkShipType,
+          cells: result.cells,
+        });
+      }
+    }
+    // Loop to handle consecutive ritual ticks if turn didn't hand off.
+    // In practice advanceRitual always flips the turn, so we'll exit via the
+    // ritualTurnsRemaining check next iteration.
   }
 }
 

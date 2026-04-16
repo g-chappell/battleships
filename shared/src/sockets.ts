@@ -57,6 +57,10 @@ export interface PublicGameState {
   opponentAbilitiesSummary: { type: AbilityType; cooldownRemaining: number }[];
   opponent: PlayerView;
   isRanked: boolean;
+  // Kraken summoning ritual state — non-null when either side is mid-ritual.
+  // Clients use this to render the RitualOverlay banner.
+  ownRitualTurnsRemaining: number | null;
+  opponentRitualTurnsRemaining: number | null;
 }
 
 export interface ChatMessage {
@@ -166,6 +170,17 @@ export interface ServerToClientEvents {
   'game:opponent_disconnected': (payload: { secondsRemaining: number }) => void;
   'game:opponent_reconnected': () => void;
   'game:rematch_pending': (payload: { from: 'self' | 'opponent' }) => void;
+  // Trait-specific events (clients replay/animate)
+  'game:depth_charge': (payload: {
+    side: 'self' | 'opponent';           // who triggered the retaliation
+    triggeringShip: ShipType;             // which Destroyer fired
+    shots: ShotOutcome[];                 // the 6 retaliatory outcomes on the attacker's board
+  }) => void;
+  'game:kraken_strike': (payload: {
+    caster: 'self' | 'opponent';
+    sunkShipType: ShipType | null;        // null when the ritual was wasted (Kraken Ward blocked)
+    cells: Coordinate[];                  // cells of the sunk ship, for animation targets
+  }) => void;
 
   // Chat
   'chat:message': (payload: ChatMessage) => void;
