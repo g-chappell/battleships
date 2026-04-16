@@ -37,7 +37,15 @@ export function initNimbleCells(board: Board): Set<string> {
   const destroyer = board.ships.find((s) => s.type === ShipType.Destroyer);
   if (!destroyer) return new Set();
 
-  const shipCells = new Set(destroyer.cells.map((c) => coordKey(c)));
+  // Exclude every ship's cells, not just the Destroyer's. If another ship
+  // happens to sit adjacent to the Destroyer, its cells must NOT be forced
+  // to miss — otherwise those cells become permanently marked as Miss and
+  // that ship becomes unsinkable (grid locked + hit deleted from ship.hits).
+  const allShipCells = new Set<string>();
+  for (const s of board.ships) {
+    for (const c of s.cells) allShipCells.add(coordKey(c));
+  }
+
   const adjacent = new Set<string>();
 
   for (const cell of destroyer.cells) {
@@ -50,7 +58,7 @@ export function initNimbleCells(board: Board): Set<string> {
     for (const n of neighbors) {
       if (n.row >= 0 && n.row < GRID_SIZE && n.col >= 0 && n.col < GRID_SIZE) {
         const key = coordKey(n);
-        if (!shipCells.has(key)) {
+        if (!allShipCells.has(key)) {
           adjacent.add(key);
         }
       }

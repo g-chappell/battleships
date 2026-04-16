@@ -5,9 +5,19 @@ import { GamePhase, ShotResult, SHIP_NAMES } from '@shared/index';
 const PLAYER_HIT = ['Direct Hit!', 'Bullseye!', 'Target struck!', 'A solid hit!'];
 const PLAYER_MISS = ['Splash! Missed.', 'Nothing but ocean...', 'The shot goes wide.'];
 const PLAYER_SINK = ['sinks beneath the waves!', 'has been destroyed!', 'is going down!'];
+const PLAYER_DEFLECT = [
+  'Shot deflected — Ironclad armor holds!',
+  'Ricochet! Their armor turned the ball.',
+  'Our cannonball glances off enemy plating.',
+];
 const AI_HIT = ["We've been hit!", 'Hull breach!', 'Enemy fire connects!'];
 const AI_MISS = ['They missed!', 'Their aim falters!', 'The enemy shot goes wide.'];
 const AI_SINK = ['has been lost...', 'is sinking!', 'takes a fatal blow!'];
+const AI_DEFLECT = [
+  'Their shot ricochets off our Ironclad armor!',
+  'Enemy cannonball glances off the Battleship!',
+  'Our armor plating turned their shot!',
+];
 
 function pick(arr: string[]) { return arr[Math.floor(Math.random() * arr.length)]; }
 
@@ -33,7 +43,11 @@ export function GameHUD() {
       || (engine.currentTurn === 'player' && lastOutcome.result !== ShotResult.Miss)
       || (engine.phase === GamePhase.Finished && engine.winner === 'player');
 
-    if (lastOutcome.result === ShotResult.Sink && lastOutcome.sunkShip) {
+    if (lastOutcome.deflected) {
+      // Ironclad absorbed a hit — result is reported as Miss but the player
+      // should see specific feedback rather than the generic miss line.
+      setCommentary(playerShot ? pick(PLAYER_DEFLECT) : pick(AI_DEFLECT));
+    } else if (lastOutcome.result === ShotResult.Sink && lastOutcome.sunkShip) {
       setCommentary(playerShot
         ? `${SHIP_NAMES[lastOutcome.sunkShip]} ${pick(PLAYER_SINK)}`
         : `Our ${SHIP_NAMES[lastOutcome.sunkShip]} ${pick(AI_SINK)}`);

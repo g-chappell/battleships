@@ -276,6 +276,7 @@ export function fireShot(
       board.grid[coord.row][coord.col] = CellState.Ship; // re-targetable
       outcome.result = ShotResult.Miss;
       outcome.sunkShip = undefined;
+      outcome.deflected = true;
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
     }
@@ -321,7 +322,7 @@ export function useAbility(
   const opponentTraits = opponent?.traits ?? null;
 
   // Apply Ironclad/Nimble traits to ability-based shots
-  const applyTraits = (outcomes: Array<{ result: ShotResult; coordinate: Coordinate; sunkShip?: ShipType }>) => {
+  const applyTraits = (outcomes: ShotOutcome[]) => {
     if (!opponentTraits) return;
     for (const outcome of outcomes) {
       const c = outcome.coordinate;
@@ -340,6 +341,7 @@ export function useAbility(
           targetBoard.grid[c.row][c.col] = CellState.Ship;
           outcome.result = ShotResult.Miss;
           outcome.sunkShip = undefined;
+          outcome.deflected = true;
         }
       }
     }

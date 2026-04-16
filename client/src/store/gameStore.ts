@@ -74,6 +74,11 @@ interface GameStore {
   isAnimating: boolean;
   viewingBoard: 'player' | 'opponent';
 
+  // Transient ricochet markers for Ironclad-deflected shots. Cleared when
+  // the next shot fires on the same board. Rendered by BoardGrid.
+  opponentDeflectedCoord: Coordinate | null; // your shot deflected on enemy board
+  playerDeflectedCoord: Coordinate | null;   // enemy shot deflected on your board
+
   // MP placement: true after the player has submitted their placements to the server
   mpPlacementSubmitted: boolean;
 
@@ -156,6 +161,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isAnimating: false,
   viewingBoard: 'player',
 
+  opponentDeflectedCoord: null,
+  playerDeflectedCoord: null,
+
   playerAbilities: null,
   opponentAbilities: null,
   selectedCaptain: DEFAULT_CAPTAIN,
@@ -191,6 +199,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastShotOutcome: null,
       isAnimating: false,
       viewingBoard: 'player',
+      opponentDeflectedCoord: null,
+      playerDeflectedCoord: null,
       mpPlacementSubmitted: false,
       playerAbilities: null,
       opponentAbilities: null,
@@ -227,6 +237,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastShotOutcome: null,
       isAnimating: false,
       viewingBoard: 'player',
+      opponentDeflectedCoord: null,
+      playerDeflectedCoord: null,
       mpPlacementSubmitted: false,
       playerAbilities: null,
       opponentAbilities: null,
@@ -260,6 +272,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastShotOutcome: null,
       isAnimating: false,
       viewingBoard: 'player',
+      opponentDeflectedCoord: null,
+      playerDeflectedCoord: null,
       mpPlacementSubmitted: false,
       playerAbilities: null,
       opponentAbilities: null,
@@ -397,7 +411,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (opponentTraits && processNimble(coord, opponentTraits)) {
       const forcedOutcome = engine.playerShoot(coord);
       if (forcedOutcome) {
-        // Nimble forces it to miss — revert any hit
+        // Nimble forces it to miss — revert any hit.
+        // NOTE: post-initNimbleCells fix, the adjacent set excludes all ship
+        // cells, so forcedOutcome.result should already be Miss here. This
+        // branch remains as a safety net for future trait additions.
         if (forcedOutcome.result !== ShotResult.Miss) {
           const ship = engine.opponentBoard.getShipAt(coord);
           if (ship) ship.hits.delete(coordKey(coord));
@@ -407,7 +424,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           // Engine kept turn on player (hit doesn't switch). Force switch since it's actually a miss.
           engine.currentTurn = 'opponent';
         }
-        set((s) => ({ lastShotOutcome: forcedOutcome, isAnimating: true, tick: s.tick + 1 }));
+        set((s) => ({
+          lastShotOutcome: forcedOutcome,
+          isAnimating: true,
+          opponentDeflectedCoord: null, // clear ricochet marker on next shot
+          tick: s.tick + 1,
+        }));
       }
       return forcedOutcome;
     }
@@ -418,6 +440,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // Ironclad: if hit was on Battleship and armor unused, deflect the shot.
     // Revert grid to Ship state so the cell remains targetable on a future turn.
+    let deflectedHere: Coordinate | null = null;
     if (opponentTraits && outcome.result === ShotResult.Hit) {
       const negated = processIronclad(engine.opponentBoard, coord, opponentTraits);
       if (negated) {
@@ -426,6 +449,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         engine.opponentBoard.grid[coord.row][coord.col] = CellState.Ship;
         outcome.result = ShotResult.Miss;
         outcome.sunkShip = undefined;
+        outcome.deflected = true;
+        deflectedHere = coord;
         engine.currentTurn = 'opponent';
       }
     }
@@ -437,7 +462,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
       tickCooldowns(playerAbilities);
     }
 
-    set((s) => ({ lastShotOutcome: outcome, isAnimating: true, tick: s.tick + 1 }));
+    set((s) => ({
+      lastShotOutcome: outcome,
+      isAnimating: true,
+      opponentDeflectedCoord: deflectedHere,
+      tick: s.tick + 1,
+    }));
     return outcome;
   },
 
@@ -451,9 +481,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     // Track ability usage for post-game summary (single-player only)
     set((s) => ({ spAbilitiesUsed: { ...s.spAbilitiesUsed, [type]: (s.spAbilitiesUsed[type] ?? 0) + 1 } }));
 
-    // Apply Ironclad/Nimble traits to ability-based shots (same as playerFire)
-    const applyTraits = (outcomes: ShotOutcome[]) => {
-      if (!opponentTraits) return;
+    // Apply Ironclad/Nimble traits to ability-based shots (same as playerFire).
+    // Returns the last coord where Ironclad deflected a hit, if any — the
+    // caller uses it to pin the ricochet marker on the enemy board.
+    const applyTraits = (outcomes: ShotOutcome[]): Coordinate | null => {
+      if (!opponentTraits) return null;
+      let deflected: Coordinate | null = null;
       for (const outcome of outcomes) {
         const c = outcome.coordinate;
         // Nimble: forced miss adjacent to destroyer
@@ -473,16 +506,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
             engine.opponentBoard.grid[c.row][c.col] = CellState.Ship;
             outcome.result = ShotResult.Miss;
             outcome.sunkShip = undefined;
+            outcome.deflected = true;
+            deflected = c;
           }
         }
       }
+      return deflected;
     };
 
     switch (type) {
       case AbilityType.CannonBarrage: {
         const result = executeCannonBarrage(engine.opponentBoard, coord, playerAbilities);
         if (result && result.outcomes.length > 0) {
-          applyTraits(result.outcomes);
+          const deflected = applyTraits(result.outcomes);
           fixStaleOutcomes(result.outcomes, engine.opponentBoard);
           const didHit = result.outcomes.some(o => o.result === ShotResult.Hit || o.result === ShotResult.Sink);
           engine.recordPlayerAction(didHit);
@@ -492,7 +528,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
             engine.phase = GamePhase.Finished;
             engine.winner = 'player';
           }
-          set((s) => ({ lastShotOutcome: lastOutcome, isAnimating: true, tick: s.tick + 1 }));
+          set((s) => ({
+            lastShotOutcome: lastOutcome,
+            isAnimating: true,
+            opponentDeflectedCoord: deflected,
+            tick: s.tick + 1,
+          }));
         }
         break;
       }
@@ -531,7 +572,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       case AbilityType.ChainShot: {
         const result = executeChainShot(engine.opponentBoard, coord, playerAbilities);
         if (result && result.outcomes.length > 0) {
-          applyTraits(result.outcomes);
+          const deflected = applyTraits(result.outcomes);
           fixStaleOutcomes(result.outcomes, engine.opponentBoard);
           const didHit = result.outcomes.some(o => o.result === ShotResult.Hit || o.result === ShotResult.Sink);
           engine.recordPlayerAction(didHit);
@@ -541,14 +582,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
             engine.phase = GamePhase.Finished;
             engine.winner = 'player';
           }
-          set((s) => ({ lastShotOutcome: lastOutcome, isAnimating: true, tick: s.tick + 1 }));
+          set((s) => ({
+            lastShotOutcome: lastOutcome,
+            isAnimating: true,
+            opponentDeflectedCoord: deflected,
+            tick: s.tick + 1,
+          }));
         }
         break;
       }
       case AbilityType.Spyglass: {
         const result = executeSpyglass(engine.opponentBoard, coord, playerAbilities);
         if (result) {
-          applyTraits([result.shotOutcome]);
+          const deflected = applyTraits([result.shotOutcome]);
           fixStaleOutcomes([result.shotOutcome], engine.opponentBoard);
           const didHit = result.shotOutcome.result === ShotResult.Hit || result.shotOutcome.result === ShotResult.Sink;
           engine.recordPlayerAction(didHit);
@@ -561,6 +607,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             lastShotOutcome: result.shotOutcome,
             spyglassResult: { row: coord.row, shipCount: result.rowShipCount },
             isAnimating: true,
+            opponentDeflectedCoord: deflected,
             tick: s.tick + 1,
           }));
         }
@@ -614,7 +661,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         engine.turnCount++;
       }
 
-      // Ironclad: deflect hit on Battleship — revert cell to Ship so it stays targetable
+      // Ironclad: deflect hit on Battleship — revert cell to Ship so it stays targetable.
+      // Also set `outcome.deflected` so the UI can play the ricochet feedback.
+      let aiDeflectedCoord: Coordinate | null = null;
       if (!nimbleForced && playerTraits && outcome.result === ShotResult.Hit) {
         const negated = processIronclad(engine.playerBoard, target, playerTraits);
         if (negated) {
@@ -623,6 +672,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           engine.playerBoard.grid[target.row][target.col] = CellState.Ship;
           outcome.result = ShotResult.Miss;
           outcome.sunkShip = undefined;
+          outcome.deflected = true;
+          aiDeflectedCoord = target;
           engine.currentTurn = 'player';
           engine.turnCount++;
         }
@@ -644,6 +695,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         lastShotOutcome: outcome,
         isAnimating: true,
         revealedCells: new Set(revealedCells),
+        // Pin ricochet marker on the player's own board if AI's shot was
+        // deflected by Ironclad this loop iteration; otherwise clear it.
+        playerDeflectedCoord: aiDeflectedCoord,
         tick: s.tick + 1,
       }));
     }

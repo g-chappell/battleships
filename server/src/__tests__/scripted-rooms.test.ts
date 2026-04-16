@@ -107,42 +107,61 @@ describe('fireShot — Ironclad trait pipeline', () => {
     expect(room.engine.totalPlayerHits).toBe(0); // not credited
     deleteRoom(room.id);
   });
+
+  it('Ironclad negation sets outcome.deflected=true so the client can render ricochet feedback', () => {
+    const room = createPlayingRoom();
+    const outcome = fireShot(room, 'p1', { row: 1, col: 0 });
+    expect(outcome).not.toBeNull();
+    expect(outcome!.deflected).toBe(true);
+    expect(outcome!.result).toBe(ShotResult.Miss);
+    deleteRoom(room.id);
+  });
 });
 
 describe('fireShot — Nimble trait pipeline', () => {
-  it('first shot on Destroyer-adjacent cell forced to miss; turn switches', () => {
+  it('first shot on empty-water adjacent cell forced to miss; turn switches', () => {
     const room = createPlayingRoom();
-    // (3,0) is a Submarine cell AND adjacent to P2's Destroyer at (4,0)-(4,1)
-    // Nimble should force a miss
-    const outcome = fireShot(room, 'p1', { row: 3, col: 0 });
+    // (5,0) is empty water adjacent to P2's Destroyer at (4,0)-(4,1).
+    // Post-fix, Nimble only protects empty water (not other ships' cells).
+    const outcome = fireShot(room, 'p1', { row: 5, col: 0 });
     expect(outcome).not.toBeNull();
     expect(outcome!.result).toBe(ShotResult.Miss);
     // Turn forced to opponent
     expect(room.engine.currentTurn).toBe('opponent');
-    // Submarine not marked as hit
-    const submarine = room.engine.opponentBoard.ships.find(s => s.type === ShipType.Submarine)!;
-    expect(submarine.hits.size).toBe(0);
     // No accuracy credited for Nimble-forced shots (Nimble branch returns early)
     expect(room.engine.totalPlayerActions).toBe(0);
     deleteRoom(room.id);
   });
 
-  it('same cell after Nimble fires normally (cell removed from set)', () => {
+  it('ship cells adjacent to Destroyer are NOT protected by Nimble (post-fix)', () => {
+    // Regression: previously Nimble locked other ships' adjacent cells as
+    // Miss permanently, making those ships unsinkable.
+    const room = createPlayingRoom();
+    // (3,0) is a Submarine cell adjacent to the Destroyer at (4,0)-(4,1).
+    // Post-fix it is NOT in the Nimble set and must register as a hit.
+    const outcome = fireShot(room, 'p1', { row: 3, col: 0 });
+    expect(outcome).not.toBeNull();
+    expect(outcome!.result).toBe(ShotResult.Hit);
+    const submarine = room.engine.opponentBoard.ships.find(s => s.type === ShipType.Submarine)!;
+    expect(submarine.hits.size).toBe(1);
+    expect(room.engine.opponentBoard.grid[3][0]).toBe(CellState.Hit);
+    deleteRoom(room.id);
+  });
+
+  it('same empty-water cell after Nimble fires normally as a miss (cell now targeted)', () => {
     const room = createPlayingRoom();
 
-    // First shot at (3,0): Nimble forces miss, turn=opponent
-    fireShot(room, 'p1', { row: 3, col: 0 });
+    // First shot at (5,0): Nimble forces miss, turn=opponent
+    fireShot(room, 'p1', { row: 5, col: 0 });
     expect(room.engine.currentTurn).toBe('opponent');
 
     // P2 fires miss to return turn to P1
     fireShot(room, 'p2', { row: 9, col: 9 });
 
-    // Second shot at (3,0): Nimble removed from set, normal hit on Submarine
-    // But (3,0) is now Miss on grid — isValidTarget returns false → should return null
-    // Verify isValidTarget behaviour after force-miss
-    expect(room.engine.opponentBoard.grid[3][0]).toBe(CellState.Miss);
-    const outcome2 = fireShot(room, 'p1', { row: 3, col: 0 });
-    expect(outcome2).toBeNull(); // already targeted cell
+    // (5,0) is now Miss on grid and cannot be re-targeted
+    expect(room.engine.opponentBoard.grid[5][0]).toBe(CellState.Miss);
+    const outcome2 = fireShot(room, 'p1', { row: 5, col: 0 });
+    expect(outcome2).toBeNull();
     deleteRoom(room.id);
   });
 });
@@ -273,22 +292,20 @@ describe('useAbility — ChainShot', () => {
     deleteRoom(room.id);
   });
 
-  it('ChainShot + Nimble: adjacent hits reverted; fixStaleOutcomes corrects stale Sink', () => {
-    // ChainShot at (3,0): fires (3,0),(3,1),(3,2) — all Submarine cells
-    // (3,0) and (3,1) are adjacent to P2's Destroyer → Nimble reverts both
-    // Submarine hit at (3,2) only; Sink outcome from (3,2) becomes stale → fixStaleOutcomes → Hit
+  it('ChainShot on Submarine cells adjacent to Destroyer: all hits register, Submarine sinks', () => {
+    // Regression: previously (3,0) and (3,1) were in the Nimble set (both
+    // Submarine cells adjacent to Destroyer), causing ChainShot to revert
+    // them and leaving the Submarine partially unsinkable. Post-fix, Nimble
+    // only protects empty water, so all three ChainShot hits land and the
+    // Submarine sinks.
     const room = createPlayingRoom([AbilityType.ChainShot]);
     useAbility(room, 'p1', AbilityType.ChainShot, { row: 3, col: 0 });
 
     const submarine = room.engine.opponentBoard.ships.find(s => s.type === ShipType.Submarine)!;
-    // (3,0) and (3,1) reverted to Miss; (3,2) remains Hit (not Sink — fixed)
-    expect(room.engine.opponentBoard.grid[3][0]).toBe(CellState.Miss);
-    expect(room.engine.opponentBoard.grid[3][1]).toBe(CellState.Miss);
+    expect(room.engine.opponentBoard.grid[3][0]).toBe(CellState.Hit);
+    expect(room.engine.opponentBoard.grid[3][1]).toBe(CellState.Hit);
     expect(room.engine.opponentBoard.grid[3][2]).toBe(CellState.Hit);
-    // Submarine has exactly 1 hit at (3,2), not sunk
-    expect(submarine.hits.size).toBe(1);
-    expect(submarine.hits.has(coordKey({ row: 3, col: 2 }))).toBe(true);
-    // Game is still playing (Submarine not sunk)
+    expect(submarine.hits.size).toBe(submarine.cells.length);
     expect(room.engine.phase).toBe(GamePhase.Playing);
     expect(room.engine.currentTurn).toBe('opponent');
     deleteRoom(room.id);
@@ -374,65 +391,42 @@ describe('Ability cooldown enforcement via rooms', () => {
 // ─── Full match to completion via rooms ───────────────────────────────────────
 
 describe('Full match to completion via rooms', () => {
-  it('P1 wins by sinking all P2 ships via sequential fireShots', () => {
-    // Standard placement: hits give consecutive turns, so P1 can fire all 17 without interruption
-    // BUT (3,0) and (3,1) are Nimble-adjacent — they will be forced-miss first
-    // Strategy: use (9,x) misses to get turns to fire (3,0)/(3,1) again after Nimble is cleared
+  it('P1 wins by sinking all P2 ships via sequential fireShots (no Nimble workaround)', () => {
+    // Regression for the "Nimble locks other-ship cells" bug: with the fix,
+    // all Submarine cells adjacent to the Destroyer are hittable, so no
+    // workaround is needed and the game reaches Finished cleanly.
     const room = createPlayingRoom();
 
-    // Sink Carrier, Battleship, Cruiser (rows 0-2) — no Nimble interference
-    const row0 = Array.from({ length: 5 }, (_, i) => ({ row: 0, col: i }));
-    const row1 = Array.from({ length: 4 }, (_, i) => ({ row: 1, col: i }));
-    const row2 = Array.from({ length: 3 }, (_, i) => ({ row: 2, col: i }));
+    // Carrier (0,0)-(0,4) — 5 hits, consecutive turns (no Ironclad, no Nimble here)
+    for (let c = 0; c < 5; c++) fireShot(room, 'p1', { row: 0, col: c });
 
-    // Row 0: Carrier — Ironclad doesn't protect Carrier; no Nimble there
-    // First hit at (1,0) will be Ironclad-negated (Battleship)
-    for (const coord of row0) {
-      fireShot(room, 'p1', coord);
-    }
-    // Now fire (1,0): Ironclad negates → Miss → turn=P2
-    fireShot(room, 'p1', { row: 1, col: 0 }); // negated, turn → P2
-    fireShot(room, 'p2', { row: 9, col: 9 });  // P2 miss → turn → P1
-    // Fire (1,0) again (Ironclad spent), then (1,1)-(1,3)
-    for (const coord of row1) {
-      fireShot(room, 'p1', coord); // all hits, consecutive turns
-    }
-    for (const coord of row2) {
-      fireShot(room, 'p1', coord);
-    }
+    // Battleship (1,0)-(1,3): first hit at (1,0) is Ironclad-deflected and
+    // switches the turn to P2. P2 fires a miss, then P1 fires (1,0) again
+    // (Ironclad consumed) and the remaining three cells.
+    const deflected = fireShot(room, 'p1', { row: 1, col: 0 });
+    expect(deflected!.deflected).toBe(true);
+    expect(room.engine.opponentBoard.grid[1][0]).toBe(CellState.Ship); // re-targetable
+    expect(room.engine.currentTurn).toBe('opponent');
 
-    // Submarine row 3: (3,0) and (3,1) are Nimble-adjacent → force-miss first
-    fireShot(room, 'p1', { row: 3, col: 0 }); // Nimble miss → turn=P2
-    fireShot(room, 'p2', { row: 9, col: 8 });  // P2 miss → turn=P1
-    fireShot(room, 'p1', { row: 3, col: 1 }); // Nimble miss → turn=P2
-    fireShot(room, 'p2', { row: 9, col: 7 });  // P2 miss → turn=P1
-    // Now (3,0) and (3,1) are no longer in nimbleCells; (3,0) and (3,1) are Miss on grid
-    // They're already targeted (Miss) — fire (3,2) to hit, then need (3,0)/(3,1) again via fresh cells
-    // Actually (3,0) and (3,1) are Miss on grid now → can't re-fire → Nimble cleared them
-    // Submarine needs (3,0),(3,1),(3,2): (3,0) and (3,1) are grid=Miss but ship.hits is empty
-    // This means Submarine can't be sunk via those cells — need to re-target
-    // But isValidTarget returns false for Miss cells
-    // The Submarine at (3,0)-(3,2) is partially un-hittable after Nimble miss
-    // Let's fire (3,2) to hit it, but Submarine won't be sunk (only 1/3 cells hit)
-    fireShot(room, 'p1', { row: 3, col: 2 }); // hit → consecutive turn
-    // Submarine: 1 hit, not sunk — game continues
+    fireShot(room, 'p2', { row: 9, col: 9 }); // P2 miss → back to P1
 
-    // Destroyer: fire (4,0),(4,1) — not Nimble-adjacent to itself
-    // (4,0) and (4,1) are the Destroyer itself; Nimble protects adjacent cells, not Destroyer cells
-    fireShot(room, 'p1', { row: 4, col: 0 }); // hit Destroyer
-    fireShot(room, 'p1', { row: 4, col: 1 }); // sink Destroyer
+    // Now fire through the rest of the Battleship
+    for (let c = 0; c < 4; c++) fireShot(room, 'p1', { row: 1, col: c });
 
-    // Submarine (3,0)-(3,2): only (3,2) is hittable (others are Miss from Nimble)
-    // Submarine has 1 hit — needs (3,0) and (3,1) re-hit, but they're Miss grid cells
-    // This scenario ends without sinking Submarine — game still Playing
-    // To complete: use a miss to pass to P2, then P2 needs to cooperate
-    // Actually we need a different approach for full game completion
-    // Let's just verify current state is consistent (ships remaining correct)
-    const oppBoard = room.engine.opponentBoard;
-    const sub = oppBoard.ships.find(s => s.type === ShipType.Submarine)!;
-    expect(sub.hits.size).toBe(1); // only (3,2) hit
-    expect(room.engine.phase).toBe(GamePhase.Playing); // Submarine still alive
+    // Cruiser (2,0)-(2,2)
+    for (let c = 0; c < 3; c++) fireShot(room, 'p1', { row: 2, col: c });
 
+    // Submarine (3,0)-(3,2) — (3,0) and (3,1) were previously Nimble-locked;
+    // post-fix they are hittable and the sub sinks normally.
+    for (let c = 0; c < 3; c++) fireShot(room, 'p1', { row: 3, col: c });
+
+    // Destroyer (4,0)-(4,1) — final ship; sinking triggers Finished.
+    fireShot(room, 'p1', { row: 4, col: 0 });
+    fireShot(room, 'p1', { row: 4, col: 1 });
+
+    expect(room.engine.opponentBoard.allShipsSunk()).toBe(true);
+    expect(room.engine.phase).toBe(GamePhase.Finished);
+    expect(room.engine.winner).toBe('player');
     deleteRoom(room.id);
   });
 

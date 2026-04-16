@@ -270,12 +270,12 @@ describe('CannonBarrage scripted play', () => {
 // ─── ChainShot + Nimble + fixStaleOutcomes ────────────────────────────────────
 
 describe('ChainShot + Nimble trait + fixStaleOutcomes', () => {
-  it('Nimble reverts 2 hits; stale Sink on Submarine downgraded to Hit', () => {
-    // Standard placement: Destroyer at (4,0)-(4,1)
-    // Nimble adjacent cells include (3,0) and (3,1) — both Submarine cells
-    // ChainShot at (3,0): fires (3,0),(3,1),(3,2) → all 3 hit Submarine → Sink
-    // Nimble reverts (3,0) and (3,1) → Submarine has 1 hit at (3,2) → stale Sink
-    // fixStaleOutcomes: downgrades Sink to Hit
+  it('ChainShot on Submarine cells adjacent to Destroyer: all hits register, Submarine sinks', () => {
+    // Regression for the Nimble "unsinkable ship" bug.
+    // Standard placement: Destroyer at (4,0)-(4,1), Submarine at (3,0)-(3,2).
+    // Submarine cells (3,0) and (3,1) sit next to the Destroyer. Post-fix,
+    // initNimbleCells excludes all ship cells, so Nimble must NOT interfere
+    // here. ChainShot at (3,0) fires (3,0),(3,1),(3,2) and sinks the Submarine.
     const engine = new GameEngine();
     placeAllShips(engine);
     engine.startGame();
@@ -284,18 +284,16 @@ describe('ChainShot + Nimble trait + fixStaleOutcomes', () => {
     const traitState = createTraitState();
     traitState.nimbleFirstShotAdjacent = initNimbleCells(targetBoard);
 
+    // Nimble set must not contain the Submarine cells adjacent to Destroyer.
+    expect(traitState.nimbleFirstShotAdjacent.has(coordKey({ row: 3, col: 0 }))).toBe(false);
+    expect(traitState.nimbleFirstShotAdjacent.has(coordKey({ row: 3, col: 1 }))).toBe(false);
+
     const abilityState = createAbilitySystemState([AbilityType.ChainShot]);
     const result = executeChainShot(targetBoard, { row: 3, col: 0 }, abilityState);
     expect(result).not.toBeNull();
     expect(result!.outcomes).toHaveLength(3);
 
-    const submarine = targetBoard.ships.find(s => s.type === ShipType.Submarine)!;
-
-    // Before trait processing: last outcome is Sink
-    expect(result!.outcomes[2].result).toBe(ShotResult.Sink);
-    expect(result!.outcomes[2].sunkShip).toBe(ShipType.Submarine);
-
-    // Simulate applyTraits: apply Nimble to Hit outcomes only
+    // Apply the same pipeline the store/rooms use: Nimble on Hit, Ironclad on Hit.
     for (const outcome of result!.outcomes) {
       if (outcome.result === ShotResult.Hit && processNimble(outcome.coordinate, traitState)) {
         const ship = targetBoard.getShipAt(outcome.coordinate);
@@ -305,23 +303,74 @@ describe('ChainShot + Nimble trait + fixStaleOutcomes', () => {
         outcome.sunkShip = undefined;
       }
     }
-
-    // (3,2) is Sink — Nimble only checks Hit outcomes, so Sink is untouched by Nimble
-    // fixStaleOutcomes corrects the stale Sink (Submarine has only 1 hit, not 3)
     fixStaleOutcomes(result!.outcomes, targetBoard);
 
-    // Submarine: only (3,2) hit remains
-    expect(submarine.hits.size).toBe(1);
-    expect(submarine.hits.has(coordKey({ row: 3, col: 2 }))).toBe(true);
-    // (3,0) and (3,1) reverted to Miss on grid
-    expect(targetBoard.grid[3][0]).toBe(CellState.Miss);
-    expect(targetBoard.grid[3][1]).toBe(CellState.Miss);
-    // Sink outcome downgraded to Hit by fixStaleOutcomes
-    expect(result!.outcomes[2].result).toBe(ShotResult.Hit);
-    expect(result!.outcomes[2].sunkShip).toBeUndefined();
-    // No Sink for Submarine in any outcome
+    const submarine = targetBoard.ships.find(s => s.type === ShipType.Submarine)!;
+    expect(submarine.hits.size).toBe(submarine.cells.length);
+    // Final outcome is Sink because the Submarine was fully hit.
     const sinkOutcome = result!.outcomes.find(o => o.sunkShip === ShipType.Submarine);
-    expect(sinkOutcome).toBeUndefined();
+    expect(sinkOutcome).toBeDefined();
+    expect(sinkOutcome!.result).toBe(ShotResult.Sink);
+  });
+
+  it('fixStaleOutcomes downgrades a stale Sink when Ironclad deflects a Battleship ChainShot hit', () => {
+    // Scenario: Battleship has 3 pre-existing hits (Ironclad already consumed
+    // by those earlier hits means armor is used — simulated here by pre-hit
+    // mutations on the engine). ChainShot lands the 4th hit → outcome=Sink.
+    // We then simulate Ironclad armor re-armed (traitState fresh) to force a
+    // stale-Sink case: armor revokes the hit → Battleship still has 3 hits,
+    // fixStaleOutcomes must downgrade Sink → Hit.
+    const engine = new GameEngine();
+    placeAllShips(engine);
+    engine.startGame();
+
+    const targetBoard = engine.opponentBoard;
+    const battleship = targetBoard.ships.find(s => s.type === ShipType.Battleship)!;
+
+    // Pre-hit (1,1), (1,2), (1,3) — Battleship at (1,0)-(1,3); armor
+    // already spent by those hits in a real game, but for this unit test we
+    // leave the trait state fresh so Ironclad negates the upcoming (1,0) hit.
+    targetBoard.receiveShot({ row: 1, col: 1 });
+    targetBoard.receiveShot({ row: 1, col: 2 });
+    targetBoard.receiveShot({ row: 1, col: 3 });
+    expect(battleship.hits.size).toBe(3);
+
+    const traitState = createTraitState();
+    // Give the Battleship fresh armor for the test.
+    const abilityState = createAbilitySystemState([AbilityType.ChainShot]);
+    const result = executeChainShot(targetBoard, { row: 1, col: 0 }, abilityState);
+    expect(result).not.toBeNull();
+    // ChainShot at (1,0) fires (1,0),(1,1)...but (1,1)-(1,3) are already Hit;
+    // ChainShot skips or records them — we only care that (1,0) becomes Sink
+    // on the Battleship.
+    const hitAtZero = result!.outcomes.find(o => o.coordinate.row === 1 && o.coordinate.col === 0);
+    expect(hitAtZero).toBeDefined();
+    expect(hitAtZero!.result).toBe(ShotResult.Sink);
+    expect(hitAtZero!.sunkShip).toBe(ShipType.Battleship);
+
+    // Apply Ironclad to Hit/Sink outcomes at (1,0): negates.
+    for (const outcome of result!.outcomes) {
+      if (
+        (outcome.result === ShotResult.Hit || outcome.result === ShotResult.Sink) &&
+        processIronclad(targetBoard, outcome.coordinate, traitState)
+      ) {
+        const ship = targetBoard.getShipAt(outcome.coordinate);
+        if (ship) ship.hits.delete(coordKey(outcome.coordinate));
+        targetBoard.grid[outcome.coordinate.row][outcome.coordinate.col] = CellState.Ship;
+        outcome.result = ShotResult.Miss;
+        outcome.sunkShip = undefined;
+        outcome.deflected = true;
+      }
+    }
+
+    fixStaleOutcomes(result!.outcomes, targetBoard);
+
+    // Battleship has 3 hits (Ironclad removed the (1,0) hit) — NOT sunk.
+    expect(battleship.hits.size).toBe(3);
+    expect(targetBoard.grid[1][0]).toBe(CellState.Ship); // re-targetable
+    // No remaining Sink outcome for Battleship
+    const sink = result!.outcomes.find(o => o.sunkShip === ShipType.Battleship);
+    expect(sink).toBeUndefined();
   });
 });
 
@@ -465,7 +514,7 @@ describe('BoardingParty intel without firing', () => {
 // ─── Nimble mid-game ──────────────────────────────────────────────────────────
 
 describe('Nimble trait mid-game scripted play', () => {
-  it('first shot on adjacent cell forced to miss; same cell second attempt not forced', () => {
+  it('first shot on empty-water adjacent cell forced to miss; same cell second attempt not forced', () => {
     const engine = new GameEngine();
     placeAllShips(engine);
     engine.startGame();
@@ -473,13 +522,30 @@ describe('Nimble trait mid-game scripted play', () => {
     const traitState = createTraitState();
     traitState.nimbleFirstShotAdjacent = initNimbleCells(engine.opponentBoard);
 
-    // (3,0) is adjacent to Destroyer at (4,0) — Nimble forces miss
-    const forced = processNimble({ row: 3, col: 0 }, traitState);
+    // (5,0) is empty water adjacent to Destroyer at (4,0) — Nimble forces miss
+    const forced = processNimble({ row: 5, col: 0 }, traitState);
     expect(forced).toBe(true);
 
     // Second attempt at same cell — removed from set, not forced
-    const forced2 = processNimble({ row: 3, col: 0 }, traitState);
+    const forced2 = processNimble({ row: 5, col: 0 }, traitState);
     expect(forced2).toBe(false);
+  });
+
+  it('ship cells adjacent to the Destroyer are NOT protected by Nimble (post-fix behavior)', () => {
+    // Regression: previously Nimble locked another ship's adjacent cells as
+    // Miss permanently, making that ship unsinkable. Post-fix, Nimble only
+    // kicks in on empty water.
+    const engine = new GameEngine();
+    placeAllShips(engine);
+    engine.startGame();
+
+    const traitState = createTraitState();
+    traitState.nimbleFirstShotAdjacent = initNimbleCells(engine.opponentBoard);
+
+    // (3,0) is a Submarine cell adjacent to Destroyer at (4,0). Post-fix it
+    // is NOT in the Nimble set.
+    const forced = processNimble({ row: 3, col: 0 }, traitState);
+    expect(forced).toBe(false);
   });
 
   it('non-adjacent cell is not forced', () => {

@@ -73,6 +73,11 @@ export interface ShotOutcome {
   result: ShotResult;
   coordinate: Coordinate;
   sunkShip?: ShipType;
+  // True when the shot landed on a ship but was absorbed by a defensive
+  // trait (currently Ironclad armor on the Battleship). UI uses this to
+  // render a ricochet marker and play a deflection sound so the player
+  // knows the shot did something even though `result` is downgraded to Miss.
+  deflected?: boolean;
 }
 
 export interface GameState {
