@@ -652,12 +652,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-053
 - **title:** Reproduce and fix hit-recording / ability-conflict bugs found by the harness
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** shared, server, client
 - **complexity:** medium
 - **depends_on:** [TASK-049, TASK-051]
 - **description:** Any hit-recording or ability-conflict bugs surfaced by TASK-049 (UI-level) or TASK-051 (engine-level) are root-caused and fixed here. Scope limited to bugs the harness actually reproduces — do not guess. The tests that exposed each bug become the regression guard. If no bugs reproduce, close this task with a note and keep the harness as the ongoing safety net.
+- **pr:** https://github.com/g-chappell/battleships/pull/66
+- **completed:** 2026-04-16
 
 ---
 
