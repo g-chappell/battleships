@@ -76,7 +76,7 @@ describe('EasyAI', () => {
   });
 
   it('EasyAI does not implement pickAbility', () => {
-    const ai = new EasyAI();
+    const ai: import('../AI').AIPlayer = new EasyAI();
     expect(ai.pickAbility).toBeUndefined();
   });
 });
