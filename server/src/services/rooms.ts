@@ -10,6 +10,7 @@ import {
   CellState,
   GamePhase,
   ShotResult,
+  ShipType,
   type ShipPlacement,
   type Coordinate,
   type ShotOutcome,
@@ -28,12 +29,16 @@ import {
   executeChainShot,
   executeSpyglass,
   executeBoardingParty,
+  executeSummonKraken,
+  resolveKrakenStrike,
   fixStaleOutcomes,
   type AbilitySystemState,
 } from '../../../shared/src/abilities.ts';
 import {
   createTraitState,
-  processIronclad,
+  applyDeflectionTrait,
+  processDepthCharge,
+  resolveDepthChargeShots,
   type TraitState,
 } from '../../../shared/src/traits.ts';
 import type {
@@ -58,6 +63,9 @@ export interface RoomPlayer {
   hasPlaced: boolean;
   isConnected: boolean;
   disconnectedAt?: number;
+  // Kraken summoning ritual. Number of own-turns the caster still owes
+  // before the strike resolves. null = no ritual active.
+  ritualTurnsRemaining?: number | null;
 }
 
 export interface GameRoom {
@@ -231,31 +239,45 @@ export function fireShot(
   const expectedTurn = isPlayer1 ? 'player' : 'opponent';
   if (room.engine.currentTurn !== expectedTurn) return null;
 
+  const self = room.players[playerIdx]!;
   const opponent = room.players[isPlayer1 ? 1 : 0];
   if (!opponent || !opponent.traits) return null;
+
+  // Ritual in progress — caster cannot fire.
+  if (self.ritualTurnsRemaining && self.ritualTurnsRemaining > 0) return null;
+
+  const targetBoard = isPlayer1 ? room.engine.opponentBoard : room.engine.playerBoard;
+  const attackerBoard = isPlayer1 ? room.engine.playerBoard : room.engine.opponentBoard;
 
   const outcome = isPlayer1
     ? room.engine.playerShoot(coord)
     : room.engine.opponentShoot(coord);
   if (!outcome) return null;
 
-  // Ironclad
+  // Unified deflection: Coastal Cover > Ironclad
   if (outcome.result === ShotResult.Hit) {
-    const negated = processIronclad(
-      isPlayer1 ? room.engine.opponentBoard : room.engine.playerBoard,
-      coord,
-      opponent.traits
-    );
-    if (negated) {
-      const board = isPlayer1 ? room.engine.opponentBoard : room.engine.playerBoard;
-      const ship = board.getShipAt(coord);
+    const source = applyDeflectionTrait(targetBoard, coord, opponent.traits);
+    if (source) {
+      const ship = targetBoard.getShipAt(coord);
       if (ship) ship.hits.delete(coordKey(coord));
-      board.grid[coord.row][coord.col] = CellState.Ship; // re-targetable
+      targetBoard.grid[coord.row][coord.col] = CellState.Ship; // re-targetable
       outcome.result = ShotResult.Miss;
       outcome.sunkShip = undefined;
       outcome.deflected = true;
+      outcome.deflectionSource = source;
       room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
       if (!isPlayer1) room.engine.turnCount++;
+    }
+  }
+
+  // Depth Charge retaliation — if the undeflected hit struck opponent's Destroyer.
+  if (
+    !outcome.deflected &&
+    (outcome.result === ShotResult.Hit || outcome.result === ShotResult.Sink)
+  ) {
+    const triggered = processDepthCharge(targetBoard, coord, opponent.traits);
+    if (triggered) {
+      outcome.depthChargeShots = resolveDepthChargeShots(attackerBoard, 6);
     }
   }
 
@@ -267,7 +289,6 @@ export function fireShot(
   }
 
   // Tick own ability cooldowns
-  const self = room.players[playerIdx]!;
   if (self.abilities) tickCooldowns(self.abilities);
 
   room.lastActivityAt = Date.now();
@@ -298,21 +319,39 @@ export function useAbility(
   const opponent = room.players[opponentIdx];
   const opponentTraits = opponent?.traits ?? null;
 
-  // Apply Ironclad/Nimble traits to ability-based shots
+  // Block actions while the caster is in a Kraken ritual.
+  if (player.ritualTurnsRemaining && player.ritualTurnsRemaining > 0) {
+    return { ok: false };
+  }
+
+  // Apply Coastal Cover / Ironclad / Depth Charge to ability-based shots.
+  const attackerBoard = isPlayer1 ? room.engine.playerBoard : room.engine.opponentBoard;
   const applyTraits = (outcomes: ShotOutcome[]) => {
     if (!opponentTraits) return;
+    let depthChargeFired = false;
     for (const outcome of outcomes) {
       const c = outcome.coordinate;
       if (outcome.result === ShotResult.Hit) {
-        const negated = processIronclad(targetBoard, c, opponentTraits);
-        if (negated) {
+        const source = applyDeflectionTrait(targetBoard, c, opponentTraits);
+        if (source) {
           const ship = targetBoard.getShipAt(c);
           if (ship) ship.hits.delete(coordKey(c));
           targetBoard.grid[c.row][c.col] = CellState.Ship;
           outcome.result = ShotResult.Miss;
           outcome.sunkShip = undefined;
           outcome.deflected = true;
+          outcome.deflectionSource = source;
+          continue;
         }
+      }
+      // Depth Charge — one retaliation per batch, first Destroyer hit.
+      if (
+        !depthChargeFired &&
+        (outcome.result === ShotResult.Hit || outcome.result === ShotResult.Sink) &&
+        processDepthCharge(targetBoard, c, opponentTraits)
+      ) {
+        depthChargeFired = true;
+        outcome.depthChargeShots = resolveDepthChargeShots(attackerBoard, 6);
       }
     }
   };
@@ -399,10 +438,73 @@ export function useAbility(
       if (!isPlayer1) room.engine.turnCount++;
       break;
     }
+    case AbilityType.SummonKraken: {
+      const ritual = executeSummonKraken(player.abilities);
+      if (!ritual) return { ok: false };
+      // Start the ritual — caster forfeits their next 2 own-turns.
+      player.ritualTurnsRemaining = ritual.turnsRemaining;
+      room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
+      if (!isPlayer1) room.engine.turnCount++;
+      break;
+    }
   }
 
   room.lastActivityAt = Date.now();
   return { ok: true, sonarShipDetected };
+}
+
+/**
+ * Advance the caster's Kraken ritual by one turn. Caller should invoke this
+ * whenever it becomes the caster's turn and they cannot fire (ritual active).
+ * When the counter hits 0, the Kraken strike resolves.
+ *
+ * Returns:
+ *   - { status: 'none' } if no ritual active,
+ *   - { status: 'ticked' } if a turn was consumed (ritual continues),
+ *   - { status: 'strike', strike } on resolution (strike may have sunkShip=null
+ *     when every unsunk ship is warded).
+ */
+export type RitualAdvanceResult =
+  | { status: 'none' }
+  | { status: 'ticked' }
+  | { status: 'strike'; sunkShipType: ShipType | null; cells: Coordinate[] };
+
+export function advanceRitual(room: GameRoom, playerId: string): RitualAdvanceResult {
+  if (room.engine.phase !== GamePhase.Playing) return { status: 'none' };
+  const playerIdx = room.players.findIndex((p) => p && p.id === playerId);
+  if (playerIdx < 0) return { status: 'none' };
+  const isPlayer1 = playerIdx === 0;
+  const expectedTurn = isPlayer1 ? 'player' : 'opponent';
+  if (room.engine.currentTurn !== expectedTurn) return { status: 'none' };
+  const player = room.players[playerIdx]!;
+  const turns = player.ritualTurnsRemaining ?? 0;
+  if (turns <= 0) return { status: 'none' };
+
+  const remaining = turns - 1;
+  if (remaining > 0) {
+    player.ritualTurnsRemaining = remaining;
+    room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
+    if (!isPlayer1) room.engine.turnCount++;
+    room.lastActivityAt = Date.now();
+    return { status: 'ticked' };
+  }
+
+  // Resolve strike against the defender's board (opposite of caster).
+  const targetBoard = isPlayer1 ? room.engine.opponentBoard : room.engine.playerBoard;
+  const strike = resolveKrakenStrike(targetBoard, new Set([ShipType.Cruiser]));
+  player.ritualTurnsRemaining = null;
+  room.engine.currentTurn = isPlayer1 ? 'opponent' : 'player';
+  if (!isPlayer1) room.engine.turnCount++;
+  if (targetBoard.allShipsSunk()) {
+    room.engine.phase = GamePhase.Finished;
+    room.engine.winner = isPlayer1 ? 'player' : 'opponent';
+    room.endedAt = Date.now();
+  }
+  room.lastActivityAt = Date.now();
+  if (strike) {
+    return { status: 'strike', sunkShipType: strike.sunkShip.type, cells: strike.cells };
+  }
+  return { status: 'strike', sunkShipType: null, cells: [] };
 }
 
 export function resignPlayer(room: GameRoom, playerId: string): void {
