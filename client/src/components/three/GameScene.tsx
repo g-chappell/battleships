@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Text } from '@react-three/drei';
 import { CoastalTerrain } from './CoastalTerrain';
@@ -6,6 +6,8 @@ import { SCENE, COLORS } from '../../styles/tokens';
 import { BoardGrid } from './BoardGrid';
 import { ShipModel } from './ShipModel';
 import { KrakenTentacle, SeaSerpent, Mermaid } from './Creatures';
+import { DepthChargeBurst } from './DepthChargeBurst';
+import { KrakenStrike } from './KrakenStrike';
 import { useGameStore } from '../../store/gameStore';
 import { useSocketStore } from '../../store/socketStore';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
@@ -14,6 +16,7 @@ import {
   Orientation,
   type Coordinate,
   type Ship,
+  type ShotOutcome,
 } from '@shared/index';
 
 const BOARD_SPACING = 11.5;
@@ -31,6 +34,7 @@ export function GameScene() {
   const opponentDeflectedCoord = useGameStore((s) => s.opponentDeflectedCoord);
   const playerDeflectedSource = useGameStore((s) => s.playerDeflectedSource);
   const opponentDeflectedSource = useGameStore((s) => s.opponentDeflectedSource);
+  const lastDepthCharge = useGameStore((s) => s.lastDepthCharge);
   const placeShip = useGameStore((s) => s.placeShip);
   const playerFire = useGameStore((s) => s.playerFire);
   const useAbility = useGameStore((s) => s.useAbility);
@@ -128,6 +132,30 @@ export function GameScene() {
       return () => clearTimeout(id);
     }
   }, [ritualTurns, krakenStrikeResult, gameMode, engine.phase, engine.currentTurn, isAnimating, processAITurn, setAnimating]);
+
+  // Animation snapshots: we take a local copy of the store signals so the
+  // animation component can finish even after the store-level flag is cleared
+  // by the ritual driver / next shot.
+  const [krakenAnim, setKrakenAnim] = useState<{ cells: Coordinate[]; id: number } | null>(null);
+  const [depthAnim, setDepthAnim] = useState<
+    { onBoard: 'player' | 'opponent'; shots: ShotOutcome[]; id: number } | null
+  >(null);
+
+  useEffect(() => {
+    if (krakenStrikeResult) {
+      setKrakenAnim({ cells: krakenStrikeResult.cells, id: Date.now() });
+    }
+  }, [krakenStrikeResult]);
+
+  useEffect(() => {
+    if (lastDepthCharge && lastDepthCharge.shots.length > 0) {
+      setDepthAnim({
+        onBoard: lastDepthCharge.onBoard,
+        shots: lastDepthCharge.shots,
+        id: Date.now(),
+      });
+    }
+  }, [lastDepthCharge]);
 
   const isPlacing = engine.phase === GamePhase.Placement;
   const isPlaying = engine.phase === GamePhase.Playing;
@@ -283,6 +311,14 @@ export function GameScene() {
               if (c.type === 'serpent') return <SeaSerpent key={c.id} cell={c.cell} spawnedAt={c.spawnedAt} />;
               return <Mermaid key={c.id} cell={c.cell} spawnedAt={c.spawnedAt} />;
             })}
+            {/* Depth Charge retaliation landing on player's board (AI's Destroyer hit player) */}
+            {depthAnim && depthAnim.onBoard === 'player' && (
+              <DepthChargeBurst
+                key={`dc-p-${depthAnim.id}`}
+                shots={depthAnim.shots}
+                onComplete={() => setDepthAnim(null)}
+              />
+            )}
           </group>
 
           {/* Opponent board (right) — only show during play */}
@@ -325,6 +361,22 @@ export function GameScene() {
                 if (c.type === 'serpent') return <SeaSerpent key={c.id} cell={c.cell} spawnedAt={c.spawnedAt} />;
                 return <Mermaid key={c.id} cell={c.cell} spawnedAt={c.spawnedAt} />;
               })}
+              {/* Depth Charge retaliation landing on opponent's board (player's Destroyer hit) */}
+              {depthAnim && depthAnim.onBoard === 'opponent' && (
+                <DepthChargeBurst
+                  key={`dc-o-${depthAnim.id}`}
+                  shots={depthAnim.shots}
+                  onComplete={() => setDepthAnim(null)}
+                />
+              )}
+              {/* Kraken strike — cast by player, resolves on opponent board */}
+              {krakenAnim && (
+                <KrakenStrike
+                  key={`kraken-${krakenAnim.id}`}
+                  cells={krakenAnim.cells}
+                  onComplete={() => setKrakenAnim(null)}
+                />
+              )}
             </group>
           )}
 
