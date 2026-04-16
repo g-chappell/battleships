@@ -186,6 +186,7 @@ docker compose -f docker-compose.prod.yml down              # stop all (keeps da
 - **Multiplayer E2E:** poll `getMultiplayerState().gameState.phase` (socketStore, synchronous) not `getPhase()` (gameStore, React-dependent). Use `resignViaSocket()` for deterministic wins — server-side Ironclad/Nimble traits make shot-based MP assertions non-deterministic. Wrap every paired `waitForFunction` across two pages in `Promise.all([...])` or sequential waits will compound past the test timeout.
 - Playwright tsconfig requires `"lib": ["ES2022", "DOM"]` — Playwright's type definitions reference `HTMLElement`, `SVGElement`, etc. even though tests run in Node.js.
 - When adding a new Playwright CI job, always include at least one smoke test in `testDir` — an empty test directory causes `playwright test` to exit code 1 and fail CI.
+- Both `ci` and `e2e` are required status checks on `main`. Auto-merge will not fire until both pass. If an e2e failure appears stuck or the job is skipped, check that the `e2e` context is listed in the branch protection required checks (`gh api repos/g-chappell/battleships/branches/main/protection`).
 
 ## MCP Servers
 - **shadcn** (`.mcp.json`) — component discovery & installation via `npx shadcn@latest mcp`. Lets Claude Code search, browse, and install shadcn/ui components conversationally.
