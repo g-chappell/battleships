@@ -681,11 +681,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!ritual) return false;
     playAbilityActivate();
     // Ritual start consumes this turn — switch to opponent immediately.
+    // Do NOT set isAnimating here; the ritual-driving useEffect in GameScene
+    // drives the full lifecycle based on turn + ritualTurns transitions and
+    // uses isAnimating only during AI shot animation.
     engine.currentTurn = 'opponent';
     engine.turnCount++;
     set((s) => ({
       playerRitualTurnsRemaining: ritual.turnsRemaining,
-      isAnimating: true,
       spAbilitiesUsed: { ...s.spAbilitiesUsed, [AbilityType.SummonKraken]: (s.spAbilitiesUsed[AbilityType.SummonKraken] ?? 0) + 1 },
       tick: s.tick + 1,
     }));
@@ -693,9 +695,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   /**
-   * Advance the player's Kraken ritual by one turn. Called by the UI when
-   * it's the player's turn AND a ritual is in progress — they cannot fire,
-   * so we consume the turn here. When turns reach 0 the Kraken strikes.
+   * Advance the player's Kraken ritual by one turn. Called by the ritual-
+   * driving useEffect in GameScene when it's the player's turn AND a ritual
+   * is in progress — they cannot fire, so we consume the turn here. When
+   * turns reach 0 the Kraken strikes.
    *
    * Returns true if a tick occurred (turn consumed).
    */
@@ -711,7 +714,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       engine.turnCount++;
       set((s) => ({
         playerRitualTurnsRemaining: remaining,
-        isAnimating: true,
         tick: s.tick + 1,
       }));
       return true;
@@ -727,7 +729,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set((s) => ({
       playerRitualTurnsRemaining: null,
       krakenStrikeResult: strike,
-      isAnimating: true,
       tick: s.tick + 1,
     }));
     return true;
