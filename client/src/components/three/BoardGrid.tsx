@@ -42,6 +42,10 @@ interface BoardGridProps {
   isValidPlacement?: boolean;
   position?: [number, number, number];
   sonarZones?: SonarZone[];
+  // Coordinate of the most recently Ironclad-deflected shot on this board.
+  // Rendered as a ricochet spark so the player gets visual feedback even
+  // though the cell is still Ship (targetable again next turn).
+  deflectedCoord?: Coordinate | null;
 }
 
 export function BoardGrid({
@@ -54,6 +58,7 @@ export function BoardGrid({
   isValidPlacement = true,
   position = [0, 0, 0],
   sonarZones = [],
+  deflectedCoord = null,
 }: BoardGridProps) {
   const groupRef = useRef<Group>(null);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
@@ -263,6 +268,18 @@ export function BoardGrid({
           return null;
         })
       )}
+
+      {/* Ironclad deflection marker — pulsing armor ring + spark */}
+      {deflectedCoord && (
+        <DeflectMarker
+          key={`deflect-${deflectedCoord.row}-${deflectedCoord.col}`}
+          position={[
+            GRID_OFFSET + deflectedCoord.col * CELL_SIZE,
+            0.1,
+            GRID_OFFSET + deflectedCoord.row * CELL_SIZE,
+          ]}
+        />
+      )}
     </group>
   );
 }
@@ -443,6 +460,71 @@ function MissMarker({ position }: { position: [number, number, number] }) {
         <sphereGeometry args={[0.05, 6, 6]} />
         <meshStandardMaterial color={SCENE.missDroplet} transparent opacity={0.4} />
       </mesh>
+    </group>
+  );
+}
+
+function DeflectMarker({ position }: { position: [number, number, number] }) {
+  const ringRef = useRef<Mesh>(null);
+  const sparkRef = useRef<Mesh>(null);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (ringRef.current) {
+      ringRef.current.rotation.z = t * 2.5;
+      const pulse = 0.85 + Math.sin(t * 4) * 0.15;
+      ringRef.current.scale.setScalar(pulse);
+    }
+    if (sparkRef.current) {
+      sparkRef.current.scale.setScalar(0.7 + Math.sin(t * 8) * 0.3);
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* Armor plate ring — rotates slowly */}
+      <mesh ref={ringRef} position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.22, 0.38, 20]} />
+        <meshStandardMaterial
+          color={SCENE.deflectRing}
+          emissive={SCENE.deflectRingEmissive}
+          emissiveIntensity={0.8}
+          transparent
+          opacity={0.85}
+          side={2}
+        />
+      </mesh>
+      {/* Central spark — pulses */}
+      <mesh ref={sparkRef} position={[0, 0.15, 0]}>
+        <octahedronGeometry args={[0.12, 0]} />
+        <meshStandardMaterial
+          color={SCENE.deflectCore}
+          emissive={SCENE.deflectCoreEmissive}
+          emissiveIntensity={1.2}
+          transparent
+          opacity={0.95}
+        />
+      </mesh>
+      {/* Streaks: four small triangles radiating outward */}
+      {[0, 1, 2, 3].map((i) => {
+        const ang = (i / 4) * Math.PI * 2;
+        return (
+          <mesh
+            key={i}
+            position={[Math.cos(ang) * 0.28, 0.1, Math.sin(ang) * 0.28]}
+            rotation={[0, ang, 0]}
+          >
+            <coneGeometry args={[0.04, 0.18, 3]} />
+            <meshStandardMaterial
+              color={SCENE.deflectCore}
+              emissive={SCENE.deflectCoreEmissive}
+              emissiveIntensity={1}
+              transparent
+              opacity={0.8}
+            />
+          </mesh>
+        );
+      })}
     </group>
   );
 }

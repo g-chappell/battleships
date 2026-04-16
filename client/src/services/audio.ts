@@ -403,6 +403,59 @@ export function playDefeatTheme() {
   });
 }
 
+// === RICOCHET === Metallic ping + brief shimmer for Ironclad-deflected shots
+export function playRicochet() {
+  const ctx = getContext();
+  const now = ctx.currentTime;
+
+  // Sharp metal "ting" — high triangle wave, very short
+  const tingGain = ctx.createGain();
+  tingGain.connect(ctx.destination);
+  tingGain.gain.setValueAtTime(0, now);
+  tingGain.gain.linearRampToValueAtTime(vol() * 0.45, now + 0.01);
+  tingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+  const ting = ctx.createOscillator();
+  ting.type = 'triangle';
+  ting.frequency.setValueAtTime(2200, now);
+  ting.frequency.exponentialRampToValueAtTime(1400, now + 0.3);
+  ting.connect(tingGain);
+  ting.start(now);
+  ting.stop(now + 0.35);
+
+  // Secondary lower ring for armor-plate resonance
+  const ringGain = ctx.createGain();
+  ringGain.connect(ctx.destination);
+  ringGain.gain.setValueAtTime(vol() * 0.22, now + 0.02);
+  ringGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+  const ring = ctx.createOscillator();
+  ring.type = 'triangle';
+  ring.frequency.setValueAtTime(800, now + 0.02);
+  ring.frequency.exponentialRampToValueAtTime(420, now + 0.5);
+  ring.connect(ringGain);
+  ring.start(now + 0.02);
+  ring.stop(now + 0.6);
+
+  // Quick "whiz" of filtered noise for spark streak
+  const sparkGain = ctx.createGain();
+  sparkGain.connect(ctx.destination);
+  sparkGain.gain.setValueAtTime(vol() * 0.2, now);
+  sparkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+  const sparkFilter = ctx.createBiquadFilter();
+  sparkFilter.type = 'bandpass';
+  sparkFilter.Q.value = 3;
+  sparkFilter.frequency.setValueAtTime(3200, now);
+  sparkFilter.frequency.exponentialRampToValueAtTime(1800, now + 0.2);
+  sparkFilter.connect(sparkGain);
+
+  const sparkSrc = ctx.createBufferSource();
+  sparkSrc.buffer = makeNoiseBuffer(ctx, 0.2, 3);
+  sparkSrc.connect(sparkFilter);
+  sparkSrc.start(now);
+}
+
 // === ABILITY ACTIVATE === Rising synth sweep
 export function playAbilityActivate() {
   const ctx = getContext();

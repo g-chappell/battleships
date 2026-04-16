@@ -18,6 +18,7 @@ import {
   playHitExplosion,
   playWaterSplash,
   playShipSinking,
+  playRicochet,
   startAmbientLoop,
   stopAmbientLoop,
   isAmbientRunning,
@@ -152,7 +153,10 @@ export function GamePage() {
     if (!lastOutcome || !isAnimating) return;
     playCannonFire();
     const sfxTimer = setTimeout(() => {
-      if (lastOutcome.result === ShotResult.Sink) {
+      if (lastOutcome.deflected) {
+        // Ironclad armor absorbed the hit — ricochet rather than explosion
+        playRicochet();
+      } else if (lastOutcome.result === ShotResult.Sink) {
         playShipSinking();
       } else if (lastOutcome.result === ShotResult.Hit) {
         playHitExplosion();

@@ -70,6 +70,12 @@ export const SCENE = {
   missDroplet: '#5dade2',
   missDropletAlt: '#3498db',
 
+  // Ironclad deflection marker (armor plating + spark)
+  deflectRing: '#d4a040',
+  deflectRingEmissive: '#ff8800',
+  deflectCore: '#e8dcc8',
+  deflectCoreEmissive: '#ffcc66',
+
   // Coastal terrain
   terrainSand: '#8a6a44',
   terrainDirt: '#5a4030',

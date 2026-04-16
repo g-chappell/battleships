@@ -110,6 +110,43 @@ describe('Traits', () => {
       const forced2 = processNimble({ row: 4, col: 5 }, state);
       expect(forced2).toBe(false);
     });
+
+    it('excludes cells belonging to OTHER ships adjacent to the Destroyer', () => {
+      // Regression: Nimble used to include other ships' cells, which caused
+      // them to be permanently locked as Miss when fired upon, making the
+      // ship unsinkable. Ensure only empty-water neighbours are protected.
+      const board = new Board();
+      // Submarine occupies (3,5)-(3,7); Destroyer occupies (4,5)-(4,6).
+      // Submarine cell (3,5) and (3,6) are orthogonally adjacent to the Destroyer.
+      placeShip(board, ShipType.Submarine, 3, 5);
+      placeShip(board, ShipType.Destroyer, 4, 5);
+
+      const nimbleCells = initNimbleCells(board);
+
+      // Ship cells must NOT be in the Nimble set — they are legitimate targets.
+      expect(nimbleCells.has(coordKey({ row: 3, col: 5 }))).toBe(false);
+      expect(nimbleCells.has(coordKey({ row: 3, col: 6 }))).toBe(false);
+      // Empty-water cells still protected.
+      expect(nimbleCells.has(coordKey({ row: 5, col: 5 }))).toBe(true);
+      expect(nimbleCells.has(coordKey({ row: 5, col: 6 }))).toBe(true);
+      expect(nimbleCells.has(coordKey({ row: 4, col: 4 }))).toBe(true);
+      expect(nimbleCells.has(coordKey({ row: 4, col: 7 }))).toBe(true);
+    });
+
+    it('still includes empty-water cells adjacent to the Destroyer', () => {
+      const board = new Board();
+      placeShip(board, ShipType.Destroyer, 5, 5);
+
+      const nimbleCells = initNimbleCells(board);
+      expect(nimbleCells.size).toBeGreaterThan(0);
+      // All entries must be empty cells (no ships placed other than Destroyer)
+      for (const key of nimbleCells) {
+        expect(board.getShipAt({
+          row: Number(key.split(',')[0]),
+          col: Number(key.split(',')[1]),
+        })).toBeUndefined();
+      }
+    });
   });
 
   describe('Swift (Cruiser)', () => {

@@ -31,7 +31,7 @@ if (import.meta.env.DEV) {
       getOpponentShipsSunk: () => number;
       isAnimating: () => boolean;
       isPlayerTurn: () => boolean;
-      fireAndAdvance: (row: number, col: number) => { result: string; sunkShip: string | null } | null;
+      fireAndAdvance: (row: number, col: number) => { result: string; sunkShip: string | null; deflected: boolean } | null;
       // ── Ability testing helpers (TASK-049) ────────────────────────────────
       /** Replace playerAbilities with all 7 ability types, zero cooldown, unlimited uses. */
       injectAllAbilities: () => void;
@@ -169,7 +169,11 @@ if (import.meta.env.DEV) {
         // Final tick to ensure React re-renders with the latest engine state
         useGameStore.setState((s) => ({ isAnimating: false, tick: s.tick + 1 }));
 
-        return { result: outcome.result, sunkShip: outcome.sunkShip ?? null };
+        return {
+          result: outcome.result,
+          sunkShip: outcome.sunkShip ?? null,
+          deflected: outcome.deflected ?? false,
+        };
       },
 
       // ── Ability testing helpers ─────────────────────────────────────────
