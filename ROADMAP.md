@@ -782,7 +782,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-063
 - **title:** Admin page scaffold (gated route with sidebar)
-- **status:** in-progress
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/83
+- **completed:** 2026-04-17
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
