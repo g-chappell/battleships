@@ -5,17 +5,29 @@ import type { Server } from 'http';
 import type { AddressInfo } from 'net';
 
 // vi.hoisted runs before vi.mock factories (which are hoisted to top of file)
-const { mockUser } = vi.hoisted(() => ({
-  mockUser: {
-    findFirst: vi.fn(),
-    findUnique: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-  },
-}));
+const { mockUser, mockTxUser, mockTxSecQ, mockTransaction } = vi.hoisted(() => {
+  const mockTxUser = { create: vi.fn() };
+  const mockTxSecQ = { createMany: vi.fn() };
+  const mockTransaction = vi.fn().mockImplementation((fn: (tx: any) => any) =>
+    fn({ user: mockTxUser, securityQuestion: mockTxSecQ })
+  );
+  return {
+    mockUser: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    mockTxUser,
+    mockTxSecQ,
+    mockTransaction,
+  };
+});
 
 vi.mock('../services/db.ts', () => ({
-  prisma: { user: mockUser },
+  prisma: {
+    user: mockUser,
+    $transaction: mockTransaction,
+  },
 }));
 
 vi.mock('bcryptjs', () => ({
@@ -53,26 +65,37 @@ afterAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Default: hash returns a predictable value
+  // Default: hash returns predictable values
   vi.mocked(bcryptjs.hash).mockResolvedValue('$hashed$' as never);
+  // Default: transaction creates user successfully
+  mockTxUser.create.mockResolvedValue({
+    id: 'user-123',
+    email: 'test@example.com',
+    username: 'testuser',
+  });
+  mockTxSecQ.createMany.mockResolvedValue({ count: 2 });
+  // Restore transaction default implementation after vi.clearAllMocks
+  mockTransaction.mockImplementation((fn: (tx: any) => any) =>
+    fn({ user: mockTxUser, securityQuestion: mockTxSecQ })
+  );
 });
+
+// Valid security questions payload for reuse
+const validSqs = [
+  { questionKey: 'first_pet', answer: 'Fluffy' },
+  { questionKey: 'birth_city', answer: 'London' },
+];
 
 // ─── POST /auth/register ──────────────────────────────────────────────────────
 
 describe('POST /auth/register', () => {
   it('creates a user and returns 201 with token, role, and user on success', async () => {
     mockUser.findFirst.mockResolvedValue(null);
-    mockUser.create.mockResolvedValue({
-      id: 'user-123',
-      email: 'test@example.com',
-      username: 'testuser',
-      role: 'user',
-    });
 
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'password123' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(201);
@@ -84,32 +107,64 @@ describe('POST /auth/register', () => {
 
   it('hashes the password with cost factor 12 and stores the hash', async () => {
     mockUser.findFirst.mockResolvedValue(null);
-    mockUser.create.mockResolvedValue({
-      id: 'user-123',
-      email: 'test@example.com',
-      username: 'testuser',
-      role: 'user',
-    });
 
     await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'mypassword' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'mypassword', securityQuestions: validSqs }),
     });
 
     expect(bcryptjs.hash).toHaveBeenCalledWith('mypassword', 12);
-    expect(mockUser.create).toHaveBeenCalledWith(
+    expect(mockTxUser.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ passwordHash: '$hashed$' }),
       })
     );
   });
 
+  it('hashes both security answers with cost factor 10, lowercased', async () => {
+    mockUser.findFirst.mockResolvedValue(null);
+
+    await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'test@example.com',
+        username: 'testuser',
+        password: 'password123',
+        securityQuestions: [
+          { questionKey: 'first_pet', answer: 'Fluffy' },
+          { questionKey: 'birth_city', answer: 'LONDON' },
+        ],
+      }),
+    });
+
+    expect(bcryptjs.hash).toHaveBeenCalledWith('fluffy', 10);
+    expect(bcryptjs.hash).toHaveBeenCalledWith('london', 10);
+  });
+
+  it('stores both security question records via transaction', async () => {
+    mockUser.findFirst.mockResolvedValue(null);
+
+    await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'password123', securityQuestions: validSqs }),
+    });
+
+    expect(mockTxSecQ.createMany).toHaveBeenCalledWith({
+      data: [
+        { userId: 'user-123', questionKey: 'first_pet', answerHash: '$hashed$' },
+        { userId: 'user-123', questionKey: 'birth_city', answerHash: '$hashed$' },
+      ],
+    });
+  });
+
   it('returns 400 when email is missing', async () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'testuser', password: 'password123' }),
+      body: JSON.stringify({ username: 'testuser', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -121,7 +176,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
+      body: JSON.stringify({ email: 'test@example.com', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -133,7 +188,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'testuser' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -145,7 +200,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'ab', password: 'password123' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'ab', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -157,7 +212,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'a'.repeat(21), password: 'password123' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'a'.repeat(21), password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -169,7 +224,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'user name', password: 'password123' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'user name', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -181,7 +236,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'user-name', password: 'password123' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'user-name', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -191,31 +246,22 @@ describe('POST /auth/register', () => {
 
   it('accepts username with underscores at boundary lengths (3 and 20)', async () => {
     mockUser.findFirst.mockResolvedValue(null);
-    mockUser.create.mockResolvedValue({
-      id: 'user-123',
-      email: 'test@example.com',
-      username: 'a_b',
-      role: 'user',
-    });
+    mockTxUser.create.mockResolvedValueOnce({ id: 'u1', email: 'test@example.com', username: 'a_b' });
 
     const res3 = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'a_b', password: 'password123' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'a_b', password: 'password123', securityQuestions: validSqs }),
     });
     expect(res3.status).toBe(201);
 
-    mockUser.create.mockResolvedValue({
-      id: 'user-456',
-      email: 'other@example.com',
-      username: 'a'.repeat(20),
-      role: 'user',
-    });
+    mockUser.findFirst.mockResolvedValue(null);
+    mockTxUser.create.mockResolvedValueOnce({ id: 'u2', email: 'other@example.com', username: 'a'.repeat(20) });
 
     const res20 = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'other@example.com', username: 'a'.repeat(20), password: 'password123' }),
+      body: JSON.stringify({ email: 'other@example.com', username: 'a'.repeat(20), password: 'password123', securityQuestions: validSqs }),
     });
     expect(res20.status).toBe(201);
   });
@@ -224,7 +270,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'notanemail', username: 'testuser', password: 'password123' }),
+      body: JSON.stringify({ email: 'notanemail', username: 'testuser', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -236,7 +282,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'user@', username: 'testuser', password: 'password123' }),
+      body: JSON.stringify({ email: 'user@', username: 'testuser', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -248,7 +294,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'user@domain', username: 'testuser', password: 'password123' }),
+      body: JSON.stringify({ email: 'user@domain', username: 'testuser', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -258,17 +304,12 @@ describe('POST /auth/register', () => {
 
   it('accepts a valid email format with subdomain', async () => {
     mockUser.findFirst.mockResolvedValue(null);
-    mockUser.create.mockResolvedValue({
-      id: 'user-123',
-      email: 'user@mail.example.com',
-      username: 'testuser',
-      role: 'user',
-    });
+    mockTxUser.create.mockResolvedValue({ id: 'user-123', email: 'user@mail.example.com', username: 'testuser' });
 
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'user@mail.example.com', username: 'testuser', password: 'password123' }),
+      body: JSON.stringify({ email: 'user@mail.example.com', username: 'testuser', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(201);
@@ -278,7 +319,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'abc' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'abc', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -290,7 +331,7 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'abc12' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'abc12', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(400);
@@ -298,33 +339,147 @@ describe('POST /auth/register', () => {
 
   it('accepts password of exactly 6 characters (boundary)', async () => {
     mockUser.findFirst.mockResolvedValue(null);
-    mockUser.create.mockResolvedValue({
-      id: 'user-123',
-      email: 'test@example.com',
-      username: 'testuser',
-      role: 'user',
-    });
 
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'abc123' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'abc123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(201);
   });
 
+  // ─── Security question validation ─────────────────────────────────────────
+
+  it('returns 400 when securityQuestions is missing', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/two security questions/i);
+  });
+
+  it('returns 400 when securityQuestions has only one entry', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'test@example.com', username: 'testuser', password: 'password123',
+        securityQuestions: [{ questionKey: 'first_pet', answer: 'Fluffy' }],
+      }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/two security questions/i);
+  });
+
+  it('returns 400 when securityQuestions has three entries', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'test@example.com', username: 'testuser', password: 'password123',
+        securityQuestions: [
+          { questionKey: 'first_pet', answer: 'Fluffy' },
+          { questionKey: 'birth_city', answer: 'London' },
+          { questionKey: 'first_job', answer: 'Baker' },
+        ],
+      }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/two security questions/i);
+  });
+
+  it('returns 400 when a security answer is empty', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'test@example.com', username: 'testuser', password: 'password123',
+        securityQuestions: [
+          { questionKey: 'first_pet', answer: '' },
+          { questionKey: 'birth_city', answer: 'London' },
+        ],
+      }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/non-empty answer/i);
+  });
+
+  it('returns 400 when a security answer is whitespace only', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'test@example.com', username: 'testuser', password: 'password123',
+        securityQuestions: [
+          { questionKey: 'first_pet', answer: '   ' },
+          { questionKey: 'birth_city', answer: 'London' },
+        ],
+      }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/non-empty answer/i);
+  });
+
+  it('returns 400 when a question key is not in the predefined bank', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'test@example.com', username: 'testuser', password: 'password123',
+        securityQuestions: [
+          { questionKey: 'unknown_question', answer: 'some answer' },
+          { questionKey: 'birth_city', answer: 'London' },
+        ],
+      }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/invalid security question key/i);
+  });
+
+  it('returns 400 when both questions have the same key (duplicate)', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'test@example.com', username: 'testuser', password: 'password123',
+        securityQuestions: [
+          { questionKey: 'first_pet', answer: 'Fluffy' },
+          { questionKey: 'first_pet', answer: 'Rover' },
+        ],
+      }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/distinct/i);
+  });
+
   it('returns 409 with email conflict message when email is already registered', async () => {
     mockUser.findFirst.mockResolvedValue({
       id: 'existing-user',
-      email: 'test@example.com',   // same email
+      email: 'test@example.com',
       username: 'otheruser',
     });
 
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'newuser', password: 'password123' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'newuser', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(409);
@@ -335,14 +490,14 @@ describe('POST /auth/register', () => {
   it('returns 409 with username conflict message when username is already taken', async () => {
     mockUser.findFirst.mockResolvedValue({
       id: 'existing-user',
-      email: 'other@example.com',  // different email
-      username: 'testuser',        // same username
+      email: 'other@example.com',
+      username: 'testuser',
     });
 
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'new@example.com', username: 'testuser', password: 'password123' }),
+      body: JSON.stringify({ email: 'new@example.com', username: 'testuser', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(409);
@@ -356,20 +511,20 @@ describe('POST /auth/register', () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'password123' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(500);
   });
 
-  it('returns 500 when DB throws during user creation', async () => {
+  it('returns 500 when transaction throws during user creation', async () => {
     mockUser.findFirst.mockResolvedValue(null);
-    mockUser.create.mockRejectedValue(new Error('Insert failed'));
+    mockTransaction.mockRejectedValueOnce(new Error('Insert failed'));
 
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'password123' }),
+      body: JSON.stringify({ email: 'test@example.com', username: 'testuser', password: 'password123', securityQuestions: validSqs }),
     });
 
     expect(res.status).toBe(500);
@@ -741,5 +896,243 @@ describe('ADMIN_EMAILS auto-promotion on login', () => {
     const body = await res.json() as { user: { role: string } };
     expect(body.user.role).toBe('user');
     expect(mockUser.update).not.toHaveBeenCalled();
+  });
+});
+
+// ─── POST /auth/recover/* ─────────────────────────────────────────────────────
+// Each test uses a unique identifier to prevent cross-test rate-limit bleed
+// (the recoverAttempts Map in auth.ts is module-level and persists across tests)
+
+let recoverCounter = 0;
+function recoverEmail(): string { return `recover${++recoverCounter}@test.com`; }
+
+const mockSqs = [
+  { questionKey: 'first_pet', answerHash: '$h1$' },
+  { questionKey: 'birth_city', answerHash: '$h2$' },
+];
+const validAnswers = [
+  { questionKey: 'first_pet', answer: 'Fluffy' },
+  { questionKey: 'birth_city', answer: 'London' },
+];
+
+describe('POST /auth/recover/identify', () => {
+  it('returns 400 when identifier is missing', async () => {
+    const res = await fetch(`${baseUrl}/recover/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/identifier/i);
+  });
+
+  it('returns 404 when no account matches the identifier', async () => {
+    mockUser.findFirst.mockResolvedValue(null);
+    const res = await fetch(`${baseUrl}/recover/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail() }),
+    });
+    expect(res.status).toBe(404);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/no account found/i);
+  });
+
+  it('returns 200 with security question texts when user is found', async () => {
+    mockUser.findFirst.mockResolvedValue({ id: 'user-123', securityQuestions: mockSqs });
+    const res = await fetch(`${baseUrl}/recover/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail() }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { questions: Array<{ key: string; question: string }> };
+    expect(body.questions).toHaveLength(2);
+    expect(body.questions[0].key).toBe('first_pet');
+    expect(body.questions[0].question).toBeTruthy();
+    expect(body.questions[1].key).toBe('birth_city');
+  });
+
+  it('returns 429 after exceeding 5 attempts for the same identifier', async () => {
+    const id = recoverEmail();
+    mockUser.findFirst.mockResolvedValue(null);
+    for (let i = 0; i < 5; i++) {
+      await fetch(`${baseUrl}/recover/identify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: id }),
+      });
+    }
+    const res = await fetch(`${baseUrl}/recover/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: id }),
+    });
+    expect(res.status).toBe(429);
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockUser.findFirst.mockRejectedValue(new Error('DB down'));
+    const res = await fetch(`${baseUrl}/recover/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail() }),
+    });
+    expect(res.status).toBe(500);
+  });
+});
+
+describe('POST /auth/recover/verify', () => {
+  it('returns 400 when identifier is missing', async () => {
+    const res = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: validAnswers }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when answers array has fewer than 2 entries', async () => {
+    const res = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail(), answers: [validAnswers[0]] }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 401 with generic error when user not found (avoids enumeration)', async () => {
+    mockUser.findFirst.mockResolvedValue(null);
+    const res = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail(), answers: validAnswers }),
+    });
+    expect(res.status).toBe(401);
+    const body = await res.json() as { error: string };
+    expect(body.error).toBe('Incorrect answers');
+  });
+
+  it('returns 401 when one or more answers are incorrect', async () => {
+    mockUser.findFirst.mockResolvedValue({ id: 'user-123', securityQuestions: mockSqs });
+    vi.mocked(bcryptjs.compare)
+      .mockResolvedValueOnce(true as never)
+      .mockResolvedValueOnce(false as never);
+
+    const res = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identifier: recoverEmail(),
+        answers: [{ questionKey: 'first_pet', answer: 'Fluffy' }, { questionKey: 'birth_city', answer: 'Wrong' }],
+      }),
+    });
+    expect(res.status).toBe(401);
+    const body = await res.json() as { error: string };
+    expect(body.error).toBe('Incorrect answers');
+  });
+
+  it('returns 200 with a 64-char resetToken when both answers are correct', async () => {
+    mockUser.findFirst.mockResolvedValue({ id: 'user-123', securityQuestions: mockSqs });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+
+    const res = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail(), answers: validAnswers }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { resetToken: string };
+    expect(typeof body.resetToken).toBe('string');
+    expect(body.resetToken).toHaveLength(64); // 32 bytes → 64 hex chars
+  });
+});
+
+describe('POST /auth/recover/reset', () => {
+  it('returns 400 when resetToken is missing', async () => {
+    const res = await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPassword: 'newpass123' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when newPassword is fewer than 6 characters', async () => {
+    const res = await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken: 'sometoken', newPassword: 'abc' }),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/6 characters/i);
+  });
+
+  it('returns 401 when resetToken is not found', async () => {
+    const res = await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken: 'nonexistent-token', newPassword: 'newpass123' }),
+    });
+    expect(res.status).toBe(401);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/invalid or expired/i);
+  });
+
+  it('returns 200 and updates password hash when reset token is valid', async () => {
+    // Obtain a valid reset token via verify
+    mockUser.findFirst.mockResolvedValue({ id: 'user-reset-ok', securityQuestions: mockSqs });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+    const verifyRes = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail(), answers: validAnswers }),
+    });
+    const { resetToken } = await verifyRes.json() as { resetToken: string };
+
+    // Reset password with the token
+    mockUser.update.mockResolvedValue({ id: 'user-reset-ok' });
+    const res = await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken, newPassword: 'newpassword123' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { success: boolean };
+    expect(body.success).toBe(true);
+    expect(mockUser.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'user-reset-ok' } })
+    );
+  });
+
+  it('returns 401 when the same token is used a second time (one-time use)', async () => {
+    // Obtain a reset token
+    mockUser.findFirst.mockResolvedValue({ id: 'user-double', securityQuestions: mockSqs });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+    const verifyRes = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail(), answers: validAnswers }),
+    });
+    const { resetToken } = await verifyRes.json() as { resetToken: string };
+
+    // First use — succeeds
+    mockUser.update.mockResolvedValue({ id: 'user-double' });
+    await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken, newPassword: 'firstnewpass' }),
+    });
+
+    // Second use — token deleted, must be 401
+    const res2 = await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken, newPassword: 'secondnewpass' }),
+    });
+    expect(res2.status).toBe(401);
   });
 });

@@ -72,7 +72,10 @@ describe('authStore', () => {
     const mockUser = { id: '2', email: 'new@test.com', username: 'newuser' };
     mockApiFetch.mockResolvedValueOnce({ token: 'jwt-456', user: mockUser });
 
-    const result = await useAuthStore.getState().register('new@test.com', 'newuser', 'password');
+    const result = await useAuthStore.getState().register('new@test.com', 'newuser', 'password', [
+      { questionKey: 'first_pet', answer: 'Fluffy' },
+      { questionKey: 'birth_city', answer: 'London' },
+    ]);
 
     expect(result).toBe(true);
     const state = useAuthStore.getState();
