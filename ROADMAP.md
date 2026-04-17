@@ -720,7 +720,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-058
 - **title:** Register form requires a username
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** small
