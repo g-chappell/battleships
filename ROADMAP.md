@@ -934,7 +934,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-077
 - **title:** Add UserAchievement model + server endpoints
-- **status:** in-progress
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/81
+- **completed:** 2026-04-17
 - **priority:** high
 - **workspaces:** server, shared
 - **complexity:** medium
