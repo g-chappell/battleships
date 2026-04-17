@@ -806,7 +806,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-065
 - **title:** Admin — season management (create, end, view standings)
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** medium
