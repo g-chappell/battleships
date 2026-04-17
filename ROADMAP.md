@@ -806,11 +806,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-065
 - **title:** Admin — season management (create, end, view standings)
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** medium
 - **depends_on:** [TASK-063]
+- **pr:** https://github.com/g-chappell/battleships/pull/88
+- **completed:** 2026-04-17
 - **description:** Server endpoints under `/admin/seasons`: create (name, start, end), end (early-close active season), list with standings. Replace the automatic season rollover watchdog in `seasons.ts` with an admin-trigger model (keep the 60s watchdog as a no-op or remove if confirmed unused). Client UI: season list, create form, end-season confirmation, standings table per season.
 
 #### TASK-066
