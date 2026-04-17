@@ -12,13 +12,18 @@ interface AuthResponse {
   user: User;
 }
 
+interface SecurityQuestionEntry {
+  questionKey: string;
+  answer: string;
+}
+
 interface AuthStore {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   error: string | null;
 
-  register: (email: string, username: string, password: string) => Promise<boolean>;
+  register: (email: string, username: string, password: string, securityQuestions: SecurityQuestionEntry[]) => Promise<boolean>;
   login: (identifier: string, password: string) => Promise<boolean>;
   logout: () => void;
   loadFromStorage: () => void;
@@ -31,12 +36,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isLoading: false,
   error: null,
 
-  register: async (email, username, password) => {
+  register: async (email, username, password, securityQuestions) => {
     set({ isLoading: true, error: null });
     try {
       const data = await apiFetch<AuthResponse>('/auth/register', {
         method: 'POST',
-        json: { email, username, password },
+        json: { email, username, password, securityQuestions },
       });
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));

@@ -56,6 +56,10 @@ async function registerUser(
       email: `e2e_mp_${suffix}@test.invalid`,
       username: `e2e_mp_${suffix}`,
       password: 'TestPass1!',
+      securityQuestions: [
+        { questionKey: 'first_pet', answer: 'Fluffy' },
+        { questionKey: 'birth_city', answer: 'London' },
+      ],
     },
   });
   if (!res.ok()) {

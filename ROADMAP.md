@@ -733,7 +733,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-059
 - **title:** Add SecurityQuestion model + predefined question bank
-- **status:** ready
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/78
+- **completed:** 2026-04-17
 - **priority:** high
 - **workspaces:** server, shared
 - **complexity:** medium

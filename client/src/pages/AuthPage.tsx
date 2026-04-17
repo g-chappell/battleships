@@ -4,6 +4,18 @@ import { FONT_STYLES } from '../styles/fonts';
 import { FormField } from '../components/ui/FormField';
 import { Button } from '../components/ui/Button';
 import { Dialog, DialogContent, DialogTitle } from '../components/shadcn/dialog';
+import { SECURITY_QUESTIONS } from '@shared/index';
+
+const selectStyle: React.CSSProperties = {
+  width: '100%',
+  background: '#150c0c',
+  border: '1px solid rgba(139,0,0,0.6)',
+  borderRadius: '0.375rem',
+  color: '#e8dcc8',
+  padding: '0.5rem 0.75rem',
+  fontSize: '0.875rem',
+  ...FONT_STYLES.body,
+};
 
 export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => void; initialMode?: 'login' | 'register' }) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
@@ -13,7 +25,22 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
   const [emailError, setEmailError] = useState('');
   const [usernameError, setUsernameError] = useState('');
 
+  // Security question state
+  const [sq1Key, setSq1Key] = useState('');
+  const [sq1Answer, setSq1Answer] = useState('');
+  const [sq2Key, setSq2Key] = useState('');
+  const [sq2Answer, setSq2Answer] = useState('');
+  const [sqError, setSqError] = useState('');
+
   const { login, register, isLoading, error, clearError } = useAuthStore();
+
+  const clearSecurityQuestions = () => {
+    setSq1Key('');
+    setSq1Answer('');
+    setSq2Key('');
+    setSq2Answer('');
+    setSqError('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,14 +55,26 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
         setEmailError('Please enter a valid email address');
         return;
       }
+      if (!sq1Key || !sq1Answer.trim() || !sq2Key || !sq2Answer.trim()) {
+        setSqError('Please select two security questions and provide answers');
+        return;
+      }
+      if (sq1Key === sq2Key) {
+        setSqError('Please choose two different security questions');
+        return;
+      }
     }
     setEmailError('');
     setUsernameError('');
+    setSqError('');
     let success: boolean;
     if (mode === 'login') {
       success = await login(email, password);
     } else {
-      success = await register(email, username, password);
+      success = await register(email, username, password, [
+        { questionKey: sq1Key, answer: sq1Answer },
+        { questionKey: sq2Key, answer: sq2Answer },
+      ]);
     }
     if (success) onClose();
   };
@@ -58,7 +97,7 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
             variant={mode === 'login' ? 'primary' : 'secondary'}
             size="sm"
             fullWidth
-            onClick={() => { setMode('login'); clearError(); setEmailError(''); setUsernameError(''); }}
+            onClick={() => { setMode('login'); clearError(); setEmailError(''); setUsernameError(''); clearSecurityQuestions(); }}
           >
             Login
           </Button>
@@ -66,7 +105,7 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
             variant={mode === 'register' ? 'primary' : 'secondary'}
             size="sm"
             fullWidth
-            onClick={() => { setMode('register'); clearError(); setEmailError(''); setUsernameError(''); }}
+            onClick={() => { setMode('register'); clearError(); setEmailError(''); setUsernameError(''); clearSecurityQuestions(); }}
           >
             Register
           </Button>
@@ -107,6 +146,53 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
             required
             minLength={6}
           />
+
+          {mode === 'register' && (
+            <>
+              <div className="pt-1">
+                <p className="text-parchment/60 text-xs mb-2" style={FONT_STYLES.labelSC}>Security Questions</p>
+                <div className="space-y-2">
+                  <select
+                    value={sq1Key}
+                    onChange={(e) => { setSq1Key(e.target.value); if (sqError) setSqError(''); }}
+                    style={selectStyle}
+                    required
+                  >
+                    <option value="">— Select question 1 —</option>
+                    {SECURITY_QUESTIONS.map(q => (
+                      <option key={q.key} value={q.key} disabled={q.key === sq2Key}>{q.question}</option>
+                    ))}
+                  </select>
+                  <FormField
+                    type="text"
+                    placeholder="Your answer"
+                    value={sq1Answer}
+                    onChange={(e) => { setSq1Answer(e.target.value); if (sqError) setSqError(''); }}
+                  />
+                  <select
+                    value={sq2Key}
+                    onChange={(e) => { setSq2Key(e.target.value); if (sqError) setSqError(''); }}
+                    style={selectStyle}
+                    required
+                  >
+                    <option value="">— Select question 2 —</option>
+                    {SECURITY_QUESTIONS.map(q => (
+                      <option key={q.key} value={q.key} disabled={q.key === sq1Key}>{q.question}</option>
+                    ))}
+                  </select>
+                  <FormField
+                    type="text"
+                    placeholder="Your answer"
+                    value={sq2Answer}
+                    onChange={(e) => { setSq2Answer(e.target.value); if (sqError) setSqError(''); }}
+                  />
+                </div>
+                {sqError && (
+                  <p className="text-blood-bright text-sm italic mt-1" style={FONT_STYLES.body}>{sqError}</p>
+                )}
+              </div>
+            </>
+          )}
 
           {error && (
             <p className="text-blood-bright text-sm italic" style={FONT_STYLES.body}>{error}</p>
