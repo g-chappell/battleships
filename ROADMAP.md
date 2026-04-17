@@ -969,7 +969,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-079
 - **title:** Wire checkAchievements at real event sites
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client, shared, server
 - **complexity:** large
