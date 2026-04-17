@@ -817,7 +817,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-066
 - **title:** Admin — tournament management (create, start round, advance round)
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** medium
