@@ -11,12 +11,18 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [usernameError, setUsernameError] = useState('');
 
   const { login, register, isLoading, error, clearError } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === 'register') {
+      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+      if (!usernameRegex.test(username)) {
+        setUsernameError('3–20 characters, letters, numbers, and underscores only');
+        return;
+      }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         setEmailError('Please enter a valid email address');
@@ -24,6 +30,7 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
       }
     }
     setEmailError('');
+    setUsernameError('');
     let success: boolean;
     if (mode === 'login') {
       success = await login(email, password);
@@ -51,7 +58,7 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
             variant={mode === 'login' ? 'primary' : 'secondary'}
             size="sm"
             fullWidth
-            onClick={() => { setMode('login'); clearError(); setEmailError(''); }}
+            onClick={() => { setMode('login'); clearError(); setEmailError(''); setUsernameError(''); }}
           >
             Login
           </Button>
@@ -59,7 +66,7 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
             variant={mode === 'register' ? 'primary' : 'secondary'}
             size="sm"
             fullWidth
-            onClick={() => { setMode('register'); clearError(); setEmailError(''); }}
+            onClick={() => { setMode('register'); clearError(); setEmailError(''); setUsernameError(''); }}
           >
             Register
           </Button>
@@ -78,13 +85,18 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
           )}
 
           {mode === 'register' && (
-            <FormField
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
+            <>
+              <FormField
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => { setUsername(e.target.value); if (usernameError) setUsernameError(''); }}
+                required
+              />
+              {usernameError && (
+                <p className="text-blood-bright text-sm italic -mt-1" style={FONT_STYLES.body}>{usernameError}</p>
+              )}
+            </>
           )}
 
           <FormField

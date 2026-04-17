@@ -15,6 +15,12 @@ authRouter.post('/register', async (req, res) => {
       return;
     }
 
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      res.status(400).json({ error: 'Username must be 3–20 characters (letters, numbers, underscores only)' });
+      return;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       res.status(400).json({ error: 'Invalid email format' });
