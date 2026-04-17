@@ -86,6 +86,7 @@ export type {
   ComicPanel,
   MissionModifiers,
   MissionStarRequirements,
+  ObjectiveThresholds,
   AIPersonality,
   DifficultyLabel,
 } from './campaign';
@@ -122,7 +123,7 @@ export {
   CAPTAIN_IDS,
   DEFAULT_CAPTAIN,
 } from './captains';
-export type { CaptainDef } from './captains';
+export type { CaptainDef, CaptainId } from './captains';
 
 // Cosmetics
 export {

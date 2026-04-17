@@ -4,6 +4,8 @@ import {
   calculateStars,
   getMission,
   type DifficultyLabel,
+  type CampaignMission,
+  type ObjectiveThresholds,
 } from '../campaign';
 import { AbilityType } from '../abilities';
 
@@ -234,5 +236,162 @@ describe('calculateStars', () => {
     // we cannot earn 3 stars even if three-star conditions would otherwise pass
     // turns > 35 fails 2-star, so result must be 1
     expect(calculateStars(mission1, { won: true, turns: 40, accuracyPct: 0, shipsLost: 0 })).toBe(1);
+  });
+});
+
+describe('MissionModifiers new fields', () => {
+  it('requiredCaptain field is accepted on modifiers', () => {
+    const m = getMission(1)!;
+    const modified: CampaignMission = {
+      ...m,
+      modifiers: { ...m.modifiers, requiredCaptain: 'ironbeard' },
+    };
+    expect(modified.modifiers.requiredCaptain).toBe('ironbeard');
+  });
+
+  it('forbiddenAbilities field is accepted on modifiers', () => {
+    const m = getMission(1)!;
+    const modified: CampaignMission = {
+      ...m,
+      modifiers: {
+        ...m.modifiers,
+        forbiddenAbilities: [AbilityType.CannonBarrage, AbilityType.ChainShot],
+      },
+    };
+    expect(modified.modifiers.forbiddenAbilities).toHaveLength(2);
+    expect(modified.modifiers.forbiddenAbilities).toContain(AbilityType.CannonBarrage);
+  });
+
+  it('starTiers field is accepted on modifiers', () => {
+    const tiers = {
+      bronze: { maxTurns: 40 },
+      silver: { maxTurns: 30, minAccuracyPct: 30 },
+      gold: { maxTurns: 20, noShipsLost: true },
+    };
+    const m = getMission(1)!;
+    const modified: CampaignMission = {
+      ...m,
+      modifiers: { ...m.modifiers, starTiers: tiers },
+    };
+    expect(modified.modifiers.starTiers).toBeDefined();
+    expect(modified.modifiers.starTiers!.bronze.maxTurns).toBe(40);
+    expect(modified.modifiers.starTiers!.gold.noShipsLost).toBe(true);
+  });
+
+  it('requiredCaptain accepts all valid captain IDs', () => {
+    const validIds = ['ironbeard', 'mistral', 'blackheart', 'seawitch'] as const;
+    for (const id of validIds) {
+      const modified = { ...getMission(1)!.modifiers, requiredCaptain: id };
+      expect(modified.requiredCaptain).toBe(id);
+    }
+  });
+
+  it('all three ObjectiveThresholds fields are optional', () => {
+    const empty: ObjectiveThresholds = {};
+    expect(empty.maxTurns).toBeUndefined();
+    expect(empty.minAccuracyPct).toBeUndefined();
+    expect(empty.noShipsLost).toBeUndefined();
+  });
+});
+
+describe('calculateStars with starTiers', () => {
+  const makeTieredMission = (
+    bronze: ObjectiveThresholds,
+    silver: ObjectiveThresholds,
+    gold: ObjectiveThresholds
+  ): CampaignMission => ({
+    ...getMission(1)!,
+    modifiers: { starTiers: { bronze, silver, gold } },
+  });
+
+  it('returns 0 on loss regardless of tiers', () => {
+    const m = makeTieredMission({ maxTurns: 999 }, { maxTurns: 999 }, { maxTurns: 999 });
+    expect(calculateStars(m, { won: false, turns: 5, accuracyPct: 100, shipsLost: 0 })).toBe(0);
+  });
+
+  it('returns 0 when won but no tiers met', () => {
+    const m = makeTieredMission({ maxTurns: 5 }, { maxTurns: 3 }, { maxTurns: 1 });
+    // turns=10 → fails all tiers
+    expect(calculateStars(m, { won: true, turns: 10, accuracyPct: 0, shipsLost: 0 })).toBe(0);
+  });
+
+  it('returns 1 when only bronze tier met', () => {
+    const m = makeTieredMission({ maxTurns: 40 }, { maxTurns: 5 }, { maxTurns: 3 });
+    // turns=15 meets bronze (≤40), fails silver (>5), fails gold (>3)
+    expect(calculateStars(m, { won: true, turns: 15, accuracyPct: 0, shipsLost: 0 })).toBe(1);
+  });
+
+  it('returns 2 when bronze and silver tiers met', () => {
+    const m = makeTieredMission({ maxTurns: 40 }, { maxTurns: 30 }, { maxTurns: 5 });
+    // turns=25 meets bronze (≤40) and silver (≤30), fails gold (>5)
+    expect(calculateStars(m, { won: true, turns: 25, accuracyPct: 0, shipsLost: 0 })).toBe(2);
+  });
+
+  it('returns 3 when all tiers met', () => {
+    const m = makeTieredMission(
+      { maxTurns: 40 },
+      { maxTurns: 30 },
+      { maxTurns: 20, noShipsLost: true }
+    );
+    // turns=15, no ships lost → all tiers met
+    expect(calculateStars(m, { won: true, turns: 15, accuracyPct: 0, shipsLost: 0 })).toBe(3);
+  });
+
+  it('each tier is independent (silver can be met without bronze)', () => {
+    // bronze requires noShipsLost; silver requires maxTurns ≤ 30; gold requires maxTurns ≤ 5
+    const m = makeTieredMission({ noShipsLost: true }, { maxTurns: 30 }, { maxTurns: 5 });
+    // turns=15, ships lost=1 → fails bronze, meets silver, fails gold = 1 star
+    expect(calculateStars(m, { won: true, turns: 15, accuracyPct: 0, shipsLost: 1 })).toBe(1);
+  });
+
+  it('minAccuracyPct is respected in tiers', () => {
+    const m = makeTieredMission(
+      { minAccuracyPct: 30 },
+      { minAccuracyPct: 50 },
+      { minAccuracyPct: 70 }
+    );
+    // accuracyPct=55 → meets bronze (≥30) and silver (≥50), fails gold (<70) = 2 stars
+    expect(calculateStars(m, { won: true, turns: 10, accuracyPct: 55, shipsLost: 0 })).toBe(2);
+  });
+
+  it('noShipsLost is respected in tiers', () => {
+    const m = makeTieredMission(
+      { maxTurns: 40 },
+      { noShipsLost: true },
+      { maxTurns: 20, noShipsLost: true }
+    );
+    // ships lost = 1 → bronze met (no noShipsLost requirement), silver failed, gold failed = 1 star
+    expect(calculateStars(m, { won: true, turns: 15, accuracyPct: 0, shipsLost: 1 })).toBe(1);
+    // ships lost = 0, turns = 15 → bronze, silver (noShipsLost), gold (turns≤20 + noShipsLost) = 3 stars
+    expect(calculateStars(m, { won: true, turns: 15, accuracyPct: 0, shipsLost: 0 })).toBe(3);
+  });
+
+  it('empty ObjectiveThresholds tier is always met (all conditions vacuously true)', () => {
+    // All three tiers are empty → all conditions are undefined → all met
+    const m = makeTieredMission({}, {}, {});
+    expect(calculateStars(m, { won: true, turns: 100, accuracyPct: 0, shipsLost: 10 })).toBe(3);
+  });
+
+  it('boundary: turns exactly at maxTurns counts as met', () => {
+    const m = makeTieredMission({ maxTurns: 20 }, { maxTurns: 15 }, { maxTurns: 10 });
+    // turns exactly 15 → bronze (≤20 ✓), silver (≤15 ✓), gold (>10 ✗) = 2 stars
+    expect(calculateStars(m, { won: true, turns: 15, accuracyPct: 0, shipsLost: 0 })).toBe(2);
+    // turns exactly 10 → all met = 3 stars
+    expect(calculateStars(m, { won: true, turns: 10, accuracyPct: 0, shipsLost: 0 })).toBe(3);
+  });
+
+  it('tiers path does not use starRequirements', () => {
+    // starRequirements would award 2 stars for turns≤35, but starTiers overrides
+    const m = makeTieredMission({ maxTurns: 10 }, { maxTurns: 5 }, { maxTurns: 3 });
+    // turns=30 → meets old starRequirements.twoStars (≤35), but fails all tiers (>10) = 0 stars
+    expect(calculateStars(m, { won: true, turns: 30, accuracyPct: 0, shipsLost: 0 })).toBe(0);
+  });
+
+  it('legacy path still works when starTiers is absent', () => {
+    // Original mission 1 has no starTiers → uses starRequirements
+    const m = getMission(1)!;
+    expect(m.modifiers.starTiers).toBeUndefined();
+    // turns=30, ships lost=1 → 2 stars via legacy path
+    expect(calculateStars(m, { won: true, turns: 30, accuracyPct: 0, shipsLost: 1 })).toBe(2);
   });
 });
