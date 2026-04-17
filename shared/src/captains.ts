@@ -46,3 +46,5 @@ export const CAPTAIN_DEFS: Record<string, CaptainDef> = {
 
 export const CAPTAIN_IDS = Object.keys(CAPTAIN_DEFS);
 export const DEFAULT_CAPTAIN = 'ironbeard';
+
+export type CaptainId = 'ironbeard' | 'mistral' | 'blackheart' | 'seawitch';

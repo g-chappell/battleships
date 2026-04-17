@@ -7,6 +7,7 @@
  */
 
 import { AbilityType } from './abilities';
+import type { CaptainId } from './captains';
 
 export type AIPersonality = 'standard' | 'aggressive' | 'cautious' | 'kraken';
 
@@ -24,10 +25,23 @@ export interface ComicPanel {
   iconHint?: string;    // emoji
 }
 
+export interface ObjectiveThresholds {
+  maxTurns?: number;
+  minAccuracyPct?: number;
+  noShipsLost?: boolean;
+}
+
 export interface MissionModifiers {
   foggyVision?: boolean;
   krakenAttack?: boolean;
   fixedAbilities?: AbilityType[];
+  requiredCaptain?: CaptainId;
+  forbiddenAbilities?: AbilityType[];
+  starTiers?: {
+    bronze: ObjectiveThresholds;
+    silver: ObjectiveThresholds;
+    gold: ObjectiveThresholds;
+  };
 }
 
 export interface MissionStarRequirements {
@@ -625,11 +639,33 @@ export const CAMPAIGN_MISSIONS: CampaignMission[] = [
   },
 ];
 
+function meetsThreshold(
+  t: ObjectiveThresholds,
+  result: { turns: number; accuracyPct: number; shipsLost: number }
+): boolean {
+  return (
+    (t.maxTurns === undefined || result.turns <= t.maxTurns) &&
+    (t.minAccuracyPct === undefined || result.accuracyPct >= t.minAccuracyPct) &&
+    (t.noShipsLost !== true || result.shipsLost === 0)
+  );
+}
+
 export function calculateStars(
   mission: CampaignMission,
   result: { won: boolean; turns: number; accuracyPct: number; shipsLost: number }
 ): number {
   if (!result.won) return 0;
+
+  const tiers = mission.modifiers.starTiers;
+  if (tiers) {
+    let stars = 0;
+    if (meetsThreshold(tiers.bronze, result)) stars++;
+    if (meetsThreshold(tiers.silver, result)) stars++;
+    if (meetsThreshold(tiers.gold, result)) stars++;
+    return stars;
+  }
+
+  // Legacy path: use starRequirements
   let stars = 1;
   const two = mission.starRequirements.twoStars;
   const three = mission.starRequirements.threeStars;
