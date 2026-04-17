@@ -795,7 +795,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-064
 - **title:** Admin — user management (search, reset password, reset stats, adjust gold, ban)
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** large
