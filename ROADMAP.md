@@ -757,7 +757,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-061
 - **title:** Add role column to User + ADMIN_EMAILS env auto-promotion
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** server
 - **complexity:** small
