@@ -60,26 +60,28 @@ authRouter.post('/register', async (req, res) => {
   }
 });
 
-// Login with email/password
+// Login with username or email + password
 authRouter.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required' });
+    if (!identifier || !password) {
+      res.status(400).json({ error: 'Username/email and password are required' });
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: { OR: [{ username: identifier }, { email: identifier }] },
+    });
 
     if (!user || !user.passwordHash) {
-      res.status(401).json({ error: 'Invalid email or password' });
+      res.status(401).json({ error: 'Invalid credentials' });
       return;
     }
 
     const valid = await bcryptjs.compare(password, user.passwordHash);
     if (!valid) {
-      res.status(401).json({ error: 'Invalid email or password' });
+      res.status(401).json({ error: 'Invalid credentials' });
       return;
     }
 

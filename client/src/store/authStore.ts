@@ -19,7 +19,7 @@ interface AuthStore {
   error: string | null;
 
   register: (email: string, username: string, password: string) => Promise<boolean>;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (identifier: string, password: string) => Promise<boolean>;
   logout: () => void;
   loadFromStorage: () => void;
   clearError: () => void;
@@ -49,12 +49,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
 
-  login: async (email, password) => {
+  login: async (identifier, password) => {
     set({ isLoading: true, error: null });
     try {
       const data = await apiFetch<AuthResponse>('/auth/login', {
         method: 'POST',
-        json: { email, password },
+        json: { identifier, password },
       });
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));

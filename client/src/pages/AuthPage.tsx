@@ -67,8 +67,8 @@ export function AuthPage({ onClose, initialMode = 'login' }: { onClose: () => vo
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <FormField
-            type="email"
-            placeholder="Email"
+            type={mode === 'register' ? 'email' : 'text'}
+            placeholder={mode === 'register' ? 'Email' : 'Username or email'}
             value={email}
             onChange={(e) => { setEmail(e.target.value); if (emailError) setEmailError(''); }}
             required

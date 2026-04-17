@@ -295,8 +295,8 @@ describe('POST /auth/register', () => {
 // ─── POST /auth/login ─────────────────────────────────────────────────────────
 
 describe('POST /auth/login', () => {
-  it('returns 200 with token and user on correct credentials', async () => {
-    mockUser.findUnique.mockResolvedValue({
+  it('returns 200 with token and user when logging in with email', async () => {
+    mockUser.findFirst.mockResolvedValue({
       id: 'user-123',
       email: 'test@example.com',
       username: 'testuser',
@@ -307,7 +307,7 @@ describe('POST /auth/login', () => {
     const res = await fetch(`${baseUrl}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
+      body: JSON.stringify({ identifier: 'test@example.com', password: 'password123' }),
     });
 
     expect(res.status).toBe(200);
@@ -317,8 +317,48 @@ describe('POST /auth/login', () => {
     expect(body.user).toEqual({ id: 'user-123', email: 'test@example.com', username: 'testuser' });
   });
 
+  it('returns 200 with token and user when logging in with username', async () => {
+    mockUser.findFirst.mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+      username: 'testuser',
+      passwordHash: '$hashed$',
+    });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+
+    const res = await fetch(`${baseUrl}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: 'testuser', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { token: string; user: { id: string; email: string; username: string } };
+    expect(body.user).toEqual({ id: 'user-123', email: 'test@example.com', username: 'testuser' });
+  });
+
+  it('queries DB with OR clause matching both username and email', async () => {
+    mockUser.findFirst.mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+      username: 'testuser',
+      passwordHash: '$hashed$',
+    });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+
+    await fetch(`${baseUrl}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: 'testuser', password: 'password123' }),
+    });
+
+    expect(mockUser.findFirst).toHaveBeenCalledWith({
+      where: { OR: [{ username: 'testuser' }, { email: 'testuser' }] },
+    });
+  });
+
   it('calls bcrypt.compare with the provided password and stored hash', async () => {
-    mockUser.findUnique.mockResolvedValue({
+    mockUser.findFirst.mockResolvedValue({
       id: 'user-123',
       email: 'test@example.com',
       username: 'testuser',
@@ -329,13 +369,13 @@ describe('POST /auth/login', () => {
     await fetch(`${baseUrl}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'mypassword' }),
+      body: JSON.stringify({ identifier: 'testuser', password: 'mypassword' }),
     });
 
     expect(bcryptjs.compare).toHaveBeenCalledWith('mypassword', '$stored_hash$');
   });
 
-  it('returns 400 when email is missing', async () => {
+  it('returns 400 when identifier is missing', async () => {
     const res = await fetch(`${baseUrl}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -351,7 +391,7 @@ describe('POST /auth/login', () => {
     const res = await fetch(`${baseUrl}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com' }),
+      body: JSON.stringify({ identifier: 'testuser' }),
     });
 
     expect(res.status).toBe(400);
@@ -359,22 +399,22 @@ describe('POST /auth/login', () => {
     expect(body.error).toMatch(/required/i);
   });
 
-  it('returns 401 when user does not exist', async () => {
-    mockUser.findUnique.mockResolvedValue(null);
+  it('returns 401 with generic error when user does not exist', async () => {
+    mockUser.findFirst.mockResolvedValue(null);
 
     const res = await fetch(`${baseUrl}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'unknown@example.com', password: 'password123' }),
+      body: JSON.stringify({ identifier: 'unknown', password: 'password123' }),
     });
 
     expect(res.status).toBe(401);
     const body = await res.json() as { error: string };
-    expect(body.error).toMatch(/invalid/i);
+    expect(body.error).toBe('Invalid credentials');
   });
 
-  it('returns 401 when password is incorrect', async () => {
-    mockUser.findUnique.mockResolvedValue({
+  it('returns 401 with generic error when password is incorrect', async () => {
+    mockUser.findFirst.mockResolvedValue({
       id: 'user-123',
       email: 'test@example.com',
       username: 'testuser',
@@ -385,16 +425,16 @@ describe('POST /auth/login', () => {
     const res = await fetch(`${baseUrl}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'wrongpassword' }),
+      body: JSON.stringify({ identifier: 'testuser', password: 'wrongpassword' }),
     });
 
     expect(res.status).toBe(401);
     const body = await res.json() as { error: string };
-    expect(body.error).toMatch(/invalid/i);
+    expect(body.error).toBe('Invalid credentials');
   });
 
   it('returns 401 when user has no password hash (e.g. created via another auth method)', async () => {
-    mockUser.findUnique.mockResolvedValue({
+    mockUser.findFirst.mockResolvedValue({
       id: 'user-123',
       email: 'test@example.com',
       username: 'testuser',
@@ -404,19 +444,19 @@ describe('POST /auth/login', () => {
     const res = await fetch(`${baseUrl}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
+      body: JSON.stringify({ identifier: 'testuser', password: 'password123' }),
     });
 
     expect(res.status).toBe(401);
   });
 
   it('returns 500 when DB throws unexpectedly', async () => {
-    mockUser.findUnique.mockRejectedValue(new Error('DB down'));
+    mockUser.findFirst.mockRejectedValue(new Error('DB down'));
 
     const res = await fetch(`${baseUrl}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
+      body: JSON.stringify({ identifier: 'testuser', password: 'password123' }),
     });
 
     expect(res.status).toBe(500);
