@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import express from 'express';
 import { createServer } from 'http';
 import type { Server } from 'http';
@@ -10,6 +10,7 @@ const { mockUser } = vi.hoisted(() => ({
     findFirst: vi.fn(),
     findUnique: vi.fn(),
     create: vi.fn(),
+    update: vi.fn(),
   },
 }));
 
@@ -59,12 +60,13 @@ beforeEach(() => {
 // ─── POST /auth/register ──────────────────────────────────────────────────────
 
 describe('POST /auth/register', () => {
-  it('creates a user and returns 201 with token and user on success', async () => {
+  it('creates a user and returns 201 with token, role, and user on success', async () => {
     mockUser.findFirst.mockResolvedValue(null);
     mockUser.create.mockResolvedValue({
       id: 'user-123',
       email: 'test@example.com',
       username: 'testuser',
+      role: 'user',
     });
 
     const res = await fetch(`${baseUrl}/register`, {
@@ -74,10 +76,10 @@ describe('POST /auth/register', () => {
     });
 
     expect(res.status).toBe(201);
-    const body = await res.json() as { token: string; user: { id: string; email: string; username: string } };
+    const body = await res.json() as { token: string; user: { id: string; email: string; username: string; role: string } };
     expect(body.token).toBeDefined();
     expect(typeof body.token).toBe('string');
-    expect(body.user).toEqual({ id: 'user-123', email: 'test@example.com', username: 'testuser' });
+    expect(body.user).toEqual({ id: 'user-123', email: 'test@example.com', username: 'testuser', role: 'user' });
   });
 
   it('hashes the password with cost factor 12 and stores the hash', async () => {
@@ -86,6 +88,7 @@ describe('POST /auth/register', () => {
       id: 'user-123',
       email: 'test@example.com',
       username: 'testuser',
+      role: 'user',
     });
 
     await fetch(`${baseUrl}/register`, {
@@ -192,6 +195,7 @@ describe('POST /auth/register', () => {
       id: 'user-123',
       email: 'test@example.com',
       username: 'a_b',
+      role: 'user',
     });
 
     const res3 = await fetch(`${baseUrl}/register`, {
@@ -205,6 +209,7 @@ describe('POST /auth/register', () => {
       id: 'user-456',
       email: 'other@example.com',
       username: 'a'.repeat(20),
+      role: 'user',
     });
 
     const res20 = await fetch(`${baseUrl}/register`, {
@@ -257,6 +262,7 @@ describe('POST /auth/register', () => {
       id: 'user-123',
       email: 'user@mail.example.com',
       username: 'testuser',
+      role: 'user',
     });
 
     const res = await fetch(`${baseUrl}/register`, {
@@ -296,6 +302,7 @@ describe('POST /auth/register', () => {
       id: 'user-123',
       email: 'test@example.com',
       username: 'testuser',
+      role: 'user',
     });
 
     const res = await fetch(`${baseUrl}/register`, {
@@ -372,12 +379,13 @@ describe('POST /auth/register', () => {
 // ─── POST /auth/login ─────────────────────────────────────────────────────────
 
 describe('POST /auth/login', () => {
-  it('returns 200 with token and user when logging in with email', async () => {
+  it('returns 200 with token, role, and user when logging in with email', async () => {
     mockUser.findFirst.mockResolvedValue({
       id: 'user-123',
       email: 'test@example.com',
       username: 'testuser',
       passwordHash: '$hashed$',
+      role: 'user',
     });
     vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
 
@@ -388,10 +396,10 @@ describe('POST /auth/login', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as { token: string; user: { id: string; email: string; username: string } };
+    const body = await res.json() as { token: string; user: { id: string; email: string; username: string; role: string } };
     expect(body.token).toBeDefined();
     expect(typeof body.token).toBe('string');
-    expect(body.user).toEqual({ id: 'user-123', email: 'test@example.com', username: 'testuser' });
+    expect(body.user).toEqual({ id: 'user-123', email: 'test@example.com', username: 'testuser', role: 'user' });
   });
 
   it('returns 200 with token and user when logging in with username', async () => {
@@ -400,6 +408,7 @@ describe('POST /auth/login', () => {
       email: 'test@example.com',
       username: 'testuser',
       passwordHash: '$hashed$',
+      role: 'user',
     });
     vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
 
@@ -410,8 +419,8 @@ describe('POST /auth/login', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as { token: string; user: { id: string; email: string; username: string } };
-    expect(body.user).toEqual({ id: 'user-123', email: 'test@example.com', username: 'testuser' });
+    const body = await res.json() as { token: string; user: { id: string; email: string; username: string; role: string } };
+    expect(body.user).toEqual({ id: 'user-123', email: 'test@example.com', username: 'testuser', role: 'user' });
   });
 
   it('queries DB with OR clause matching both username and email', async () => {
@@ -420,6 +429,7 @@ describe('POST /auth/login', () => {
       email: 'test@example.com',
       username: 'testuser',
       passwordHash: '$hashed$',
+      role: 'user',
     });
     vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
 
@@ -440,6 +450,7 @@ describe('POST /auth/login', () => {
       email: 'test@example.com',
       username: 'testuser',
       passwordHash: '$stored_hash$',
+      role: 'user',
     });
     vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
 
@@ -496,6 +507,7 @@ describe('POST /auth/login', () => {
       email: 'test@example.com',
       username: 'testuser',
       passwordHash: '$hashed$',
+      role: 'user',
     });
     vi.mocked(bcryptjs.compare).mockResolvedValue(false as never);
 
@@ -543,12 +555,13 @@ describe('POST /auth/login', () => {
 // ─── GET /auth/me ─────────────────────────────────────────────────────────────
 
 describe('GET /auth/me', () => {
-  it('returns 200 with user data for a valid Bearer token', async () => {
-    const token = signToken({ userId: 'user-123', email: 'test@example.com' });
+  it('returns 200 with user data including role for a valid Bearer token', async () => {
+    const token = signToken({ userId: 'user-123', email: 'test@example.com', role: 'user' });
     mockUser.findUnique.mockResolvedValue({
       id: 'user-123',
       email: 'test@example.com',
       username: 'testuser',
+      role: 'user',
       createdAt: new Date('2026-01-01T00:00:00Z'),
     });
 
@@ -557,18 +570,20 @@ describe('GET /auth/me', () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json() as { user: { id: string; email: string; username: string } };
+    const body = await res.json() as { user: { id: string; email: string; username: string; role: string } };
     expect(body.user.id).toBe('user-123');
     expect(body.user.email).toBe('test@example.com');
     expect(body.user.username).toBe('testuser');
+    expect(body.user.role).toBe('user');
   });
 
   it('queries the DB by the userId from the JWT payload', async () => {
-    const token = signToken({ userId: 'user-456', email: 'other@example.com' });
+    const token = signToken({ userId: 'user-456', email: 'other@example.com', role: 'user' });
     mockUser.findUnique.mockResolvedValue({
       id: 'user-456',
       email: 'other@example.com',
       username: 'otheruser',
+      role: 'user',
       createdAt: new Date('2026-01-01T00:00:00Z'),
     });
 
@@ -594,7 +609,7 @@ describe('GET /auth/me', () => {
   });
 
   it('returns 401 when the Authorization header is malformed (no Bearer prefix)', async () => {
-    const token = signToken({ userId: 'user-123', email: 'test@example.com' });
+    const token = signToken({ userId: 'user-123', email: 'test@example.com', role: 'user' });
     const res = await fetch(`${baseUrl}/me`, {
       headers: { Authorization: token },
     });
@@ -602,7 +617,7 @@ describe('GET /auth/me', () => {
   });
 
   it('returns 404 when user no longer exists in DB', async () => {
-    const token = signToken({ userId: 'deleted-user', email: 'deleted@example.com' });
+    const token = signToken({ userId: 'deleted-user', email: 'deleted@example.com', role: 'user' });
     mockUser.findUnique.mockResolvedValue(null);
 
     const res = await fetch(`${baseUrl}/me`, {
@@ -615,7 +630,7 @@ describe('GET /auth/me', () => {
   });
 
   it('returns 500 when DB throws unexpectedly', async () => {
-    const token = signToken({ userId: 'user-123', email: 'test@example.com' });
+    const token = signToken({ userId: 'user-123', email: 'test@example.com', role: 'user' });
     mockUser.findUnique.mockRejectedValue(new Error('DB down'));
 
     const res = await fetch(`${baseUrl}/me`, {
@@ -623,5 +638,108 @@ describe('GET /auth/me', () => {
     });
 
     expect(res.status).toBe(500);
+  });
+});
+
+// ─── ADMIN_EMAILS auto-promotion ──────────────────────────────────────────────
+
+describe('ADMIN_EMAILS auto-promotion on login', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('promotes a user to admin when their email is in ADMIN_EMAILS and role is user', async () => {
+    vi.stubEnv('ADMIN_EMAILS', 'admin@example.com,other@example.com');
+    mockUser.findFirst.mockResolvedValue({
+      id: 'user-123',
+      email: 'admin@example.com',
+      username: 'adminuser',
+      passwordHash: '$hashed$',
+      role: 'user',
+    });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+    mockUser.update.mockResolvedValue({});
+
+    const res = await fetch(`${baseUrl}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: 'admin@example.com', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { user: { role: string } };
+    expect(body.user.role).toBe('admin');
+    expect(mockUser.update).toHaveBeenCalledWith({
+      where: { id: 'user-123' },
+      data: { role: 'admin' },
+    });
+  });
+
+  it('does not promote when user is already admin', async () => {
+    vi.stubEnv('ADMIN_EMAILS', 'admin@example.com');
+    mockUser.findFirst.mockResolvedValue({
+      id: 'user-123',
+      email: 'admin@example.com',
+      username: 'adminuser',
+      passwordHash: '$hashed$',
+      role: 'admin',
+    });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+
+    const res = await fetch(`${baseUrl}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: 'admin@example.com', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { user: { role: string } };
+    expect(body.user.role).toBe('admin');
+    expect(mockUser.update).not.toHaveBeenCalled();
+  });
+
+  it('does not promote when email is not in ADMIN_EMAILS', async () => {
+    vi.stubEnv('ADMIN_EMAILS', 'other@example.com');
+    mockUser.findFirst.mockResolvedValue({
+      id: 'user-123',
+      email: 'regular@example.com',
+      username: 'regularuser',
+      passwordHash: '$hashed$',
+      role: 'user',
+    });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+
+    const res = await fetch(`${baseUrl}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: 'regularuser', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { user: { role: string } };
+    expect(body.user.role).toBe('user');
+    expect(mockUser.update).not.toHaveBeenCalled();
+  });
+
+  it('does not promote when ADMIN_EMAILS is not set', async () => {
+    mockUser.findFirst.mockResolvedValue({
+      id: 'user-123',
+      email: 'admin@example.com',
+      username: 'adminuser',
+      passwordHash: '$hashed$',
+      role: 'user',
+    });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+
+    const res = await fetch(`${baseUrl}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: 'adminuser', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { user: { role: string } };
+    expect(body.user.role).toBe('user');
+    expect(mockUser.update).not.toHaveBeenCalled();
   });
 });
