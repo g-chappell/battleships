@@ -142,7 +142,15 @@ export const test = base.extend<TestFixtures>({
     const password = 'TestPass1!';
 
     const res = await request.post(`${API_URL}/auth/register`, {
-      data: { email, username, password },
+      data: {
+        email,
+        username,
+        password,
+        securityQuestions: [
+          { questionKey: 'first_pet', answer: 'Fluffy' },
+          { questionKey: 'birth_city', answer: 'London' },
+        ],
+      },
     });
 
     if (!res.ok()) {
