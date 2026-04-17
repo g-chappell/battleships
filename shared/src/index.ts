@@ -87,6 +87,7 @@ export type {
   MissionModifiers,
   MissionStarRequirements,
   AIPersonality,
+  DifficultyLabel,
 } from './campaign';
 
 // Achievements

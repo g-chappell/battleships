@@ -3,8 +3,17 @@ import {
   CAMPAIGN_MISSIONS,
   calculateStars,
   getMission,
+  type DifficultyLabel,
 } from '../campaign';
 import { AbilityType } from '../abilities';
+
+const VALID_DIFFICULTY_LABELS: Set<DifficultyLabel> = new Set([
+  'Calm Waters',
+  'Rough Seas',
+  'Storm Warning',
+  'Kraken Waters',
+  'No Mercy',
+]);
 
 describe('CAMPAIGN_MISSIONS data integrity', () => {
   it('has exactly 15 missions', () => {
@@ -128,6 +137,26 @@ describe('CAMPAIGN_MISSIONS data integrity', () => {
     expect(last.modifiers.foggyVision).toBe(true);
     expect(last.modifiers.krakenAttack).toBe(true);
   });
+
+  it('every mission has a valid difficultyLabel', () => {
+    for (const m of CAMPAIGN_MISSIONS) {
+      expect(VALID_DIFFICULTY_LABELS.has(m.difficultyLabel)).toBe(true);
+    }
+  });
+
+  it('missions 1-5 are Act I (Ironbeard — Calm Waters to Rough Seas)', () => {
+    const act1 = CAMPAIGN_MISSIONS.filter((m) => m.id <= 5);
+    for (const m of act1) {
+      expect(['Calm Waters', 'Rough Seas'].includes(m.difficultyLabel)).toBe(true);
+    }
+  });
+
+  it('missions 11-15 are Act III (Blackheart — hardest labels)', () => {
+    const act3 = CAMPAIGN_MISSIONS.filter((m) => m.id >= 11);
+    for (const m of act3) {
+      expect(['Kraken Waters', 'No Mercy'].includes(m.difficultyLabel)).toBe(true);
+    }
+  });
 });
 
 describe('getMission', () => {
@@ -135,7 +164,7 @@ describe('getMission', () => {
     const m = getMission(1);
     expect(m).toBeDefined();
     expect(m!.id).toBe(1);
-    expect(m!.title).toBe('Maiden Voyage');
+    expect(m!.title).toBe('Blood at Dawn');
   });
 
   it('returns undefined for an out-of-range id', () => {

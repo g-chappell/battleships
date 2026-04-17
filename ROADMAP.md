@@ -879,7 +879,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-072
 - **title:** Author new 15-mission campaign (narrative + mission data)
-- **status:** ready
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/84
+- **completed:** 2026-04-17
 - **priority:** med
 - **workspaces:** shared
 - **complexity:** large
