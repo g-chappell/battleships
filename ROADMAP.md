@@ -733,7 +733,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-059
 - **title:** Add SecurityQuestion model + predefined question bank
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** server, shared
 - **complexity:** medium
