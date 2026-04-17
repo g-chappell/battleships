@@ -7,7 +7,10 @@ import { signToken } from '../middleware/auth.ts';
 
 // ─── Hoisted mocks ────────────────────────────────────────────────────────────
 
-const { mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction, mockSeason, mockSeasonPlayerStats } = vi.hoisted(() => {
+const {
+  mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction, mockSeason, mockSeasonPlayerStats,
+  mockTournament, mockTournamentMatch,
+} = vi.hoisted(() => {
   const mockUser = {
     findUnique: vi.fn(),
     findMany: vi.fn(),
@@ -16,6 +19,7 @@ const { mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction, mockSeaso
   };
   const mockPlayerStats = {
     upsert: vi.fn(),
+    findMany: vi.fn(),
   };
   const mockAdminAuditLog = {
     create: vi.fn(),
@@ -33,7 +37,20 @@ const { mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction, mockSeaso
   const mockSeasonPlayerStats = {
     findMany: vi.fn(),
   };
-  return { mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction, mockSeason, mockSeasonPlayerStats };
+  const mockTournament = {
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  };
+  const mockTournamentMatch = {
+    findMany: vi.fn(),
+    create: vi.fn(),
+  };
+  return {
+    mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction, mockSeason, mockSeasonPlayerStats,
+    mockTournament, mockTournamentMatch,
+  };
 });
 
 vi.mock('../services/db.ts', () => ({
@@ -44,6 +61,8 @@ vi.mock('../services/db.ts', () => ({
     $transaction: mockTransaction,
     season: mockSeason,
     seasonPlayerStats: mockSeasonPlayerStats,
+    tournament: mockTournament,
+    tournamentMatch: mockTournamentMatch,
   },
 }));
 
@@ -88,7 +107,12 @@ beforeEach(() => {
   mockTransaction.mockImplementation(async (ops: unknown[]) => Promise.all(ops));
   mockUser.update.mockResolvedValue({});
   mockPlayerStats.upsert.mockResolvedValue({});
+  mockPlayerStats.findMany.mockResolvedValue([]);
   mockAdminAuditLog.create.mockResolvedValue({});
+  mockTournament.create.mockResolvedValue({});
+  mockTournament.update.mockResolvedValue({});
+  mockTournamentMatch.create.mockResolvedValue({});
+  mockTournamentMatch.findMany.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -600,6 +624,296 @@ describe('POST /admin/seasons/:id/end', () => {
   it('returns 500 on DB error', async () => {
     mockSeason.findUnique.mockRejectedValue(new Error('db down'));
     const res = await fetch(`${baseUrl}/seasons/s1/end`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── GET /admin/tournaments ───────────────────────────────────────────────────
+
+function makeTournament(overrides: Partial<{
+  id: string; name: string; description: string | null; status: string;
+  maxPlayers: number; createdAt: Date; startedAt: Date | null; finishedAt: Date | null;
+  _count: { entries: number };
+}> = {}) {
+  return {
+    id: 't1',
+    name: 'Test Cup',
+    description: null,
+    status: 'lobby',
+    maxPlayers: 4,
+    createdAt: new Date('2026-04-01T00:00:00Z'),
+    startedAt: null,
+    finishedAt: null,
+    _count: { entries: 2 },
+    ...overrides,
+  };
+}
+
+describe('GET /admin/tournaments', () => {
+  it('returns list of tournaments', async () => {
+    mockTournament.findMany.mockResolvedValue([
+      makeTournament({ id: 't1', name: 'Cup 1', status: 'lobby' }),
+      makeTournament({ id: 't2', name: 'Cup 2', status: 'finished' }),
+    ]);
+
+    const res = await fetch(`${baseUrl}/tournaments`, { headers: authHeaders() });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { tournaments: unknown[] };
+    expect(body.tournaments).toHaveLength(2);
+  });
+
+  it('returns round completion info for active tournaments', async () => {
+    mockTournament.findMany.mockResolvedValue([
+      makeTournament({ id: 't1', status: 'active', startedAt: new Date() }),
+    ]);
+    mockTournamentMatch.findMany.mockResolvedValue([
+      { round: 0, status: 'done' },
+      { round: 0, status: 'ready' },
+    ]);
+
+    const res = await fetch(`${baseUrl}/tournaments`, { headers: authHeaders() });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { tournaments: { currentRound: number; roundDone: number; roundTotal: number }[] };
+    expect(body.tournaments[0].currentRound).toBe(0);
+    expect(body.tournaments[0].roundDone).toBe(1);
+    expect(body.tournaments[0].roundTotal).toBe(2);
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockTournament.findMany.mockRejectedValue(new Error('db down'));
+    const res = await fetch(`${baseUrl}/tournaments`, { headers: authHeaders() });
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── POST /admin/tournaments ──────────────────────────────────────────────────
+
+describe('POST /admin/tournaments', () => {
+  const validBody = { name: 'Iron Cup', size: 8 };
+
+  it('creates a tournament and returns 201', async () => {
+    mockTournament.create.mockResolvedValue({
+      id: 't1', name: 'Iron Cup', description: null, status: 'lobby', maxPlayers: 8,
+    });
+
+    const res = await fetch(`${baseUrl}/tournaments`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(validBody),
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json() as { name: string; maxPlayers: number; status: string };
+    expect(body.name).toBe('Iron Cup');
+    expect(body.maxPlayers).toBe(8);
+    expect(body.status).toBe('lobby');
+  });
+
+  it('stores description when provided', async () => {
+    mockTournament.create.mockResolvedValue({
+      id: 't1', name: 'Iron Cup', description: 'Grand final', status: 'lobby', maxPlayers: 8,
+    });
+
+    const res = await fetch(`${baseUrl}/tournaments`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Iron Cup', size: 8, description: 'Grand final' }),
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json() as { description: string };
+    expect(body.description).toBe('Grand final');
+  });
+
+  it('returns 400 when name is missing', async () => {
+    const res = await fetch(`${baseUrl}/tournaments`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ size: 8 }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 for invalid size', async () => {
+    const res = await fetch(`${baseUrl}/tournaments`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Cup', size: 5 }),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toContain('size');
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockTournament.create.mockRejectedValue(new Error('db down'));
+    const res = await fetch(`${baseUrl}/tournaments`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(validBody),
+    });
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── POST /admin/tournaments/:id/start ───────────────────────────────────────
+
+describe('POST /admin/tournaments/:id/start', () => {
+  const makeEntries = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ userId: `u${i + 1}` }));
+
+  it('seeds bracket and starts a full tournament', async () => {
+    mockTournament.findUnique.mockResolvedValue({
+      id: 't1', status: 'lobby', maxPlayers: 4, entries: makeEntries(4),
+    });
+    mockPlayerStats.findMany.mockResolvedValue([
+      { userId: 'u1', rating: 1400 },
+      { userId: 'u2', rating: 1200 },
+      { userId: 'u3', rating: 1300 },
+      { userId: 'u4', rating: 1100 },
+    ]);
+
+    const res = await fetch(`${baseUrl}/tournaments/t1/start`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { ok: boolean; round: number; matchCount: number };
+    expect(body.ok).toBe(true);
+    expect(body.round).toBe(0);
+    expect(body.matchCount).toBe(2);
+    expect(mockTournamentMatch.create).toHaveBeenCalled();
+    expect(mockTournament.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'active' }) })
+    );
+  });
+
+  it('returns 404 when tournament not found', async () => {
+    mockTournament.findUnique.mockResolvedValue(null);
+    const res = await fetch(`${baseUrl}/tournaments/missing/start`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 when tournament is not in lobby', async () => {
+    mockTournament.findUnique.mockResolvedValue({
+      id: 't1', status: 'active', maxPlayers: 4, entries: makeEntries(4),
+    });
+    const res = await fetch(`${baseUrl}/tournaments/t1/start`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toContain('not in lobby');
+  });
+
+  it('returns 400 when tournament is not full', async () => {
+    mockTournament.findUnique.mockResolvedValue({
+      id: 't1', status: 'lobby', maxPlayers: 4, entries: makeEntries(2),
+    });
+    const res = await fetch(`${baseUrl}/tournaments/t1/start`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toContain('Need 4 players');
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockTournament.findUnique.mockRejectedValue(new Error('db down'));
+    const res = await fetch(`${baseUrl}/tournaments/t1/start`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── POST /admin/tournaments/:id/advance ─────────────────────────────────────
+
+describe('POST /admin/tournaments/:id/advance', () => {
+  it('returns ok when current round is complete', async () => {
+    mockTournament.findUnique.mockResolvedValue({ id: 't1', status: 'active', maxPlayers: 4 });
+    mockTournamentMatch.findMany.mockResolvedValue([
+      { round: 0, status: 'done' },
+      { round: 0, status: 'done' },
+      { round: 1, status: 'pending' },
+    ]);
+
+    const res = await fetch(`${baseUrl}/tournaments/t1/advance`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { ok: boolean; nextRound: number };
+    expect(body.ok).toBe(true);
+    expect(body.nextRound).toBe(1);
+  });
+
+  it('returns 400 with completion info when round is incomplete', async () => {
+    mockTournament.findUnique.mockResolvedValue({ id: 't1', status: 'active', maxPlayers: 4 });
+    mockTournamentMatch.findMany.mockResolvedValue([
+      { round: 0, status: 'done' },
+      { round: 0, status: 'ready' },
+      { round: 1, status: 'pending' },
+    ]);
+
+    const res = await fetch(`${baseUrl}/tournaments/t1/advance`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string; done: number; total: number };
+    expect(body.done).toBe(1);
+    expect(body.total).toBe(2);
+  });
+
+  it('returns 400 when tournament already complete', async () => {
+    // 4-player tournament, total rounds = 2. Current round = 1 (final), all done.
+    mockTournament.findUnique.mockResolvedValue({ id: 't1', status: 'active', maxPlayers: 4 });
+    mockTournamentMatch.findMany.mockResolvedValue([
+      { round: 0, status: 'done' },
+      { round: 0, status: 'done' },
+      { round: 1, status: 'done' },
+    ]);
+
+    const res = await fetch(`${baseUrl}/tournaments/t1/advance`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toContain('already complete');
+  });
+
+  it('returns 404 when tournament not found', async () => {
+    mockTournament.findUnique.mockResolvedValue(null);
+    const res = await fetch(`${baseUrl}/tournaments/missing/advance`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 when tournament is not active', async () => {
+    mockTournament.findUnique.mockResolvedValue({ id: 't1', status: 'lobby', maxPlayers: 4 });
+    const res = await fetch(`${baseUrl}/tournaments/t1/advance`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toContain('not active');
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockTournament.findUnique.mockRejectedValue(new Error('db down'));
+    const res = await fetch(`${baseUrl}/tournaments/t1/advance`, {
       method: 'POST',
       headers: authHeaders(),
     });
