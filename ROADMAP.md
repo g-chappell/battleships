@@ -693,7 +693,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-056
 - **title:** Rebuild SettingsModal layout with proper spacing and sections
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
