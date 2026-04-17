@@ -782,7 +782,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-063
 - **title:** Admin page scaffold (gated route with sidebar)
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
