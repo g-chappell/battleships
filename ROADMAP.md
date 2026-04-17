@@ -934,7 +934,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-077
 - **title:** Add UserAchievement model + server endpoints
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** server, shared
 - **complexity:** medium
