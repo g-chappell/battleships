@@ -771,7 +771,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-062
 - **title:** Add requireAdmin middleware and admin route namespace
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** server
 - **complexity:** small
