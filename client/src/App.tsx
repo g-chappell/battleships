@@ -14,6 +14,7 @@ import { Clans } from './pages/Clans';
 import { ReplayViewer } from './pages/ReplayViewer';
 import { SpectatorView } from './pages/SpectatorView';
 import { GuidePage } from './pages/GuidePage';
+import { AdminPage } from './pages/AdminPage';
 import { TopNav } from './components/ui/TopNav';
 import { TopRightControls } from './components/ui/TopRightControls';
 import { AuthGate } from './components/ui/AuthGate';
@@ -96,6 +97,7 @@ function App() {
         {screen === 'replay' && <ReplayViewer />}
         {screen === 'spectate' && <SpectatorView />}
         {screen === 'multiplayer' && <MultiplayerLobby />}
+        {screen === 'admin' && <AdminPage />}
       </div>
       <AchievementToast />
       <Toaster />
