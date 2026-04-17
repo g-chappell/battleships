@@ -23,8 +23,7 @@ const NAV_ITEMS: { id: AdminSection; label: string; icon: string }[] = [
   { id: 'telemetry', label: 'Telemetry', icon: '🔭' },
 ];
 
-const STUB_DESCRIPTIONS: Record<Exclude<AdminSection, 'users' | 'seasons'>, string> = {
-  tournaments: 'Create tournaments, seed brackets, and advance rounds.',
+const STUB_DESCRIPTIONS: Record<Exclude<AdminSection, 'users' | 'seasons' | 'tournaments'>, string> = {
   telemetry: 'View active players, games in progress, and recent match outcomes.',
 };
 
@@ -80,6 +79,21 @@ interface SeasonStanding {
   peakRating: number;
   wins: number;
   losses: number;
+}
+
+interface AdminTournament {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  maxPlayers: number;
+  playerCount: number;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  currentRound: number | null;
+  roundDone: number;
+  roundTotal: number;
 }
 
 // ─── ConfirmDialog ────────────────────────────────────────────────────────────
@@ -862,9 +876,245 @@ function SeasonsSection({ token }: { token: string }) {
   );
 }
 
+// ─── TournamentsSection ───────────────────────────────────────────────────────
+
+function TournamentsSection({ token }: { token: string }) {
+  const [tournaments, setTournaments] = useState<AdminTournament[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null); // tournamentId being acted on
+
+  // Create form state
+  const [newName, setNewName] = useState('');
+  const [newSize, setNewSize] = useState<number>(8);
+  const [newDesc, setNewDesc] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const fetchTournaments = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ tournaments: AdminTournament[] }>('/admin/tournaments', { token });
+      setTournaments(res.tournaments);
+    } catch {
+      setError('Failed to load tournaments');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchTournaments(); }, [fetchTournaments]);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      await apiFetch('/admin/tournaments', {
+        method: 'POST',
+        token,
+        json: { name: newName, size: newSize, description: newDesc || undefined },
+      });
+      setShowCreate(false);
+      setNewName('');
+      setNewDesc('');
+      fetchTournaments();
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : 'Failed to create tournament');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleStart = async (id: string) => {
+    setBusy(id);
+    setError(null);
+    try {
+      await apiFetch(`/admin/tournaments/${id}/start`, { method: 'POST', token });
+      fetchTournaments();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to start tournament');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleAdvance = async (id: string) => {
+    setBusy(id);
+    setError(null);
+    try {
+      await apiFetch(`/admin/tournaments/${id}/advance`, { method: 'POST', token });
+      fetchTournaments();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to advance round');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const statusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      lobby: 'bg-coal text-parchment/70 border-mahogany',
+      active: 'bg-blood/30 text-blood-bright border-blood/60',
+      finished: 'bg-pitch text-parchment/40 border-mahogany/40',
+      cancelled: 'bg-pitch text-parchment/30 border-mahogany/30',
+    };
+    return (
+      <span
+        className={`px-1.5 py-0.5 text-xs border rounded ${styles[status] ?? styles.cancelled}`}
+        style={FONT_STYLES.labelSC}
+      >
+        {status}
+      </span>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-parchment/40 text-xs" style={FONT_STYLES.labelSC}>
+          {tournaments.length} tournament{tournaments.length !== 1 ? 's' : ''}
+        </p>
+        <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
+          + New Tournament
+        </Button>
+      </div>
+
+      {error && (
+        <p className="text-blood-bright text-xs mb-2" style={FONT_STYLES.body}>{error}</p>
+      )}
+
+      {loading ? (
+        <p className="text-parchment/40 text-sm py-4 text-center" style={FONT_STYLES.body}>Loading…</p>
+      ) : (
+        <div className="flex-1 overflow-y-auto space-y-1">
+          {tournaments.length === 0 && (
+            <p className="text-parchment/40 text-sm py-8 text-center" style={FONT_STYLES.body}>
+              No tournaments yet. Create the first one.
+            </p>
+          )}
+          {tournaments.map((t) => {
+            const canStart = t.status === 'lobby';
+            const canAdvance = t.status === 'active';
+            const roundComplete = t.roundDone >= t.roundTotal && t.roundTotal > 0;
+            const isBusy = busy === t.id;
+
+            return (
+              <div
+                key={t.id}
+                className="flex items-center gap-3 px-3 py-2.5 rounded border bg-coal/40 border-mahogany/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-bone text-sm truncate" style={FONT_STYLES.body}>{t.name}</p>
+                    {statusBadge(t.status)}
+                  </div>
+                  <p className="text-parchment/40 text-xs mt-0.5">
+                    {t.playerCount}/{t.maxPlayers} players
+                    {t.status === 'active' && t.currentRound !== null && (
+                      <> · Round {t.currentRound + 1} — {t.roundDone}/{t.roundTotal} done</>
+                    )}
+                  </p>
+                  {t.description && (
+                    <p className="text-parchment/30 text-xs mt-0.5 truncate">{t.description}</p>
+                  )}
+                </div>
+                <div className="shrink-0 flex gap-2">
+                  {canStart && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={isBusy}
+                      onClick={() => handleStart(t.id)}
+                    >
+                      Start
+                    </Button>
+                  )}
+                  {canAdvance && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={isBusy || !roundComplete}
+                      onClick={() => handleAdvance(t.id)}
+                    >
+                      Advance
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Create tournament dialog */}
+      <Dialog open={showCreate} onOpenChange={(o) => !o && setShowCreate(false)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle style={FONT_STYLES.pirate}>New Tournament</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-parchment/60 text-xs block mb-1" style={FONT_STYLES.labelSC}>Name</label>
+              <Input
+                placeholder="e.g. Iron Cup 2026"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-parchment/60 text-xs block mb-1" style={FONT_STYLES.labelSC}>Size</label>
+              <div className="flex gap-2">
+                {([4, 8, 16] as const).map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setNewSize(n)}
+                    className={`flex-1 py-2 text-sm border rounded transition-colors ${
+                      newSize === n
+                        ? 'bg-blood/30 border-blood-bright text-bone'
+                        : 'border-mahogany text-parchment/60 hover:border-blood'
+                    }`}
+                    style={FONT_STYLES.body}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-parchment/60 text-xs block mb-1" style={FONT_STYLES.labelSC}>
+                Description (optional)
+              </label>
+              <Input
+                placeholder="Brief description…"
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+              />
+            </div>
+            {createError && (
+              <p className="text-blood-bright text-xs" style={FONT_STYLES.body}>{createError}</p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={creating || !newName.trim()}
+              onClick={handleCreate}
+            >
+              {creating ? 'Creating…' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ─── StubContent ──────────────────────────────────────────────────────────────
 
-function StubContent({ section }: { section: Exclude<AdminSection, 'users' | 'seasons'> }) {
+function StubContent({ section }: { section: Exclude<AdminSection, 'users' | 'seasons' | 'tournaments'> }) {
   const item = NAV_ITEMS.find((n) => n.id === section)!;
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[320px] text-center gap-4">
@@ -973,8 +1223,10 @@ export function AdminPage() {
             token ? <UsersSection token={token} /> : null
           ) : activeSection === 'seasons' ? (
             token ? <SeasonsSection token={token} /> : null
+          ) : activeSection === 'tournaments' ? (
+            token ? <TournamentsSection token={token} /> : null
           ) : (
-            <StubContent section={activeSection} />
+            <StubContent section={activeSection as Exclude<AdminSection, 'users' | 'seasons' | 'tournaments'>} />
           )}
         </Card>
       </main>

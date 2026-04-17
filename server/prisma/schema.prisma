@@ -107,16 +107,17 @@ model UserCosmetic {
 
 // === P2-2 Tournaments ===
 model Tournament {
-  id         String   @id @default(cuid())
-  name       String
-  status     String   // 'lobby' | 'active' | 'finished' | 'cancelled'
-  maxPlayers Int
-  createdBy  String
-  createdAt  DateTime @default(now())
-  startedAt  DateTime?
-  finishedAt DateTime?
-  winnerId   String?
-  seasonId   String?
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   // 'lobby' | 'active' | 'finished' | 'cancelled'
+  maxPlayers  Int
+  createdBy   String
+  createdAt   DateTime @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  winnerId    String?
+  seasonId    String?
 
   entries TournamentEntry[]
   matches TournamentMatch[]

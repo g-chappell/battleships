@@ -817,11 +817,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-066
 - **title:** Admin — tournament management (create, start round, advance round)
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** medium
 - **depends_on:** [TASK-063]
+- **pr:** https://github.com/g-chappell/battleships/pull/89
+- **completed:** 2026-04-17
 - **description:** Server endpoints under `/admin/tournaments`: create (name, size 4/8/16, description), open lobby, start round 1 (seeds bracket). Replace automatic progression with admin-triggered round advancement. Client UI in admin page: create form, list of active tournaments, "Start Round" / "Advance Round" buttons. Round-advance button is disabled until all matches in the current round are complete (server returns current round completion %).
 
 #### TASK-067

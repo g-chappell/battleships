@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 import { prisma } from '../services/db.js';
 import { invalidateSeasonCache } from '../services/seasons.js';
+import { seedPairings, totalRounds, VALID_TOURNAMENT_SIZES } from '../../../shared/src/tournaments.ts';
 
 export const adminRouter = Router();
 
@@ -351,5 +352,199 @@ adminRouter.post('/seasons/:id/end', async (req, res) => {
     return res.json({ ok: true });
   } catch {
     return res.status(500).json({ error: 'Failed to end season' });
+  }
+});
+
+// ─── Tournaments ──────────────────────────────────────────────────────────────
+
+adminRouter.get('/tournaments', async (_req, res) => {
+  try {
+    const tournaments = await prisma.tournament.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        status: true,
+        maxPlayers: true,
+        createdAt: true,
+        startedAt: true,
+        finishedAt: true,
+        _count: { select: { entries: true } },
+      },
+    });
+
+    const result = await Promise.all(
+      tournaments.map(async (t) => {
+        let currentRound: number | null = null;
+        let roundDone = 0;
+        let roundTotal = 0;
+
+        if (t.status === 'active') {
+          const matches = await prisma.tournamentMatch.findMany({
+            where: { tournamentId: t.id },
+            select: { round: true, status: true },
+          });
+          const activeMatches = matches.filter((m) => m.status !== 'pending');
+          if (activeMatches.length > 0) {
+            currentRound = Math.max(...activeMatches.map((m) => m.round));
+            const inRound = matches.filter((m) => m.round === currentRound);
+            roundTotal = inRound.length;
+            roundDone = inRound.filter((m) => m.status === 'done').length;
+          }
+        }
+
+        return {
+          id: t.id,
+          name: t.name,
+          description: t.description,
+          status: t.status,
+          maxPlayers: t.maxPlayers,
+          playerCount: t._count.entries,
+          createdAt: t.createdAt.toISOString(),
+          startedAt: t.startedAt?.toISOString() ?? null,
+          finishedAt: t.finishedAt?.toISOString() ?? null,
+          currentRound,
+          roundDone,
+          roundTotal,
+        };
+      })
+    );
+
+    return res.json({ tournaments: result });
+  } catch {
+    return res.status(500).json({ error: 'Failed to list tournaments' });
+  }
+});
+
+adminRouter.post('/tournaments', async (req, res) => {
+  const { name, size, description } = req.body as { name: unknown; size: unknown; description: unknown };
+
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'name is required' });
+  }
+  if (!VALID_TOURNAMENT_SIZES.includes(Number(size) as 4 | 8 | 16)) {
+    return res.status(400).json({ error: 'size must be 4, 8, or 16' });
+  }
+
+  try {
+    const t = await prisma.tournament.create({
+      data: {
+        name: name.trim(),
+        maxPlayers: Number(size),
+        createdBy: req.user!.userId,
+        status: 'lobby',
+        description: typeof description === 'string' && description.trim() ? description.trim() : null,
+      },
+    });
+    return res.status(201).json({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      status: t.status,
+      maxPlayers: t.maxPlayers,
+    });
+  } catch {
+    return res.status(500).json({ error: 'Failed to create tournament' });
+  }
+});
+
+adminRouter.post('/tournaments/:id/start', async (req, res) => {
+  try {
+    const t = await prisma.tournament.findUnique({
+      where: { id: req.params.id },
+      include: { entries: true },
+    });
+    if (!t) return res.status(404).json({ error: 'Tournament not found' });
+    if (t.status !== 'lobby') return res.status(400).json({ error: 'Tournament is not in lobby' });
+    if (t.entries.length !== t.maxPlayers) {
+      return res.status(400).json({
+        error: `Need ${t.maxPlayers} players to start; have ${t.entries.length}`,
+      });
+    }
+
+    // Seed round 0 by rating (descending)
+    const playerIds = t.entries.map((e: { userId: string }) => e.userId);
+    const statsRows = await prisma.playerStats.findMany({
+      where: { userId: { in: playerIds } },
+      select: { userId: true, rating: true },
+    });
+    const ratingOf = new Map(statsRows.map((s: { userId: string; rating: number }) => [s.userId, s.rating]));
+    const sorted = [...playerIds].sort(
+      (a, b) => (ratingOf.get(b) ?? 1200) - (ratingOf.get(a) ?? 1200)
+    );
+
+    const pairs = seedPairings(sorted);
+    for (let i = 0; i < pairs.length; i++) {
+      const [p1, p2] = pairs[i];
+      await prisma.tournamentMatch.create({
+        data: { tournamentId: t.id, round: 0, bracketIdx: i, p1UserId: p1, p2UserId: p2, status: 'ready' },
+      });
+    }
+
+    // Create empty slots for subsequent rounds
+    const rounds = totalRounds(t.maxPlayers);
+    for (let r = 1; r < rounds; r++) {
+      const slotCount = t.maxPlayers / Math.pow(2, r + 1);
+      for (let i = 0; i < slotCount; i++) {
+        await prisma.tournamentMatch.create({
+          data: { tournamentId: t.id, round: r, bracketIdx: i, status: 'pending' },
+        });
+      }
+    }
+
+    await prisma.tournament.update({
+      where: { id: t.id },
+      data: { status: 'active', startedAt: new Date() },
+    });
+
+    return res.json({ ok: true, round: 0, matchCount: pairs.length });
+  } catch {
+    return res.status(500).json({ error: 'Failed to start tournament' });
+  }
+});
+
+adminRouter.post('/tournaments/:id/advance', async (req, res) => {
+  try {
+    const t = await prisma.tournament.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, status: true, maxPlayers: true },
+    });
+    if (!t) return res.status(404).json({ error: 'Tournament not found' });
+    if (t.status !== 'active') return res.status(400).json({ error: 'Tournament is not active' });
+
+    const matches = await prisma.tournamentMatch.findMany({
+      where: { tournamentId: t.id },
+      select: { round: true, status: true },
+    });
+
+    // Current round = highest round with non-pending matches
+    const activeMatches = matches.filter((m) => m.status !== 'pending');
+    if (activeMatches.length === 0) {
+      return res.status(400).json({ error: 'No active round found' });
+    }
+
+    const currentRound = Math.max(...activeMatches.map((m) => m.round));
+    const inRound = matches.filter((m) => m.round === currentRound);
+    const doneCount = inRound.filter((m) => m.status === 'done').length;
+    const totalCount = inRound.length;
+
+    if (doneCount < totalCount) {
+      return res.status(400).json({
+        error: `Round ${currentRound} not complete`,
+        done: doneCount,
+        total: totalCount,
+      });
+    }
+
+    const totalR = totalRounds(t.maxPlayers);
+    if (currentRound >= totalR - 1) {
+      return res.status(400).json({ error: 'Tournament is already complete' });
+    }
+
+    return res.json({ ok: true, nextRound: currentRound + 1 });
+  } catch {
+    return res.status(500).json({ error: 'Failed to advance tournament' });
   }
 });
