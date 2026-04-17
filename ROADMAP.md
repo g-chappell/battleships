@@ -720,12 +720,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-058
 - **title:** Register form requires a username
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** small
 - **depends_on:** [TASK-057]
 - **description:** Add a username input to the register form. Validate client-side (length 3–20, alphanumeric + underscore). Server-side: enforce uniqueness (username is already unique in the schema); return 400 on conflict with a distinct error code from email conflict.
+- **pr:** https://github.com/g-chappell/battleships/pull/77
+- **completed:** 2026-04-17
 
 ### Story: Password recovery via security questions
 

@@ -138,6 +138,83 @@ describe('POST /auth/register', () => {
     expect(body.error).toMatch(/required/i);
   });
 
+  it('returns 400 when username is too short (fewer than 3 characters)', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'test@example.com', username: 'ab', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/3.{0,5}20 characters/i);
+  });
+
+  it('returns 400 when username is too long (more than 20 characters)', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'test@example.com', username: 'a'.repeat(21), password: 'password123' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/3.{0,5}20 characters/i);
+  });
+
+  it('returns 400 when username contains invalid characters (spaces)', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'test@example.com', username: 'user name', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/letters, numbers, underscores/i);
+  });
+
+  it('returns 400 when username contains invalid characters (hyphens)', async () => {
+    const res = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'test@example.com', username: 'user-name', password: 'password123' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/letters, numbers, underscores/i);
+  });
+
+  it('accepts username with underscores at boundary lengths (3 and 20)', async () => {
+    mockUser.findFirst.mockResolvedValue(null);
+    mockUser.create.mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+      username: 'a_b',
+    });
+
+    const res3 = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'test@example.com', username: 'a_b', password: 'password123' }),
+    });
+    expect(res3.status).toBe(201);
+
+    mockUser.create.mockResolvedValue({
+      id: 'user-456',
+      email: 'other@example.com',
+      username: 'a'.repeat(20),
+    });
+
+    const res20 = await fetch(`${baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'other@example.com', username: 'a'.repeat(20), password: 'password123' }),
+    });
+    expect(res20.status).toBe(201);
+  });
+
   it('returns 400 when email has no @ symbol', async () => {
     const res = await fetch(`${baseUrl}/register`, {
       method: 'POST',
