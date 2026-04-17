@@ -879,7 +879,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-072
 - **title:** Author new 15-mission campaign (narrative + mission data)
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** shared
 - **complexity:** large
