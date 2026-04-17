@@ -114,11 +114,11 @@ authRouter.post('/register', async (req, res) => {
       return newUser;
     });
 
-    const token = signToken({ userId: user.id, email: user.email });
+    const token = signToken({ userId: user.id, email: user.email, role: 'user' });
 
     res.status(201).json({
       token,
-      user: { id: user.id, email: user.email, username: user.username },
+      user: { id: user.id, email: user.email, username: user.username, role: 'user' },
     });
   } catch (err) {
     console.error('Registration error:', err);
@@ -151,11 +151,20 @@ authRouter.post('/login', async (req, res) => {
       return;
     }
 
-    const token = signToken({ userId: user.id, email: user.email });
+    let role = user.role ?? 'user';
+    const adminEmails = new Set(
+      (process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim()).filter(Boolean)
+    );
+    if (adminEmails.has(user.email) && role === 'user') {
+      await prisma.user.update({ where: { id: user.id }, data: { role: 'admin' } });
+      role = 'admin';
+    }
+
+    const token = signToken({ userId: user.id, email: user.email, role });
 
     res.json({
       token,
-      user: { id: user.id, email: user.email, username: user.username },
+      user: { id: user.id, email: user.email, username: user.username, role },
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -168,7 +177,7 @@ authRouter.get('/me', authMiddleware, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      select: { id: true, email: true, username: true, createdAt: true },
+      select: { id: true, email: true, username: true, role: true, createdAt: true },
     });
 
     if (!user) {
