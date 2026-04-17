@@ -48,6 +48,7 @@ export function GamePage() {
   const completeMission = useCampaignStore((s) => s.completeMission);
   const currentMission = useCampaignStore((s) => s.currentMission);
   const token = useAuthStore((s) => s.token);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
   const addGold = useCosmeticsStore((s) => s.addGold);
 
   const musicEnabled = useSettingsStore((s) => s.musicEnabled);
@@ -119,7 +120,7 @@ export function GamePage() {
     };
     const newlyUnlocked = evaluateAchievements(ctx).filter(id => !alreadyUnlocked.has(id));
     if (newlyUnlocked.length > 0) {
-      unlockMany(newlyUnlocked);
+      unlockMany(newlyUnlocked, token, userId);
     }
 
     // === Gold award ===
@@ -152,7 +153,7 @@ export function GamePage() {
         token
       );
     }
-  }, [isFinished, engine, gameMode, difficulty, addGold, alreadyUnlocked, unlockMany, currentMission, completeMission, token]);
+  }, [isFinished, engine, gameMode, difficulty, addGold, alreadyUnlocked, unlockMany, currentMission, completeMission, token, userId]);
 
   // Sound effects
   useEffect(() => {
