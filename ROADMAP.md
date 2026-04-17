@@ -889,7 +889,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-073
 - **title:** Extend MissionModifiers + tiered star logic
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** shared
 - **complexity:** medium
