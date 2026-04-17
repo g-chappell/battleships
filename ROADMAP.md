@@ -952,11 +952,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-078
 - **title:** Migrate achievementsStore to server-backed + registered-only
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
 - **depends_on:** [TASK-077]
+- **pr:** https://github.com/g-chappell/battleships/pull/86
+- **completed:** 2026-04-17
 - **description:** Refactor `achievementsStore` to fetch unlocks from the new server endpoint on login. `checkAchievements(context)` becomes a no-op for guests. Remove the localStorage path entirely. Update existing store tests and add tests for guest skip behavior.
 
 ### Story: Event wiring
