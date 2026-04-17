@@ -693,10 +693,12 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-056
 - **title:** Rebuild SettingsModal layout with proper spacing and sections
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
+- **pr:** https://github.com/g-chappell/battleships/pull/75
+- **completed:** 2026-04-17
 - **description:** Rework `SettingsModal.tsx` — organize controls into labeled sections (Audio, Display) using shadcn `Dialog` + `Separator`. Increase vertical spacing between controls. Ensure the Dialog has explicit max-width and the Close action does not overlap the last control. Preserve all existing functionality (master volume, sfx volume, music volume, mute toggle, music toggle). Verify via `verify-ui` skill.
 
 ---
