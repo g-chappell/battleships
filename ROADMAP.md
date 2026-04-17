@@ -743,7 +743,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-060
 - **title:** Password recovery flow (identify → answer questions → reset)
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** medium
