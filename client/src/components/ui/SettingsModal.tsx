@@ -8,6 +8,7 @@ import {
 } from '../shadcn/dialog';
 import { Switch } from '../shadcn/switch';
 import { Slider } from '../shadcn/slider';
+import { Separator } from '../shadcn/separator';
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   const masterVolume = useSettingsStore((s) => s.masterVolume);
@@ -30,9 +31,9 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="border border-blood/60 panel-glow bg-gradient-to-b from-coal to-[#2a1410]"
+        className="border border-blood/60 panel-glow bg-gradient-to-b from-coal to-[#2a1410] sm:max-w-md"
       >
-        <DialogHeader>
+        <DialogHeader className="pr-8">
           <DialogTitle
             className="font-pirate text-3xl text-blood-bright"
             style={{ textShadow: '0 0 10px rgba(196,30,58,0.4)' }}
@@ -41,31 +42,52 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 pt-1">
-          <SliderControl label="Master Volume" value={masterVolume} onChange={setMaster} />
-          <SliderControl label="SFX Volume" value={sfxVolume} onChange={setSfx} />
-          <SliderControl label="Music Volume" value={musicVolume} onChange={setMusic} />
+        <div className="space-y-1 pt-1">
+          <SectionLabel>Audio</SectionLabel>
+          <Separator className="mb-4" />
 
-          <div className="flex items-center justify-between">
-            <span className="text-parchment text-sm font-label">Mute All</span>
-            <Switch
-              checked={muted}
-              onCheckedChange={() => toggleMuted()}
-              aria-label="Toggle mute all"
-            />
+          <div className="space-y-5 pb-2">
+            <SliderControl label="Master Volume" value={masterVolume} onChange={setMaster} />
+            <SliderControl label="SFX Volume" value={sfxVolume} onChange={setSfx} />
+            <SliderControl label="Music Volume" value={musicVolume} onChange={setMusic} />
+
+            <div className="flex items-center justify-between">
+              <span className="text-parchment text-sm font-label">Mute All</span>
+              <Switch
+                checked={muted}
+                onCheckedChange={() => toggleMuted()}
+                aria-label="Toggle mute all"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-parchment text-sm font-label">Background Music</span>
+              <Switch
+                checked={musicEnabled}
+                onCheckedChange={() => toggleMusic()}
+                aria-label="Toggle background music"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-parchment text-sm font-label">Background Music</span>
-            <Switch
-              checked={musicEnabled}
-              onCheckedChange={() => toggleMusic()}
-              aria-label="Toggle background music"
-            />
+          <div className="pt-4">
+            <SectionLabel>Display</SectionLabel>
+            <Separator className="mt-1" />
+            <p className="text-parchment/50 text-xs font-body mt-3 italic">
+              Display options coming soon.
+            </p>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-gold text-xs font-label tracking-widest uppercase">
+      {children}
+    </span>
   );
 }
 
