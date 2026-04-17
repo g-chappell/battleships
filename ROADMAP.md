@@ -771,11 +771,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-062
 - **title:** Add requireAdmin middleware and admin route namespace
-- **status:** ready
+- **status:** done
 - **priority:** high
 - **workspaces:** server
 - **complexity:** small
 - **depends_on:** [TASK-061]
+- **pr:** https://github.com/g-chappell/battleships/pull/82
+- **completed:** 2026-04-17
 - **description:** Create `server/src/middleware/requireAdmin.ts` — checks JWT claim `role === 'admin'`, returns 403 otherwise. Create `server/src/routes/admin.ts` mounted at `/admin/*`, all routes guarded by `requireAuth` + `requireAdmin`. Add health-check endpoint `GET /admin/ping` as a placeholder for the first task to wire it up.
 
 #### TASK-063

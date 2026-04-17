@@ -13,6 +13,7 @@ import { cosmeticsRouter } from './routes/cosmetics.js';
 import { tournamentsRouter } from './routes/tournaments.js';
 import { clansRouter } from './routes/clans.js';
 import { seasonsRouter } from './routes/seasons.js';
+import { adminRouter } from './routes/admin.js';
 import { setupGameSocket } from './sockets/gameSocket.js';
 
 dotenv.config();
@@ -56,6 +57,7 @@ app.use('/api/cosmetics', cosmeticsRouter);
 app.use('/api/tournaments', tournamentsRouter);
 app.use('/api/clans', clansRouter);
 app.use('/api/seasons', seasonsRouter);
+app.use('/api/admin', adminRouter);
 
 // Error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
