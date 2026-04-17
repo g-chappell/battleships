@@ -36,6 +36,7 @@ model User {
   matchesAsP2        Match[]  @relation("player2")
   wonMatches         Match[]  @relation("winner")
   securityQuestions  SecurityQuestion[]
+  achievements       UserAchievement[]
 
   @@unique([provider, providerId])
 }
@@ -182,6 +183,18 @@ model SecurityQuestion {
   createdAt   DateTime @default(now())
 
   @@unique([userId, questionKey])
+  @@index([userId])
+}
+
+// === Achievements ===
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  @@unique([userId, achievementId])
   @@index([userId])
 }
 
