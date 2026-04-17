@@ -35,8 +35,13 @@ model User {
   matchesAsP1        Match[]  @relation("player1")
   matchesAsP2        Match[]  @relation("player2")
   wonMatches         Match[]  @relation("winner")
-  securityQuestions  SecurityQuestion[]
-  achievements       UserAchievement[]
+  bannedAt              DateTime?
+  mustChangePassword    Boolean   @default(false)
+
+  securityQuestions     SecurityQuestion[]
+  achievements          UserAchievement[]
+  adminActionsPerformed AdminAuditLog[] @relation("adminUser")
+  adminAuditLogs        AdminAuditLog[] @relation("targetUser")
 
   @@unique([provider, providerId])
 }
@@ -196,6 +201,21 @@ model UserAchievement {
 
   @@unique([userId, achievementId])
   @@index([userId])
+}
+
+// === Admin Audit Log ===
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  adminId      String
+  admin        User     @relation("adminUser", fields: [adminId], references: [id])
+  targetUserId String
+  targetUser   User     @relation("targetUser", fields: [targetUserId], references: [id])
+  action       String   // 'reset_password' | 'reset_stats' | 'adjust_gold' | 'ban' | 'unban'
+  detail       String?
+  createdAt    DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([targetUserId, createdAt])
 }
 
 // === P2-6 Seasons ===
