@@ -105,6 +105,9 @@ interface GameStore {
   activeAbility: AbilityType | null; // ability being targeted this turn
   sonarResult: SonarPingResult | null;
   spAbilitiesUsed: Record<string, number>; // single-player ability usage count
+  spAbilitySinks: Record<string, number>; // sinks credited to specific abilities this match
+  ironcladSavedThisMatch: boolean; // player Battleship absorbed at least one enemy hit via Ironclad
+  submarineSonarBlockedThisMatch: boolean; // AI sonar missed (no ship detected) at least once
   sonarHistory: { center: Coordinate; shipDetected: boolean; revealedShipCells: Coordinate[] }[];
   spyglassResult: { row: number; shipCount: number } | null;
   boardingPartyResult: { shipType: string; hitsTaken: number; totalCells: number } | null;
@@ -200,6 +203,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     commentary: '',
   revealedCells: new Set(),
   spAbilitiesUsed: {},
+  spAbilitySinks: {},
+  ironcladSavedThisMatch: false,
+  submarineSonarBlockedThisMatch: false,
 
   playerTraits: null,
   opponentTraits: null,
@@ -246,6 +252,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerTraits: null,
       opponentTraits: null,
       spAbilitiesUsed: {},
+      spAbilitySinks: {},
+      ironcladSavedThisMatch: false,
+      submarineSonarBlockedThisMatch: false,
       tick: 0,
     });
   },
@@ -290,6 +299,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerTraits: null,
       opponentTraits: null,
       spAbilitiesUsed: {},
+      spAbilitySinks: {},
+      ironcladSavedThisMatch: false,
+      submarineSonarBlockedThisMatch: false,
       tick: 0,
     });
   },
@@ -329,6 +341,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerTraits: null,
       opponentTraits: null,
       spAbilitiesUsed: {},
+      spAbilitySinks: {},
+      ironcladSavedThisMatch: false,
+      submarineSonarBlockedThisMatch: false,
       tick: 0,
     });
   },
@@ -574,6 +589,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             engine.phase = GamePhase.Finished;
             engine.winner = 'player';
           }
+          const canonSinks = result.outcomes.filter(o => o.result === ShotResult.Sink).length;
           set((s) => ({
             lastShotOutcome: lastOutcome,
             isAnimating: true,
@@ -582,6 +598,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
             lastDepthCharge: traitsResult.depthCharge
               ? { onBoard: 'player', shots: traitsResult.depthCharge }
               : null,
+            spAbilitySinks: canonSinks > 0
+              ? { ...s.spAbilitySinks, [AbilityType.CannonBarrage]: (s.spAbilitySinks[AbilityType.CannonBarrage] ?? 0) + canonSinks }
+              : s.spAbilitySinks,
             tick: s.tick + 1,
           }));
         }
@@ -639,6 +658,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             engine.phase = GamePhase.Finished;
             engine.winner = 'player';
           }
+          const chainSinks = result.outcomes.filter(o => o.result === ShotResult.Sink).length;
           set((s) => ({
             lastShotOutcome: lastOutcome,
             isAnimating: true,
@@ -647,6 +667,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
             lastDepthCharge: traitsResult.depthCharge
               ? { onBoard: 'player', shots: traitsResult.depthCharge }
               : null,
+            spAbilitySinks: chainSinks > 0
+              ? { ...s.spAbilitySinks, [AbilityType.ChainShot]: (s.spAbilitySinks[AbilityType.ChainShot] ?? 0) + chainSinks }
+              : s.spAbilitySinks,
             tick: s.tick + 1,
           }));
         }
@@ -664,6 +687,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             engine.phase = GamePhase.Finished;
             engine.winner = 'player';
           }
+          const spyglassSink = result.shotOutcome.result === ShotResult.Sink ? 1 : 0;
           set((s) => ({
             lastShotOutcome: result.shotOutcome,
             spyglassResult: { row: coord.row, shipCount: result.rowShipCount },
@@ -673,6 +697,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
             lastDepthCharge: traitsResult.depthCharge
               ? { onBoard: 'player', shots: traitsResult.depthCharge }
               : null,
+            spAbilitySinks: spyglassSink > 0
+              ? { ...s.spAbilitySinks, [AbilityType.Spyglass]: (s.spAbilitySinks[AbilityType.Spyglass] ?? 0) + spyglassSink }
+              : s.spAbilitySinks,
             tick: s.tick + 1,
           }));
         }
@@ -859,7 +886,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
           engine.recordOpponentAction(result.shipDetected);
           engine.currentTurn = 'player';
           engine.turnCount++;
-          set((s) => ({ isAnimating: true, tick: s.tick + 1 }));
+          set((s) => ({
+            isAnimating: true,
+            submarineSonarBlockedThisMatch: !result.shipDetected ? true : s.submarineSonarBlockedThisMatch,
+            tick: s.tick + 1,
+          }));
           return true;
         }
         case AbilityType.SmokeScreen: {
@@ -1016,6 +1047,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         lastDepthCharge: aiDepthCharge
           ? { onBoard: 'opponent', shots: aiDepthCharge }
           : null,
+        ironcladSavedThisMatch: aiDeflectedSource === 'ironclad' ? true : s.ironcladSavedThisMatch,
         tick: s.tick + 1,
       }));
     }
@@ -1171,6 +1203,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerTraits: null,
       opponentTraits: null,
       spAbilitiesUsed: {},
+      spAbilitySinks: {},
+      ironcladSavedThisMatch: false,
+      submarineSonarBlockedThisMatch: false,
       tick: 0,
     });
   },

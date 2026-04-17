@@ -969,7 +969,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-079
 - **title:** Wire checkAchievements at real event sites
-- **status:** ready
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/90
+- **completed:** 2026-04-17
 - **priority:** high
 - **workspaces:** client, shared, server
 - **complexity:** large

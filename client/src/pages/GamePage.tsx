@@ -13,7 +13,8 @@ import { useAuthStore } from '../store/authStore';
 import { useGameStore } from '../store/gameStore';
 import { useAchievementsStore } from '../store/achievementsStore';
 import { useCosmeticsStore } from '../store/cosmeticsStore';
-import { GamePhase, ShotResult, evaluateAchievements, GOLD_REWARDS } from '@shared/index';
+import { GamePhase, ShotResult, GOLD_REWARDS, type MatchEvaluationContext, type AbilityType } from '@shared/index';
+import { apiFetchSafe } from '../services/apiClient';
 import {
   playCannonFire,
   playHitExplosion,
@@ -43,7 +44,7 @@ export function GamePage() {
   const gameMode = useGameStore((s) => s.gameMode);
   const difficulty = useGameStore((s) => s.difficulty);
   const startMultiplayerGame = useGameStore((s) => s.startMultiplayerGame);
-  const unlockMany = useAchievementsStore((s) => s.unlockMany);
+  const checkAchievements = useAchievementsStore((s) => s.checkAchievements);
   const completeMission = useCampaignStore((s) => s.completeMission);
   const currentMission = useCampaignStore((s) => s.currentMission);
   const token = useAuthStore((s) => s.token);
@@ -56,6 +57,7 @@ export function GamePage() {
   const reconnectAttempts = useSocketStore((s) => s.reconnectAttempts);
   const socketErrorMessage = useSocketStore((s) => s.errorMessage);
   const roomId = useSocketStore((s) => s.roomId);
+  const matchSummary = useSocketStore((s) => s.matchSummary);
 
   const isPlacing = engine.phase === GamePhase.Placement;
   const isFinished = engine.phase === GamePhase.Finished;
@@ -88,75 +90,115 @@ export function GamePage() {
     return () => { stopAmbientLoop(); };
   }, [musicEnabled]);
 
-  // Evaluate achievements once when the game ends.
-  // Read unlocked as a snapshot (not reactive) to avoid re-firing this effect
-  // when unlock() calls set() mid-execution, which would cause concurrent
-  // duplicate server calls and P2002 unique constraint violations.
+  // Evaluate achievements and award gold once when the game ends.
+  // Uses getState() snapshots (not reactive selectors) inside the async run()
+  // to avoid re-firing when unlock() calls set() mid-execution (P2002 guard).
   useEffect(() => {
     if (!isFinished) return;
-    const won = engine.winner === 'player';
-    const sunkByPlayer = engine.opponentBoard.ships.filter(s => s.hits.size === s.cells.length).length;
-    const sunkByOpponent = engine.playerBoard.ships.filter(s => s.hits.size === s.cells.length).length;
-    const accuracy = engine.getPlayerShotAccuracy();
-    const shotsFired = Math.max(1, Math.round(engine.turnCount));
-    const shotsHit = Math.round(shotsFired * accuracy);
-    const unlockedSnapshot = useAchievementsStore.getState().unlocked;
-    const ctx = {
-      won,
-      isMultiplayer: gameMode === 'multiplayer',
-      isRanked: gameMode === 'multiplayer',
-      isCampaign: false,
-      turns: engine.turnCount,
-      shotsFired,
-      shotsHit,
-      shipsSunk: sunkByPlayer,
-      shipsLost: sunkByOpponent,
-      durationMs: 0,
-      abilitiesUsed: {},
-      abilitySinks: {},
-      ironcladSaved: false,
-      submarineSonarBlocked: false,
-      totalGames: unlockedSnapshot.size > 0 ? 100 : 1,
-      totalWins: won ? 1 : 0,
-      totalShipsSunk: sunkByPlayer,
-      rating: 1200,
-    };
-    const newlyUnlocked = evaluateAchievements(ctx).filter(id => !unlockedSnapshot.has(id));
-    if (newlyUnlocked.length > 0) {
-      unlockMany(newlyUnlocked, token, userId);
-    }
 
-    // === Gold award ===
-    let goldAmount: number = GOLD_REWARDS.LOSS_CONSOLATION;
-    if (won) {
-      if (gameMode === 'multiplayer') goldAmount = GOLD_REWARDS.WIN_MP_RANKED;
-      else if (gameMode === 'campaign') goldAmount = GOLD_REWARDS.WIN_CAMPAIGN;
-      else {
-        goldAmount =
-          difficulty === 'easy'
-            ? GOLD_REWARDS.WIN_AI_EASY
-            : difficulty === 'medium'
-            ? GOLD_REWARDS.WIN_AI_MEDIUM
-            : GOLD_REWARDS.WIN_AI_HARD;
+    const run = async () => {
+      const won = engine.winner === 'player';
+      const sunkByPlayer = engine.opponentBoard.ships.filter(s => s.hits.size === s.cells.length).length;
+      const sunkByOpponent = engine.playerBoard.ships.filter(s => s.hits.size === s.cells.length).length;
+      const accuracy = engine.getPlayerShotAccuracy();
+      const shotsFired = Math.max(1, Math.round(engine.turnCount));
+      const shotsHit = Math.round(shotsFired * accuracy);
+
+      // Read match-tracking state as non-reactive snapshots
+      const gs = useGameStore.getState();
+      const abilitiesUsed = gs.spAbilitiesUsed as Partial<Record<AbilityType, number>>;
+      const abilitySinks = gs.spAbilitySinks as Partial<Record<AbilityType, number>>;
+
+      // Fetch real cumulative stats from server for registered users.
+      // For MP matches, the server has already persisted the result before game:end fires.
+      // For AI/campaign matches, stats reflect the previous match state (AI not server-persisted).
+      let totalGames = 1;
+      let totalWins = won ? 1 : 0;
+      let totalShipsSunk = sunkByPlayer;
+      let rating = 1200;
+      if (userId && !userId.startsWith('guest_') && token) {
+        const stats = await apiFetchSafe<{
+          wins: number; losses: number; shipsSunk: number; rating: number;
+        }>(`/stats/${userId}`, { token });
+        if (stats) {
+          totalGames = stats.wins + stats.losses;
+          totalWins = stats.wins;
+          totalShipsSunk = stats.shipsSunk;
+          rating = stats.rating;
+        }
       }
-    }
-    if (token) {
-      addGold(goldAmount);
-    }
 
-    // Campaign mission completion
-    if (gameMode === 'campaign' && currentMission) {
-      completeMission(
-        {
-          won,
-          turns: engine.turnCount,
-          accuracyPct: Math.round(accuracy * 100),
-          shipsLost: sunkByOpponent,
-        },
-        token
-      );
-    }
-  }, [isFinished, engine, gameMode, difficulty, addGold, unlockMany, currentMission, completeMission, token, userId]);
+      const ctx: MatchEvaluationContext = {
+        won,
+        isMultiplayer: gameMode === 'multiplayer',
+        isRanked: gameMode === 'multiplayer',
+        isCampaign: gameMode === 'campaign',
+        turns: engine.turnCount,
+        shotsFired,
+        shotsHit,
+        shipsSunk: sunkByPlayer,
+        shipsLost: sunkByOpponent,
+        durationMs: matchSummary?.durationMs ?? 0,
+        abilitiesUsed,
+        abilitySinks,
+        ironcladSaved: gs.ironcladSavedThisMatch,
+        submarineSonarBlocked: gs.submarineSonarBlockedThisMatch,
+        totalGames,
+        totalWins,
+        totalShipsSunk,
+        rating,
+        ...(gameMode === 'campaign' && currentMission
+          ? { campaignMissionId: currentMission.id }
+          : {}),
+      };
+
+      await checkAchievements(ctx, token, userId);
+
+      // === Gold award ===
+      let goldAmount: number = GOLD_REWARDS.LOSS_CONSOLATION;
+      if (won) {
+        if (gameMode === 'multiplayer') goldAmount = GOLD_REWARDS.WIN_MP_RANKED;
+        else if (gameMode === 'campaign') goldAmount = GOLD_REWARDS.WIN_CAMPAIGN;
+        else {
+          goldAmount =
+            difficulty === 'easy'
+              ? GOLD_REWARDS.WIN_AI_EASY
+              : difficulty === 'medium'
+              ? GOLD_REWARDS.WIN_AI_MEDIUM
+              : GOLD_REWARDS.WIN_AI_HARD;
+        }
+      }
+      if (token) {
+        addGold(goldAmount);
+      }
+
+      // Campaign mission completion — done AFTER the base achievement check so
+      // highestCampaignMission reflects pre-completion state during that check.
+      if (gameMode === 'campaign' && currentMission) {
+        const stars = completeMission(
+          {
+            won,
+            turns: engine.turnCount,
+            accuracyPct: Math.round(accuracy * 100),
+            shipsLost: sunkByOpponent,
+          },
+          token
+        );
+        // Re-check with updated campaign progress (stars earned, new highestUnlocked)
+        const campaign = useCampaignStore.getState();
+        const campaignCtx: MatchEvaluationContext = {
+          ...ctx,
+          campaignMissionId: currentMission.id,
+          campaignStarsThisMission: stars,
+          totalCampaignStars: campaign.totalStars(),
+          highestCampaignMission: campaign.highestUnlocked,
+        };
+        await checkAchievements(campaignCtx, token, userId);
+      }
+    };
+
+    run();
+  }, [isFinished, engine, gameMode, difficulty, addGold, checkAchievements, currentMission, completeMission, token, userId, matchSummary]);
 
   // Sound effects
   useEffect(() => {
