@@ -889,7 +889,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-073
 - **title:** Extend MissionModifiers + tiered star logic
-- **status:** in-progress
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/85
+- **completed:** 2026-04-17
 - **priority:** med
 - **workspaces:** shared
 - **complexity:** medium
