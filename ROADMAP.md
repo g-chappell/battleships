@@ -710,10 +710,12 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-057
 - **title:** Login accepts username OR email
-- **status:** in-progress
+- **status:** done
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** small
+- **pr:** https://github.com/g-chappell/battleships/pull/76
+- **completed:** 2026-04-17
 - **description:** Replace the email field on login with a single "Username or email" field. Server: look up `User.username` first, fall back to `email`. Update `POST /auth/login` in `server/src/routes/auth.ts`, `authStore.login` in client, and the login form in `AuthPage.tsx`. Error messaging stays generic ("Invalid credentials") to avoid username enumeration.
 
 #### TASK-058
