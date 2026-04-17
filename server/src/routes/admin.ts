@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 import { prisma } from '../services/db.js';
+import { invalidateSeasonCache } from '../services/seasons.js';
 
 export const adminRouter = Router();
 
@@ -230,5 +231,125 @@ adminRouter.post('/users/:id/unban', async (req, res) => {
     return res.json({ ok: true });
   } catch {
     return res.status(500).json({ error: 'Failed to unban user' });
+  }
+});
+
+// ─── Seasons ──────────────────────────────────────────────────────────────────
+
+adminRouter.get('/seasons', async (_req, res) => {
+  try {
+    const seasons = await prisma.season.findMany({
+      orderBy: { startAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        startAt: true,
+        endAt: true,
+        isActive: true,
+        createdAt: true,
+        _count: { select: { stats: true } },
+      },
+    });
+    return res.json({ seasons });
+  } catch {
+    return res.status(500).json({ error: 'Failed to list seasons' });
+  }
+});
+
+adminRouter.get('/seasons/:id/standings', async (req, res) => {
+  try {
+    const season = await prisma.season.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, name: true, isActive: true },
+    });
+    if (!season) return res.status(404).json({ error: 'Season not found' });
+
+    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit || '50'), 10)));
+    const standings = await prisma.seasonPlayerStats.findMany({
+      where: { seasonId: req.params.id },
+      orderBy: { rating: 'desc' },
+      take: limit,
+      select: {
+        rating: true,
+        wins: true,
+        losses: true,
+        peakRating: true,
+        user: { select: { id: true, username: true } },
+      },
+    });
+
+    return res.json({
+      seasonId: season.id,
+      seasonName: season.name,
+      standings: standings.map((s, i) => ({
+        rank: i + 1,
+        userId: s.user.id,
+        username: s.user.username,
+        rating: s.rating,
+        peakRating: s.peakRating,
+        wins: s.wins,
+        losses: s.losses,
+      })),
+    });
+  } catch {
+    return res.status(500).json({ error: 'Failed to fetch standings' });
+  }
+});
+
+adminRouter.post('/seasons', async (req, res) => {
+  const { name, startAt, endAt } = req.body as { name: unknown; startAt: unknown; endAt: unknown };
+
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'name is required' });
+  }
+  if (!startAt || isNaN(Date.parse(String(startAt)))) {
+    return res.status(400).json({ error: 'startAt must be a valid date' });
+  }
+  if (!endAt || isNaN(Date.parse(String(endAt)))) {
+    return res.status(400).json({ error: 'endAt must be a valid date' });
+  }
+
+  const start = new Date(String(startAt));
+  const end = new Date(String(endAt));
+  if (end <= start) {
+    return res.status(400).json({ error: 'endAt must be after startAt' });
+  }
+
+  try {
+    // Deactivate any current active season
+    await prisma.season.updateMany({ where: { isActive: true }, data: { isActive: false } });
+    const season = await prisma.season.create({
+      data: { name: name.trim(), startAt: start, endAt: end, isActive: true },
+    });
+    invalidateSeasonCache();
+    return res.status(201).json({
+      id: season.id,
+      name: season.name,
+      startAt: season.startAt.toISOString(),
+      endAt: season.endAt.toISOString(),
+      isActive: season.isActive,
+    });
+  } catch {
+    return res.status(500).json({ error: 'Failed to create season' });
+  }
+});
+
+adminRouter.post('/seasons/:id/end', async (req, res) => {
+  try {
+    const season = await prisma.season.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, isActive: true },
+    });
+    if (!season) return res.status(404).json({ error: 'Season not found' });
+    if (!season.isActive) return res.status(400).json({ error: 'Season is not active' });
+
+    await prisma.season.update({
+      where: { id: req.params.id },
+      data: { isActive: false, endAt: new Date() },
+    });
+    invalidateSeasonCache();
+    return res.json({ ok: true });
+  } catch {
+    return res.status(500).json({ error: 'Failed to end season' });
   }
 });

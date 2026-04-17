@@ -7,7 +7,7 @@ import { signToken } from '../middleware/auth.ts';
 
 // ─── Hoisted mocks ────────────────────────────────────────────────────────────
 
-const { mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction } = vi.hoisted(() => {
+const { mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction, mockSeason, mockSeasonPlayerStats } = vi.hoisted(() => {
   const mockUser = {
     findUnique: vi.fn(),
     findMany: vi.fn(),
@@ -23,7 +23,17 @@ const { mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction } = vi.hoi
   const mockTransaction = vi.fn().mockImplementation(async (ops: unknown[]) => {
     return Promise.all(ops);
   });
-  return { mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction };
+  const mockSeason = {
+    findMany: vi.fn(),
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  };
+  const mockSeasonPlayerStats = {
+    findMany: vi.fn(),
+  };
+  return { mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction, mockSeason, mockSeasonPlayerStats };
 });
 
 vi.mock('../services/db.ts', () => ({
@@ -32,6 +42,8 @@ vi.mock('../services/db.ts', () => ({
     playerStats: mockPlayerStats,
     adminAuditLog: mockAdminAuditLog,
     $transaction: mockTransaction,
+    season: mockSeason,
+    seasonPlayerStats: mockSeasonPlayerStats,
   },
 }));
 
@@ -403,5 +415,194 @@ describe('POST /admin/users/:id/unban', () => {
       headers: authHeaders(),
     });
     expect(res.status).toBe(404);
+  });
+});
+
+// ─── GET /admin/seasons ───────────────────────────────────────────────────────
+
+function makeSeason(overrides: Partial<{
+  id: string; name: string; startAt: Date; endAt: Date; isActive: boolean; createdAt: Date; _count: { stats: number };
+}> = {}) {
+  return {
+    id: 's1',
+    name: 'Season 1',
+    startAt: new Date('2026-01-01T00:00:00Z'),
+    endAt: new Date('2026-03-31T00:00:00Z'),
+    isActive: false,
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    _count: { stats: 5 },
+    ...overrides,
+  };
+}
+
+describe('GET /admin/seasons', () => {
+  it('returns list of seasons', async () => {
+    mockSeason.findMany.mockResolvedValue([
+      makeSeason({ id: 's1', name: 'Season 1', isActive: false }),
+      makeSeason({ id: 's2', name: 'Season 2', isActive: true }),
+    ]);
+
+    const res = await fetch(`${baseUrl}/seasons`, { headers: authHeaders() });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { seasons: unknown[] };
+    expect(body.seasons).toHaveLength(2);
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockSeason.findMany.mockRejectedValue(new Error('db down'));
+    const res = await fetch(`${baseUrl}/seasons`, { headers: authHeaders() });
+    expect(res.status).toBe(500);
+  });
+
+  it('requires admin token', async () => {
+    const res = await fetch(`${baseUrl}/seasons`);
+    expect(res.status).toBe(401);
+  });
+});
+
+// ─── GET /admin/seasons/:id/standings ────────────────────────────────────────
+
+describe('GET /admin/seasons/:id/standings', () => {
+  it('returns standings for a season', async () => {
+    mockSeason.findUnique.mockResolvedValue({ id: 's1', name: 'Season 1', isActive: false });
+    mockSeasonPlayerStats.findMany.mockResolvedValue([
+      { rating: 1400, wins: 8, losses: 2, peakRating: 1420, user: { id: 'u1', username: 'pirate1' } },
+      { rating: 1300, wins: 5, losses: 4, peakRating: 1310, user: { id: 'u2', username: 'pirate2' } },
+    ]);
+
+    const res = await fetch(`${baseUrl}/seasons/s1/standings`, { headers: authHeaders() });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { standings: { rank: number; username: string; rating: number }[] };
+    expect(body.standings).toHaveLength(2);
+    expect(body.standings[0].rank).toBe(1);
+    expect(body.standings[0].username).toBe('pirate1');
+    expect(body.standings[0].rating).toBe(1400);
+    expect(body.standings[1].rank).toBe(2);
+  });
+
+  it('returns 404 when season not found', async () => {
+    mockSeason.findUnique.mockResolvedValue(null);
+    const res = await fetch(`${baseUrl}/seasons/missing/standings`, { headers: authHeaders() });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockSeason.findUnique.mockRejectedValue(new Error('db down'));
+    const res = await fetch(`${baseUrl}/seasons/s1/standings`, { headers: authHeaders() });
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── POST /admin/seasons ──────────────────────────────────────────────────────
+
+describe('POST /admin/seasons', () => {
+  const validBody = { name: 'New Season', startAt: '2026-04-01', endAt: '2026-06-30' };
+
+  it('creates a new season and deactivates active ones', async () => {
+    mockSeason.updateMany.mockResolvedValue({ count: 1 });
+    mockSeason.create.mockResolvedValue({
+      id: 's3',
+      name: 'New Season',
+      startAt: new Date('2026-04-01'),
+      endAt: new Date('2026-06-30'),
+      isActive: true,
+    });
+
+    const res = await fetch(`${baseUrl}/seasons`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(validBody),
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json() as { id: string; name: string; isActive: boolean };
+    expect(body.name).toBe('New Season');
+    expect(body.isActive).toBe(true);
+    expect(mockSeason.updateMany).toHaveBeenCalledWith({ where: { isActive: true }, data: { isActive: false } });
+  });
+
+  it('returns 400 when name is missing', async () => {
+    const res = await fetch(`${baseUrl}/seasons`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startAt: '2026-04-01', endAt: '2026-06-30' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when startAt is invalid', async () => {
+    const res = await fetch(`${baseUrl}/seasons`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'S', startAt: 'not-a-date', endAt: '2026-06-30' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when endAt is before startAt', async () => {
+    const res = await fetch(`${baseUrl}/seasons`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'S', startAt: '2026-06-30', endAt: '2026-04-01' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockSeason.updateMany.mockRejectedValue(new Error('db down'));
+    const res = await fetch(`${baseUrl}/seasons`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(validBody),
+    });
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── POST /admin/seasons/:id/end ──────────────────────────────────────────────
+
+describe('POST /admin/seasons/:id/end', () => {
+  it('ends an active season', async () => {
+    mockSeason.findUnique.mockResolvedValue({ id: 's1', isActive: true });
+    mockSeason.update.mockResolvedValue({});
+
+    const res = await fetch(`${baseUrl}/seasons/s1/end`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { ok: boolean };
+    expect(body.ok).toBe(true);
+    expect(mockSeason.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 's1' }, data: expect.objectContaining({ isActive: false }) })
+    );
+  });
+
+  it('returns 404 when season not found', async () => {
+    mockSeason.findUnique.mockResolvedValue(null);
+    const res = await fetch(`${baseUrl}/seasons/missing/end`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 when season is already inactive', async () => {
+    mockSeason.findUnique.mockResolvedValue({ id: 's1', isActive: false });
+    const res = await fetch(`${baseUrl}/seasons/s1/end`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toBe('Season is not active');
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockSeason.findUnique.mockRejectedValue(new Error('db down'));
+    const res = await fetch(`${baseUrl}/seasons/s1/end`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(500);
   });
 });

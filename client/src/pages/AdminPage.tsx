@@ -23,8 +23,7 @@ const NAV_ITEMS: { id: AdminSection; label: string; icon: string }[] = [
   { id: 'telemetry', label: 'Telemetry', icon: '🔭' },
 ];
 
-const STUB_DESCRIPTIONS: Record<Exclude<AdminSection, 'users'>, string> = {
-  seasons: 'Create seasons, view standings, and manually close active seasons.',
+const STUB_DESCRIPTIONS: Record<Exclude<AdminSection, 'users' | 'seasons'>, string> = {
   tournaments: 'Create tournaments, seed brackets, and advance rounds.',
   telemetry: 'View active players, games in progress, and recent match outcomes.',
 };
@@ -62,6 +61,26 @@ type DialogAction =
   | { type: 'adjust-gold'; userId: string; username: string; currentGold: number }
   | { type: 'ban'; userId: string; username: string }
   | { type: 'unban'; userId: string; username: string };
+
+interface AdminSeason {
+  id: string;
+  name: string;
+  startAt: string;
+  endAt: string;
+  isActive: boolean;
+  createdAt: string;
+  _count: { stats: number };
+}
+
+interface SeasonStanding {
+  rank: number;
+  userId: string;
+  username: string;
+  rating: number;
+  peakRating: number;
+  wins: number;
+  losses: number;
+}
 
 // ─── ConfirmDialog ────────────────────────────────────────────────────────────
 
@@ -582,9 +601,270 @@ function UsersSection({ token }: { token: string }) {
   );
 }
 
+// ─── SeasonsSection ───────────────────────────────────────────────────────────
+
+function SeasonsSection({ token }: { token: string }) {
+  const [seasons, setSeasons] = useState<AdminSeason[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [standings, setStandings] = useState<SeasonStanding[]>([]);
+  const [standingsName, setStandingsName] = useState('');
+  const [standingsLoading, setStandingsLoading] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [endConfirmId, setEndConfirmId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Create form state
+  const [newName, setNewName] = useState('');
+  const [newStart, setNewStart] = useState('');
+  const [newEnd, setNewEnd] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const fetchSeasons = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ seasons: AdminSeason[] }>('/admin/seasons', { token });
+      setSeasons(res.seasons);
+    } catch {
+      setError('Failed to load seasons');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchSeasons(); }, [fetchSeasons]);
+
+  const loadStandings = async (season: AdminSeason) => {
+    setSelectedId(season.id);
+    setStandingsName(season.name);
+    setStandingsLoading(true);
+    try {
+      const res = await apiFetch<{ standings: SeasonStanding[] }>(
+        `/admin/seasons/${season.id}/standings`,
+        { token }
+      );
+      setStandings(res.standings);
+    } catch {
+      setStandings([]);
+    } finally {
+      setStandingsLoading(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      await apiFetch('/admin/seasons', {
+        method: 'POST',
+        token,
+        json: { name: newName, startAt: newStart, endAt: newEnd },
+      });
+      setShowCreate(false);
+      setNewName('');
+      setNewStart('');
+      setNewEnd('');
+      fetchSeasons();
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : 'Failed to create season');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleEndSeason = async (id: string) => {
+    try {
+      await apiFetch(`/admin/seasons/${id}/end`, { method: 'POST', token });
+      setEndConfirmId(null);
+      fetchSeasons();
+      if (selectedId === id) setStandings([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to end season');
+    }
+  };
+
+  const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric',
+  });
+
+  return (
+    <div className="flex gap-4 h-full min-h-0">
+      {/* Season list */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-parchment/40 text-xs" style={FONT_STYLES.labelSC}>
+            {seasons.length} season{seasons.length !== 1 ? 's' : ''}
+          </p>
+          <Button variant="primary" size="sm" onClick={() => setShowCreate(true)}>
+            + New Season
+          </Button>
+        </div>
+
+        {error && (
+          <p className="text-blood-bright text-xs mb-2" style={FONT_STYLES.body}>{error}</p>
+        )}
+
+        {loading ? (
+          <p className="text-parchment/40 text-sm py-4 text-center" style={FONT_STYLES.body}>Loading…</p>
+        ) : (
+          <div className="flex-1 overflow-y-auto space-y-1">
+            {seasons.length === 0 && (
+              <p className="text-parchment/40 text-sm py-8 text-center" style={FONT_STYLES.body}>
+                No seasons yet. Create the first one.
+              </p>
+            )}
+            {seasons.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => loadStandings(s)}
+                className={[
+                  'w-full flex items-start gap-3 px-3 py-2.5 rounded border text-left transition-colors',
+                  selectedId === s.id
+                    ? 'bg-blood/20 border-blood/60'
+                    : 'bg-coal/40 border-mahogany/40 hover:bg-coal/70 hover:border-blood/40',
+                ].join(' ')}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-bone text-sm truncate" style={FONT_STYLES.body}>{s.name}</p>
+                    {s.isActive && (
+                      <span className="shrink-0 px-1.5 py-0.5 text-xs bg-blood/30 text-blood-bright border border-blood/40 rounded" style={FONT_STYLES.labelSC}>
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-parchment/40 text-xs mt-0.5">
+                    {formatDate(s.startAt)} – {formatDate(s.endAt)}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-parchment/50 text-xs" style={FONT_STYLES.labelSC}>
+                    {s._count.stats} players
+                  </p>
+                  {s.isActive && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEndConfirmId(s.id); }}
+                      className="mt-1 text-xs text-blood-bright/70 hover:text-blood-bright underline"
+                      style={FONT_STYLES.body}
+                    >
+                      End early
+                    </button>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Standings panel */}
+      {selectedId && (
+        <div className="w-72 shrink-0 border-l border-blood/20 pl-4 flex flex-col min-h-0">
+          <h3 className="text-gold text-base mb-1 truncate" style={FONT_STYLES.pirate}>{standingsName}</h3>
+          <p className="text-parchment/40 text-xs mb-3" style={FONT_STYLES.labelSC}>Top Standings</p>
+          {standingsLoading ? (
+            <p className="text-parchment/40 text-sm py-4 text-center" style={FONT_STYLES.body}>Loading…</p>
+          ) : standings.length === 0 ? (
+            <p className="text-parchment/40 text-sm py-4 text-center" style={FONT_STYLES.body}>No players yet.</p>
+          ) : (
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {standings.map((row) => (
+                <div
+                  key={row.userId}
+                  className="flex items-center gap-2 px-3 py-2 bg-coal/40 border border-mahogany/40 rounded"
+                >
+                  <span
+                    className="shrink-0 w-6 text-center text-xs font-bold"
+                    style={{
+                      ...FONT_STYLES.labelSC,
+                      color: row.rank === 1 ? '#d4a040' : row.rank === 2 ? '#e8dcc8' : row.rank === 3 ? '#b87333' : '#666',
+                    }}
+                  >
+                    {row.rank}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-bone text-sm truncate" style={FONT_STYLES.body}>{row.username}</p>
+                    <p className="text-parchment/40 text-xs">{row.wins}W / {row.losses}L</p>
+                  </div>
+                  <span className="shrink-0 text-gold text-sm font-bold" style={FONT_STYLES.labelSC}>
+                    {row.rating}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Create season dialog */}
+      <Dialog open={showCreate} onOpenChange={(o) => !o && setShowCreate(false)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle style={FONT_STYLES.pirate}>New Season</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-parchment/60 text-xs block mb-1" style={FONT_STYLES.labelSC}>Name</label>
+              <Input
+                placeholder="e.g. Season 2026-Q2"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-parchment/60 text-xs block mb-1" style={FONT_STYLES.labelSC}>Start Date</label>
+              <Input
+                type="date"
+                value={newStart}
+                onChange={(e) => setNewStart(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-parchment/60 text-xs block mb-1" style={FONT_STYLES.labelSC}>End Date</label>
+              <Input
+                type="date"
+                value={newEnd}
+                onChange={(e) => setNewEnd(e.target.value)}
+              />
+            </div>
+            {createError && (
+              <p className="text-blood-bright text-xs" style={FONT_STYLES.body}>{createError}</p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={creating || !newName.trim() || !newStart || !newEnd}
+              onClick={handleCreate}
+            >
+              {creating ? 'Creating…' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* End-season confirm dialog */}
+      {endConfirmId && (
+        <ConfirmDialog
+          open
+          danger
+          title="End Season Early"
+          description={`End "${seasons.find((s) => s.id === endConfirmId)?.name}" now? This cannot be undone.`}
+          confirmLabel="End Season"
+          onConfirm={() => handleEndSeason(endConfirmId)}
+          onClose={() => setEndConfirmId(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── StubContent ──────────────────────────────────────────────────────────────
 
-function StubContent({ section }: { section: Exclude<AdminSection, 'users'> }) {
+function StubContent({ section }: { section: Exclude<AdminSection, 'users' | 'seasons'> }) {
   const item = NAV_ITEMS.find((n) => n.id === section)!;
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[320px] text-center gap-4">
@@ -690,9 +970,9 @@ export function AdminPage() {
 
         <Card variant="default" padding="lg" className="flex-1 overflow-hidden flex flex-col">
           {activeSection === 'users' ? (
-            token ? (
-              <UsersSection token={token} />
-            ) : null
+            token ? <UsersSection token={token} /> : null
+          ) : activeSection === 'seasons' ? (
+            token ? <SeasonsSection token={token} /> : null
           ) : (
             <StubContent section={activeSection} />
           )}

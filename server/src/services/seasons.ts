@@ -105,7 +105,5 @@ export async function rolloverIfExpired(): Promise<void> {
   });
 }
 
-// Start a 60s rollover watchdog
-setInterval(() => {
-  rolloverIfExpired().catch(() => {});
-}, 60_000);
+// Watchdog disabled — season lifecycle is now admin-triggered via /admin/seasons
+setInterval(() => {}, 60_000);
