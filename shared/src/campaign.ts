@@ -1,10 +1,21 @@
 /**
- * Campaign mission definitions: 15 missions with a pirate-vs-Royal-Navy plot.
+ * Campaign mission definitions: 15 missions across three captain-driven acts.
+ *
+ * Act I  (1–5):  The Iron Tide     — Ironbeard's ruthless rise
+ * Act II (6–10): The Phantom Straits — Mistral's cunning passage
+ * Act III (11–15): The Undying Flame — Blackheart's final reckoning
  */
 
 import { AbilityType } from './abilities';
 
 export type AIPersonality = 'standard' | 'aggressive' | 'cautious' | 'kraken';
+
+export type DifficultyLabel =
+  | 'Calm Waters'
+  | 'Rough Seas'
+  | 'Storm Warning'
+  | 'Kraken Waters'
+  | 'No Mercy';
 
 export interface ComicPanel {
   background: string;   // tailwind/css gradient class
@@ -28,6 +39,7 @@ export interface CampaignMission {
   id: number;
   title: string;
   subtitle: string;
+  difficultyLabel: DifficultyLabel;
   introPanels: ComicPanel[];
   outroPanels: ComicPanel[];
   difficulty: 'easy' | 'medium' | 'hard';
@@ -36,287 +48,578 @@ export interface CampaignMission {
   starRequirements: MissionStarRequirements;
 }
 
-const RED_GRAD = 'bg-gradient-to-br from-[#5c0000] to-[#1a0a0a]';
-const SEA_GRAD = 'bg-gradient-to-br from-[#1a0a0a] to-[#0d0606]';
-const GOLD_GRAD = 'bg-gradient-to-br from-[#3d1f17] to-[#2a1410]';
+const RED_GRAD   = 'bg-gradient-to-br from-[#5c0000] to-[#1a0a0a]';
+const SEA_GRAD   = 'bg-gradient-to-br from-[#1a0a0a] to-[#0d0606]';
+const GOLD_GRAD  = 'bg-gradient-to-br from-[#3d1f17] to-[#2a1410]';
 const NIGHT_GRAD = 'bg-gradient-to-br from-[#0d0606] to-[#1a0a0a]';
+const STORM_GRAD = 'bg-gradient-to-br from-[#1a0d0a] to-[#0a0a1a]';
+
+// ─────────────────────────────────────────────────────────
+// ACT I — THE IRON TIDE (Ironbeard, Missions 1–5)
+// ─────────────────────────────────────────────────────────
 
 export const CAMPAIGN_MISSIONS: CampaignMission[] = [
   {
     id: 1,
-    title: 'Maiden Voyage',
-    subtitle: 'A captain is born',
+    title: 'Blood at Dawn',
+    subtitle: "A captain's first kill",
+    difficultyLabel: 'Calm Waters',
     introPanels: [
-      { background: SEA_GRAD, speaker: 'Quartermaster Bones', caption: "Welcome aboard, Cap'n. The Iron Marauder is yours now. The Royal Navy patrols these waters \u2014 we'll need to learn their ways before we strike.", iconHint: '\u{2693}' },
-      { background: GOLD_GRAD, caption: "A lone scout vessel has been spotted. Easy prey for our first hunt. Place yer ships and signal when ready.", iconHint: '\u{1F50D}' },
+      {
+        background: SEA_GRAD,
+        speaker: 'Quartermaster Bones',
+        caption:
+          "Cap'n Ironbeard. A Royal Navy cutter crosses our bow at first light. Small. Arrogant. Perfect for a first lesson in what iron and fire can do.",
+        iconHint: '⚓',
+      },
+      {
+        background: GOLD_GRAD,
+        caption:
+          "Place yer ships. Signal when ready. The sea gives no quarter to the hesitant.",
+        iconHint: '🗡️',
+      },
     ],
     outroPanels: [
-      { background: RED_GRAD, speaker: 'Quartermaster Bones', caption: "First blood, Cap'n! The crew's spirits soar. They'll follow ye to the depths now.", iconHint: '\u{1F5E1}\uFE0F' },
+      {
+        background: RED_GRAD,
+        speaker: 'Ironbeard',
+        caption:
+          "First blood. The crew's eyes shine with something new — faith in their captain. We sail on.",
+        iconHint: '🏴‍☠️',
+      },
     ],
     difficulty: 'easy',
     aiPersonality: 'standard',
     modifiers: {},
     starRequirements: {
-      twoStars: { maxTurns: 35 },
+      twoStars:   { maxTurns: 35 },
       threeStars: { maxTurns: 25, noShipsLost: true },
     },
   },
+
   {
     id: 2,
-    title: 'The Brass Compass',
-    subtitle: 'Tools of the trade',
+    title: "The Cannon's Roar",
+    subtitle: 'Raining fire on the arrogant',
+    difficultyLabel: 'Calm Waters',
     introPanels: [
-      { background: GOLD_GRAD, speaker: 'Quartermaster Bones', caption: "Found a crate of gunpowder! Time to teach ye the Cannon Barrage. Fire on a 2x2 area \u2014 perfect fer hunting clusters of foes.", iconHint: '\u{1F4A3}' },
-      { background: SEA_GRAD, caption: "A merchant frigate approaches. Use yer new toy and show 'em who rules these waters.", iconHint: '\u{26F5}' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Ironbeard',
+        caption:
+          "We salvaged something magnificent from that cutter — a Cannon Barrage blueprint. Fires a 2×2 area at once. Let's try it on this merchant frigate.",
+        iconHint: '💣',
+      },
+      {
+        background: SEA_GRAD,
+        caption:
+          'A fat merchant sails heavy with Royal Navy supplies. Sink her and take the haul.',
+        iconHint: '⛵',
+      },
     ],
     outroPanels: [
-      { background: RED_GRAD, caption: "Cannon Barrage works wonders, eh? Their hull splintered like dry kindling.", iconHint: '\u{1F4A5}' },
+      {
+        background: RED_GRAD,
+        speaker: 'Quartermaster Bones',
+        caption:
+          "Ha! Cannon Barrage makes short work of clustered hulls. Crates of Navy gold now fill our hold.",
+        iconHint: '💥',
+      },
     ],
     difficulty: 'easy',
     aiPersonality: 'standard',
     modifiers: { fixedAbilities: [AbilityType.CannonBarrage, AbilityType.RepairKit] },
     starRequirements: {
-      twoStars: { maxTurns: 32 },
+      twoStars:   { maxTurns: 32 },
       threeStars: { maxTurns: 22 },
     },
   },
+
   {
     id: 3,
-    title: 'Whispers Below',
-    subtitle: 'Sonar and secrets',
+    title: 'Whispers from the Deep',
+    subtitle: 'Sonar and shadow',
+    difficultyLabel: 'Calm Waters',
     introPanels: [
-      { background: NIGHT_GRAD, speaker: 'Old Salt', caption: "We've fished out an old sonar device from a wreck. Use the Sonar Ping to find hidden ships before they find ye.", iconHint: '\u{1F4E1}' },
-      { background: SEA_GRAD, caption: "A patrol boat lurks in the fog. Use yer wits.", iconHint: '\u{1F32B}\uFE0F' },
+      {
+        background: NIGHT_GRAD,
+        speaker: 'Old Salt',
+        caption:
+          "Fished a sonar device from the wreck, Cap'n. Press it against the hull — it sings back the shape of whatever lurks below the surface. Pair it with Smoke to vanish after ye strike.",
+        iconHint: '📡',
+      },
+      {
+        background: SEA_GRAD,
+        caption:
+          'A cautious patrol boat hides in the shallows. Root it out before it radios our position.',
+        iconHint: '🌫️',
+      },
     ],
     outroPanels: [
-      { background: GOLD_GRAD, caption: "The Royal Navy will know our name now.", iconHint: '\u{1F441}\uFE0F' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Ironbeard',
+        caption:
+          "Precision and patience. They never knew we were there until the hull split. Remember that lesson.",
+        iconHint: '👁️',
+      },
     ],
     difficulty: 'easy',
     aiPersonality: 'cautious',
-    modifiers: { fixedAbilities: [AbilityType.SonarPing, AbilityType.RepairKit] },
+    modifiers: { fixedAbilities: [AbilityType.SonarPing, AbilityType.SmokeScreen] },
     starRequirements: {
-      twoStars: { maxTurns: 30 },
+      twoStars:   { maxTurns: 30 },
       threeStars: { maxTurns: 22, minAccuracyPct: 40 },
     },
   },
+
   {
     id: 4,
-    title: 'The Smoke and the Fury',
-    subtitle: 'Hide and strike',
+    title: 'Chain and Fire',
+    subtitle: 'Break the line',
+    difficultyLabel: 'Rough Seas',
     introPanels: [
-      { background: NIGHT_GRAD, speaker: 'Quartermaster Bones', caption: "An ambush awaits! Use the Smoke Screen to mask yer fleet from the enemy gunners.", iconHint: '\u{1F32B}\uFE0F' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Quartermaster Bones',
+        caption:
+          "Two Navy frigates sailing in tight formation — broadside to broadside. Our armourer has forged Chain Shot: three balls linked by chain, raking a full row in one volley.",
+        iconHint: '⛓️',
+      },
+      {
+        background: RED_GRAD,
+        caption:
+          'Break their line and sink them separately. A formation that cannot manoeuvre is already defeated.',
+        iconHint: '💣',
+      },
     ],
     outroPanels: [
-      { background: RED_GRAD, caption: "They never saw us coming.", iconHint: '\u{1F608}' },
+      {
+        background: RED_GRAD,
+        speaker: 'Ironbeard',
+        caption:
+          "The chain tore through their mast like paper. Formation shattered. We hunted the stragglers at our leisure.",
+        iconHint: '💥',
+      },
     ],
     difficulty: 'medium',
     aiPersonality: 'standard',
-    modifiers: { fixedAbilities: [AbilityType.SmokeScreen, AbilityType.CannonBarrage] },
+    modifiers: { fixedAbilities: [AbilityType.ChainShot, AbilityType.CannonBarrage] },
     starRequirements: {
-      twoStars: { maxTurns: 35 },
+      twoStars:   { maxTurns: 35 },
       threeStars: { maxTurns: 24, noShipsLost: true },
     },
   },
+
   {
     id: 5,
-    title: 'Iron and Honor',
-    subtitle: 'The first ironclad',
+    title: 'The Boarding Party',
+    subtitle: 'Take what is ours by iron right',
+    difficultyLabel: 'Rough Seas',
     introPanels: [
-      { background: GOLD_GRAD, speaker: 'Quartermaster Bones', caption: "The Royal Navy's pride: the HMS Implacable. An ironclad. Their armor will deflect yer first shot. Be patient.", iconHint: '\u{1F6E1}\uFE0F' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Ironbeard',
+        caption:
+          "A Crown galleon carries a season's worth of gold — and intelligence on every Navy patrol route. We board her. Send scouts first to map her decks; Chain Shot to soften the escort.",
+        iconHint: '🏴‍☠️',
+      },
     ],
     outroPanels: [
-      { background: RED_GRAD, caption: "Ironclads bleed too, when struck enough.", iconHint: '\u{1F5E1}\uFE0F' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Quartermaster Bones',
+        caption:
+          "Patrol maps in hand, chests of gold in the hold. Act I is done, Cap'n. But the Navy will not forgive this. They will send someone better.",
+        iconHint: '💰',
+      },
     ],
     difficulty: 'medium',
     aiPersonality: 'aggressive',
-    modifiers: { fixedAbilities: [AbilityType.CannonBarrage, AbilityType.SonarPing] },
+    modifiers: { fixedAbilities: [AbilityType.BoardingParty, AbilityType.ChainShot] },
     starRequirements: {
-      twoStars: { maxTurns: 38 },
+      twoStars:   { maxTurns: 38 },
       threeStars: { maxTurns: 28 },
     },
   },
+
+  // ─────────────────────────────────────────────────────────
+  // ACT II — THE PHANTOM STRAITS (Mistral, Missions 6–10)
+  // ─────────────────────────────────────────────────────────
+
   {
     id: 6,
-    title: 'Chain of Fools',
-    subtitle: 'A new weapon',
+    title: 'Eyes in the Fog',
+    subtitle: 'Knowledge is the sharpest blade',
+    difficultyLabel: 'Rough Seas',
     introPanels: [
-      { background: GOLD_GRAD, speaker: 'Old Salt', caption: "We've forged Chain Shot rounds. Three cannonballs linked by chain \u2014 hits a whole row at once. Devastating.", iconHint: '\u{26D3}\uFE0F' },
+      {
+        background: NIGHT_GRAD,
+        speaker: 'Mistral',
+        caption:
+          "Ironbeard's fire served well. But the Phantom Straits demand a different art. I have taken the helm. The Spyglass will name our targets; Smoke will hide our retreat. Watch and learn.",
+        iconHint: '🔭',
+      },
+      {
+        background: SEA_GRAD,
+        caption:
+          'A Navy corvette patrols the fog-draped channel. She cannot see us. Let us make sure she never does.',
+        iconHint: '🌫️',
+      },
     ],
     outroPanels: [
-      { background: RED_GRAD, caption: "Their formation crumbled like rotten wood.", iconHint: '\u{1F4A5}' },
-    ],
-    difficulty: 'medium',
-    aiPersonality: 'standard',
-    modifiers: { fixedAbilities: [AbilityType.ChainShot, AbilityType.RepairKit] },
-    starRequirements: {
-      twoStars: { maxTurns: 32 },
-      threeStars: { maxTurns: 22 },
-    },
-  },
-  {
-    id: 7,
-    title: 'The Spyglass',
-    subtitle: 'Eyes on the horizon',
-    introPanels: [
-      { background: SEA_GRAD, speaker: 'Quartermaster Bones', caption: "A captured spyglass shows ye the row of any cell ye target. Knowledge is power.", iconHint: '\u{1F50D}' },
-    ],
-    outroPanels: [
-      { background: GOLD_GRAD, caption: "Information wins wars.", iconHint: '\u{1F4DC}' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Mistral',
+        caption:
+          "They fired blindly at smoke. We fired at facts. The channel is open.",
+        iconHint: '🌟',
+      },
     ],
     difficulty: 'medium',
     aiPersonality: 'cautious',
     modifiers: { fixedAbilities: [AbilityType.Spyglass, AbilityType.SmokeScreen] },
     starRequirements: {
-      twoStars: { maxTurns: 30 },
-      threeStars: { maxTurns: 20, noShipsLost: true },
+      twoStars:   { maxTurns: 32 },
+      threeStars: { maxTurns: 22, noShipsLost: true },
     },
   },
+
   {
-    id: 8,
-    title: 'The Kraken Awakes',
-    subtitle: 'A leviathan stirs',
+    id: 7,
+    title: 'The Silent Hunt',
+    subtitle: 'Hear what cannot be seen',
+    difficultyLabel: 'Rough Seas',
     introPanels: [
-      { background: NIGHT_GRAD, speaker: 'Old Salt', caption: "We're in cursed waters now, Cap'n. The kraken roams here. It strikes friend and foe alike.", iconHint: '\u{1F419}' },
-      { background: SEA_GRAD, caption: "Ye must defeat the navy AND survive the beast's wrath. Every few turns, tentacles will damage a random ship.", iconHint: '\u{1F30A}' },
+      {
+        background: NIGHT_GRAD,
+        speaker: 'Mistral',
+        caption:
+          "A destroyer hides in the mist — running silent, no lanterns. The sonar will hear her heartbeat. The Spyglass will place her exact position. Then we strike once, cleanly.",
+        iconHint: '🎯',
+      },
     ],
     outroPanels: [
-      { background: RED_GRAD, caption: "Ye survived the kraken. Few can claim that.", iconHint: '\u{1F451}' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Mistral',
+        caption:
+          "Precision, not power. Every shot that struck was deliberate. That is the Phantom way.",
+        iconHint: '✨',
+      },
+    ],
+    difficulty: 'medium',
+    aiPersonality: 'cautious',
+    modifiers: { fixedAbilities: [AbilityType.SonarPing, AbilityType.Spyglass] },
+    starRequirements: {
+      twoStars:   { maxTurns: 30 },
+      threeStars: { maxTurns: 20, minAccuracyPct: 40 },
+    },
+  },
+
+  {
+    id: 8,
+    title: 'The Awakening Deep',
+    subtitle: 'A leviathan stirs',
+    difficultyLabel: 'Kraken Waters',
+    introPanels: [
+      {
+        background: NIGHT_GRAD,
+        speaker: 'Old Salt',
+        caption:
+          "These are cursed waters, Cap'n Mistral. The kraken sleeps below — but a battle above wakes it. It strikes friend and foe without thought. Every few turns, tentacles will slam into the fleet.",
+        iconHint: '🐙',
+      },
+      {
+        background: SEA_GRAD,
+        caption:
+          "A Navy cruiser blocks the far exit of the Straits. Sink her before the kraken takes too heavy a toll on both sides.",
+        iconHint: '🌊',
+      },
+    ],
+    outroPanels: [
+      {
+        background: RED_GRAD,
+        speaker: 'Mistral',
+        caption:
+          "The cruiser sinks. The kraken retreats, satisfied with the carnage. We sail on — scarred but breathing.",
+        iconHint: '👑',
+      },
     ],
     difficulty: 'hard',
     aiPersonality: 'kraken',
     modifiers: { krakenAttack: true },
     starRequirements: {
-      twoStars: { maxTurns: 40 },
-      threeStars: { maxTurns: 28 },
+      twoStars:   { maxTurns: 42 },
+      threeStars: { maxTurns: 30 },
     },
   },
+
   {
     id: 9,
-    title: 'Fog of War',
-    subtitle: 'Where shots vanish',
+    title: 'Blind Fire',
+    subtitle: 'Trust the sea, not your eyes',
+    difficultyLabel: 'Storm Warning',
     introPanels: [
-      { background: NIGHT_GRAD, caption: "A thick fog rolls in. Ye won't see where yer shots land. Trust yer instincts.", iconHint: '\u{1F32B}\uFE0F' },
+      {
+        background: NIGHT_GRAD,
+        speaker: 'Mistral',
+        caption:
+          "The fog is absolute now. Yer shots will vanish into it — no splash, no smoke ring, nothing. Ye'll not know what ye hit. Fire by memory, by pattern, by instinct.",
+        iconHint: '🌫️',
+      },
     ],
     outroPanels: [
-      { background: GOLD_GRAD, caption: "Even blind, ye are deadly.", iconHint: '\u{1F31F}' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Mistral',
+        caption:
+          "Blind, and still victorious. The sea does not hide from those who listen to it.",
+        iconHint: '🌟',
+      },
     ],
     difficulty: 'hard',
     aiPersonality: 'standard',
     modifiers: { foggyVision: true },
     starRequirements: {
-      twoStars: { maxTurns: 45 },
+      twoStars:   { maxTurns: 45 },
       threeStars: { maxTurns: 32 },
     },
   },
+
   {
     id: 10,
-    title: 'Boarding Action',
-    subtitle: 'Gather intel',
+    title: 'Smoke and Mirrors',
+    subtitle: 'Illusion is the deadliest weapon',
+    difficultyLabel: 'Storm Warning',
     introPanels: [
-      { background: GOLD_GRAD, speaker: 'Quartermaster Bones', caption: "A Boarding Party can sneak aboard the enemy and report ship details. Use it wisely \u2014 only one chance.", iconHint: '\u{1F3F4}\u200D\u2620\uFE0F' },
+      {
+        background: STORM_GRAD,
+        speaker: 'Mistral',
+        caption:
+          "The Navy's vice admiral sails these waters personally, hunting us. We will not meet her with force. We vanish into smoke. We board her escort and read her signals. She will fire at shadows.",
+        iconHint: '🎭',
+      },
     ],
     outroPanels: [
-      { background: RED_GRAD, caption: "The crew brings back tales of riches.", iconHint: '\u{1F4B0}' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Mistral',
+        caption:
+          "The vice admiral returns to port in shame, her flagship hulled. Act II ends here. The Straits are ours. Now comes the fire.",
+        iconHint: '🌊',
+      },
     ],
     difficulty: 'hard',
     aiPersonality: 'aggressive',
-    modifiers: { fixedAbilities: [AbilityType.BoardingParty, AbilityType.CannonBarrage] },
+    modifiers: { fixedAbilities: [AbilityType.SmokeScreen, AbilityType.BoardingParty] },
     starRequirements: {
-      twoStars: { maxTurns: 35 },
-      threeStars: { maxTurns: 25, noShipsLost: true },
+      twoStars:   { maxTurns: 40 },
+      threeStars: { maxTurns: 28 },
     },
   },
+
+  // ─────────────────────────────────────────────────────────
+  // ACT III — THE UNDYING FLAME (Blackheart, Missions 11–15)
+  // ─────────────────────────────────────────────────────────
+
   {
     id: 11,
-    title: 'The Storm Front',
-    subtitle: 'Nature\'s fury',
+    title: 'Trial by Storm',
+    subtitle: 'Nature hunts all equally',
+    difficultyLabel: 'Kraken Waters',
     introPanels: [
-      { background: NIGHT_GRAD, caption: "A storm rages. Visibility is nil and the kraken hunts. Hold yer course.", iconHint: '\u{26C8}\uFE0F' },
+      {
+        background: STORM_GRAD,
+        speaker: 'Blackheart',
+        caption:
+          "I am Blackheart. The Undying. I have survived things that would break lesser captains — and I am taking the helm for what comes next. Fog. Kraken. A Navy dreadnought. All at once.",
+        iconHint: '⚔️',
+      },
+      {
+        background: NIGHT_GRAD,
+        speaker: 'Quartermaster Bones',
+        caption:
+          "The storm rages, the leviathan circles below, and the dreadnought approaches through the murk. There is no escape — only through.",
+        iconHint: '🐙',
+      },
     ],
     outroPanels: [
-      { background: GOLD_GRAD, caption: "The seas themselves bow to ye now.", iconHint: '\u{1F30A}' },
+      {
+        background: RED_GRAD,
+        speaker: 'Blackheart',
+        caption:
+          "Storm, kraken, dreadnought — and we still float. The sea knows who it cannot break.",
+        iconHint: '🌊',
+      },
     ],
     difficulty: 'hard',
     aiPersonality: 'kraken',
     modifiers: { foggyVision: true, krakenAttack: true },
     starRequirements: {
-      twoStars: { maxTurns: 50 },
+      twoStars:   { maxTurns: 50 },
       threeStars: { maxTurns: 35 },
     },
   },
+
   {
     id: 12,
-    title: 'The Royal Armada',
-    subtitle: 'A fleet of ironclads',
+    title: "The King's Armada",
+    subtitle: 'No quarter given or asked',
+    difficultyLabel: 'No Mercy',
     introPanels: [
-      { background: RED_GRAD, speaker: 'Quartermaster Bones', caption: "The Royal Navy sends an entire armada. Their flagship is fast and deadly. We can't outrun \u2014 we must outfight.", iconHint: '\u{2694}\uFE0F' },
+      {
+        background: RED_GRAD,
+        speaker: 'Blackheart',
+        caption:
+          "The Crown has had enough. They send the full Northern Armada — eight warships, battle-hardened veterans all. No tricks. No terrain to hide in. Just iron against iron.",
+        iconHint: '⚔️',
+      },
     ],
     outroPanels: [
-      { background: GOLD_GRAD, caption: "Their flagship sinks. The Navy reels.", iconHint: '\u{1F3C6}' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Blackheart',
+        caption:
+          "Eight ships sent. Eight ships sunk. Let every Navy port know the name Ironclad Waters. Let them fear the flag.",
+        iconHint: '🏆',
+      },
     ],
     difficulty: 'hard',
     aiPersonality: 'aggressive',
     modifiers: {},
     starRequirements: {
-      twoStars: { maxTurns: 40 },
+      twoStars:   { maxTurns: 40 },
       threeStars: { maxTurns: 28, noShipsLost: true },
     },
   },
+
   {
     id: 13,
-    title: 'Whispers of Treason',
-    subtitle: 'A traitor among us',
+    title: "The Traitor's Signal",
+    subtitle: 'Betrayal from within',
+    difficultyLabel: 'No Mercy',
     introPanels: [
-      { background: NIGHT_GRAD, speaker: 'Old Salt', caption: "Word reaches us \u2014 a turncoat has leaked our position. The Navy knows where we are.", iconHint: '\u{1F441}\uFE0F' },
-      { background: RED_GRAD, caption: "Their AI commander is unpredictable, ruthless. Adapt.", iconHint: '\u{1F608}' },
+      {
+        background: NIGHT_GRAD,
+        speaker: 'Old Salt',
+        caption:
+          "Word reaches us — a turncoat among the crew has signalled our bearing to the Navy. The ambush is already set. They know our position, our formation, our course.",
+        iconHint: '👁️',
+      },
+      {
+        background: RED_GRAD,
+        speaker: 'Blackheart',
+        caption:
+          "Let them come. Knowing where we are doesn't tell them what we are. We sail straight into their trap — and we spring it back on them.",
+        iconHint: '😈',
+      },
     ],
     outroPanels: [
-      { background: GOLD_GRAD, caption: "The traitor's name dies with them.", iconHint: '\u{1F5E1}\uFE0F' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Blackheart',
+        caption:
+          "Their ambush lies scattered across the seabed. The traitor's name will die here with them.",
+        iconHint: '🗡️',
+      },
     ],
     difficulty: 'hard',
     aiPersonality: 'aggressive',
     modifiers: { foggyVision: true },
     starRequirements: {
-      twoStars: { maxTurns: 42 },
+      twoStars:   { maxTurns: 42 },
       threeStars: { maxTurns: 30 },
     },
   },
+
   {
     id: 14,
-    title: 'The Siege of Tortuga',
-    subtitle: 'Defend the homeport',
+    title: 'Last Stand at Tortuga',
+    subtitle: 'Defend what we have bled for',
+    difficultyLabel: 'No Mercy',
     introPanels: [
-      { background: RED_GRAD, speaker: 'Quartermaster Bones', caption: "They've found our home, Cap'n. We must defend Tortuga or lose everything we've built.", iconHint: '\u{1F3D8}\uFE0F' },
+      {
+        background: RED_GRAD,
+        speaker: 'Quartermaster Bones',
+        caption:
+          "They've found Tortuga, Cap'n! Navy warships in the harbour mouth. If they take the port, we lose our base, our stores, our wounded. Everything.",
+        iconHint: '🏛️',
+      },
+      {
+        background: NIGHT_GRAD,
+        speaker: 'Blackheart',
+        caption:
+          "And the kraken wakes at the cannon fire. Two enemies at once. We hold the line or we lose everything we have built.",
+        iconHint: '🐙',
+      },
     ],
     outroPanels: [
-      { background: GOLD_GRAD, caption: "Tortuga stands. Ye are a legend.", iconHint: '\u{1F3F4}\u200D\u2620\uFE0F' },
+      {
+        background: GOLD_GRAD,
+        speaker: 'Blackheart',
+        caption:
+          "Tortuga stands. The harbour runs red with Navy blood and kraken ink. We stand. One mission remains.",
+        iconHint: '🏴‍☠️',
+      },
     ],
     difficulty: 'hard',
     aiPersonality: 'aggressive',
     modifiers: { krakenAttack: true },
     starRequirements: {
-      twoStars: { maxTurns: 45 },
+      twoStars:   { maxTurns: 45 },
       threeStars: { maxTurns: 32, noShipsLost: true },
     },
   },
+
   {
     id: 15,
     title: 'Admiral Ironclad',
     subtitle: 'The final reckoning',
+    difficultyLabel: 'No Mercy',
     introPanels: [
-      { background: RED_GRAD, speaker: 'Admiral Ironclad', caption: "So ye are the pirate that shook the Crown. Ye'll find I am no patrol scout, no merchant. I am yer end.", iconHint: '\u{1F480}' },
-      { background: NIGHT_GRAD, speaker: 'Quartermaster Bones', caption: "All yer skills, all yer cunning \u2014 ye'll need every drop. The kraken hunts. The fog rolls. The Navy's finest stands ready. This is it, Cap'n.", iconHint: '\u{2694}\uFE0F' },
-      { background: GOLD_GRAD, caption: "Make us proud.", iconHint: '\u{2693}' },
+      {
+        background: RED_GRAD,
+        speaker: 'Admiral Ironclad',
+        caption:
+          "So you are the pirate that shook the Crown from one end of these seas to the other. I am Admiral Ironclad — the Navy's finest, and your end.",
+        iconHint: '💀',
+      },
+      {
+        background: STORM_GRAD,
+        speaker: 'Blackheart',
+        caption:
+          "Fog. Kraken. The greatest Navy commander alive — all three at once. Every lesson from every battle has led here. Do not waste it.",
+        iconHint: '⚔️',
+      },
+      {
+        background: NIGHT_GRAD,
+        speaker: 'Quartermaster Bones',
+        caption:
+          "All yer iron, all yer cunning — ye'll need every drop. The crew stands behind ye, Cap'n. Make us proud.",
+        iconHint: '⚓',
+      },
     ],
     outroPanels: [
-      { background: RED_GRAD, speaker: 'Quartermaster Bones', caption: "Admiral Ironclad sinks beneath the waves. The Crown's grip on these seas is broken. Forever.", iconHint: '\u{1F3C6}' },
-      { background: GOLD_GRAD, caption: "Ye are the Pirate King. The seas are yours, Cap'n.", iconHint: '\u{1F451}' },
+      {
+        background: RED_GRAD,
+        speaker: 'Blackheart',
+        caption:
+          "Admiral Ironclad sinks beneath the waves. The Crown's grip on these seas is broken. Forever.",
+        iconHint: '🏆',
+      },
+      {
+        background: GOLD_GRAD,
+        caption:
+          "The three captains stand together on the quarterdeck as the last Navy colours sink below the horizon. These are Ironclad Waters now.",
+        iconHint: '🌅',
+      },
     ],
     difficulty: 'hard',
     aiPersonality: 'aggressive',
     modifiers: { foggyVision: true, krakenAttack: true },
     starRequirements: {
-      twoStars: { maxTurns: 50 },
+      twoStars:   { maxTurns: 50 },
       threeStars: { maxTurns: 35, noShipsLost: true },
     },
   },

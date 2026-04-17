@@ -140,7 +140,7 @@ describe('campaignStore', () => {
       const state = useCampaignStore.getState();
       expect(state.currentMission).not.toBeNull();
       expect(state.currentMission?.id).toBe(1);
-      expect(state.currentMission?.title).toBe('Maiden Voyage');
+      expect(state.currentMission?.title).toBe('Blood at Dawn');
     });
 
     it('does nothing for invalid mission ID', () => {
