@@ -795,7 +795,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-064
 - **title:** Admin — user management (search, reset password, reset stats, adjust gold, ban)
-- **status:** in-progress
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/87
+- **completed:** 2026-04-17
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** large
