@@ -15,6 +15,7 @@ const { mockUser, mockTxUser, mockTxSecQ, mockTransaction } = vi.hoisted(() => {
     mockUser: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
+      update: vi.fn(),
     },
     mockTxUser,
     mockTxSecQ,
@@ -784,5 +785,243 @@ describe('GET /auth/me', () => {
     });
 
     expect(res.status).toBe(500);
+  });
+});
+
+// ─── POST /auth/recover/* ─────────────────────────────────────────────────────
+// Each test uses a unique identifier to prevent cross-test rate-limit bleed
+// (the recoverAttempts Map in auth.ts is module-level and persists across tests)
+
+let recoverCounter = 0;
+function recoverEmail(): string { return `recover${++recoverCounter}@test.com`; }
+
+const mockSqs = [
+  { questionKey: 'first_pet', answerHash: '$h1$' },
+  { questionKey: 'birth_city', answerHash: '$h2$' },
+];
+const validAnswers = [
+  { questionKey: 'first_pet', answer: 'Fluffy' },
+  { questionKey: 'birth_city', answer: 'London' },
+];
+
+describe('POST /auth/recover/identify', () => {
+  it('returns 400 when identifier is missing', async () => {
+    const res = await fetch(`${baseUrl}/recover/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/identifier/i);
+  });
+
+  it('returns 404 when no account matches the identifier', async () => {
+    mockUser.findFirst.mockResolvedValue(null);
+    const res = await fetch(`${baseUrl}/recover/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail() }),
+    });
+    expect(res.status).toBe(404);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/no account found/i);
+  });
+
+  it('returns 200 with security question texts when user is found', async () => {
+    mockUser.findFirst.mockResolvedValue({ id: 'user-123', securityQuestions: mockSqs });
+    const res = await fetch(`${baseUrl}/recover/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail() }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { questions: Array<{ key: string; question: string }> };
+    expect(body.questions).toHaveLength(2);
+    expect(body.questions[0].key).toBe('first_pet');
+    expect(body.questions[0].question).toBeTruthy();
+    expect(body.questions[1].key).toBe('birth_city');
+  });
+
+  it('returns 429 after exceeding 5 attempts for the same identifier', async () => {
+    const id = recoverEmail();
+    mockUser.findFirst.mockResolvedValue(null);
+    for (let i = 0; i < 5; i++) {
+      await fetch(`${baseUrl}/recover/identify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: id }),
+      });
+    }
+    const res = await fetch(`${baseUrl}/recover/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: id }),
+    });
+    expect(res.status).toBe(429);
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockUser.findFirst.mockRejectedValue(new Error('DB down'));
+    const res = await fetch(`${baseUrl}/recover/identify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail() }),
+    });
+    expect(res.status).toBe(500);
+  });
+});
+
+describe('POST /auth/recover/verify', () => {
+  it('returns 400 when identifier is missing', async () => {
+    const res = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: validAnswers }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when answers array has fewer than 2 entries', async () => {
+    const res = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail(), answers: [validAnswers[0]] }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 401 with generic error when user not found (avoids enumeration)', async () => {
+    mockUser.findFirst.mockResolvedValue(null);
+    const res = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail(), answers: validAnswers }),
+    });
+    expect(res.status).toBe(401);
+    const body = await res.json() as { error: string };
+    expect(body.error).toBe('Incorrect answers');
+  });
+
+  it('returns 401 when one or more answers are incorrect', async () => {
+    mockUser.findFirst.mockResolvedValue({ id: 'user-123', securityQuestions: mockSqs });
+    vi.mocked(bcryptjs.compare)
+      .mockResolvedValueOnce(true as never)
+      .mockResolvedValueOnce(false as never);
+
+    const res = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identifier: recoverEmail(),
+        answers: [{ questionKey: 'first_pet', answer: 'Fluffy' }, { questionKey: 'birth_city', answer: 'Wrong' }],
+      }),
+    });
+    expect(res.status).toBe(401);
+    const body = await res.json() as { error: string };
+    expect(body.error).toBe('Incorrect answers');
+  });
+
+  it('returns 200 with a 64-char resetToken when both answers are correct', async () => {
+    mockUser.findFirst.mockResolvedValue({ id: 'user-123', securityQuestions: mockSqs });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+
+    const res = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail(), answers: validAnswers }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { resetToken: string };
+    expect(typeof body.resetToken).toBe('string');
+    expect(body.resetToken).toHaveLength(64); // 32 bytes → 64 hex chars
+  });
+});
+
+describe('POST /auth/recover/reset', () => {
+  it('returns 400 when resetToken is missing', async () => {
+    const res = await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPassword: 'newpass123' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when newPassword is fewer than 6 characters', async () => {
+    const res = await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken: 'sometoken', newPassword: 'abc' }),
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/6 characters/i);
+  });
+
+  it('returns 401 when resetToken is not found', async () => {
+    const res = await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken: 'nonexistent-token', newPassword: 'newpass123' }),
+    });
+    expect(res.status).toBe(401);
+    const body = await res.json() as { error: string };
+    expect(body.error).toMatch(/invalid or expired/i);
+  });
+
+  it('returns 200 and updates password hash when reset token is valid', async () => {
+    // Obtain a valid reset token via verify
+    mockUser.findFirst.mockResolvedValue({ id: 'user-reset-ok', securityQuestions: mockSqs });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+    const verifyRes = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail(), answers: validAnswers }),
+    });
+    const { resetToken } = await verifyRes.json() as { resetToken: string };
+
+    // Reset password with the token
+    mockUser.update.mockResolvedValue({ id: 'user-reset-ok' });
+    const res = await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken, newPassword: 'newpassword123' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { success: boolean };
+    expect(body.success).toBe(true);
+    expect(mockUser.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'user-reset-ok' } })
+    );
+  });
+
+  it('returns 401 when the same token is used a second time (one-time use)', async () => {
+    // Obtain a reset token
+    mockUser.findFirst.mockResolvedValue({ id: 'user-double', securityQuestions: mockSqs });
+    vi.mocked(bcryptjs.compare).mockResolvedValue(true as never);
+    const verifyRes = await fetch(`${baseUrl}/recover/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: recoverEmail(), answers: validAnswers }),
+    });
+    const { resetToken } = await verifyRes.json() as { resetToken: string };
+
+    // First use — succeeds
+    mockUser.update.mockResolvedValue({ id: 'user-double' });
+    await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken, newPassword: 'firstnewpass' }),
+    });
+
+    // Second use — token deleted, must be 401
+    const res2 = await fetch(`${baseUrl}/recover/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resetToken, newPassword: 'secondnewpass' }),
+    });
+    expect(res2.status).toBe(401);
   });
 });

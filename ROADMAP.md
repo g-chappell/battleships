@@ -743,7 +743,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-060
 - **title:** Password recovery flow (identify → answer questions → reset)
-- **status:** ready
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/80
+- **completed:** 2026-04-17
 - **priority:** high
 - **workspaces:** server, client
 - **complexity:** medium
