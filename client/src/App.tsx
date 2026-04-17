@@ -33,7 +33,7 @@ function App() {
   const screen = useGameStore((s) => s.screen);
   const loadFromStorage = useAuthStore((s) => s.loadFromStorage);
   const token = useAuthStore((s) => s.token);
-  const loadAchievements = useAchievementsStore((s) => s.loadFromStorage);
+  const loadAchievementsFromServer = useAchievementsStore((s) => s.loadFromServer);
   const loadSettings = useSettingsStore((s) => s.loadFromStorage);
   const loadCosmeticsLocal = useCosmeticsStore((s) => s.loadFromStorage);
   const loadCosmeticsServer = useCosmeticsStore((s) => s.loadFromServer);
@@ -41,22 +41,22 @@ function App() {
 
   useEffect(() => {
     loadFromStorage();
-    loadAchievements();
     loadSettings();
     loadCosmeticsLocal();
     fetchActiveSeason();
-  }, [loadFromStorage, loadAchievements, loadSettings, loadCosmeticsLocal, fetchActiveSeason]);
+  }, [loadFromStorage, loadSettings, loadCosmeticsLocal, fetchActiveSeason]);
 
   const resetGoldForGuest = useCosmeticsStore((s) => s.resetGoldForGuest);
 
   useEffect(() => {
     if (token) {
       loadCosmeticsServer(token);
+      loadAchievementsFromServer(token);
     } else {
       // Guest users should not retain gold
       resetGoldForGuest();
     }
-  }, [token, loadCosmeticsServer, resetGoldForGuest]);
+  }, [token, loadCosmeticsServer, loadAchievementsFromServer, resetGoldForGuest]);
 
   // System toasts: connection lost / found opponent
   const socketStatus = useSocketStore((s) => s.status);

@@ -44,10 +44,10 @@ export function GamePage() {
   const difficulty = useGameStore((s) => s.difficulty);
   const startMultiplayerGame = useGameStore((s) => s.startMultiplayerGame);
   const unlockMany = useAchievementsStore((s) => s.unlockMany);
-  const alreadyUnlocked = useAchievementsStore((s) => s.unlocked);
   const completeMission = useCampaignStore((s) => s.completeMission);
   const currentMission = useCampaignStore((s) => s.currentMission);
   const token = useAuthStore((s) => s.token);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
   const addGold = useCosmeticsStore((s) => s.addGold);
 
   const musicEnabled = useSettingsStore((s) => s.musicEnabled);
@@ -88,7 +88,10 @@ export function GamePage() {
     return () => { stopAmbientLoop(); };
   }, [musicEnabled]);
 
-  // Evaluate achievements once when the game ends
+  // Evaluate achievements once when the game ends.
+  // Read unlocked as a snapshot (not reactive) to avoid re-firing this effect
+  // when unlock() calls set() mid-execution, which would cause concurrent
+  // duplicate server calls and P2002 unique constraint violations.
   useEffect(() => {
     if (!isFinished) return;
     const won = engine.winner === 'player';
@@ -97,6 +100,7 @@ export function GamePage() {
     const accuracy = engine.getPlayerShotAccuracy();
     const shotsFired = Math.max(1, Math.round(engine.turnCount));
     const shotsHit = Math.round(shotsFired * accuracy);
+    const unlockedSnapshot = useAchievementsStore.getState().unlocked;
     const ctx = {
       won,
       isMultiplayer: gameMode === 'multiplayer',
@@ -112,14 +116,14 @@ export function GamePage() {
       abilitySinks: {},
       ironcladSaved: false,
       submarineSonarBlocked: false,
-      totalGames: alreadyUnlocked.size > 0 ? 100 : 1, // approximate
+      totalGames: unlockedSnapshot.size > 0 ? 100 : 1,
       totalWins: won ? 1 : 0,
       totalShipsSunk: sunkByPlayer,
       rating: 1200,
     };
-    const newlyUnlocked = evaluateAchievements(ctx).filter(id => !alreadyUnlocked.has(id));
+    const newlyUnlocked = evaluateAchievements(ctx).filter(id => !unlockedSnapshot.has(id));
     if (newlyUnlocked.length > 0) {
-      unlockMany(newlyUnlocked);
+      unlockMany(newlyUnlocked, token, userId);
     }
 
     // === Gold award ===
@@ -152,7 +156,7 @@ export function GamePage() {
         token
       );
     }
-  }, [isFinished, engine, gameMode, difficulty, addGold, alreadyUnlocked, unlockMany, currentMission, completeMission, token]);
+  }, [isFinished, engine, gameMode, difficulty, addGold, unlockMany, currentMission, completeMission, token, userId]);
 
   // Sound effects
   useEffect(() => {
