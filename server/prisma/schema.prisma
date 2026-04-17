@@ -28,12 +28,13 @@ model User {
   clanRole      String?  // 'leader' | 'officer' | 'member'
   clan          Clan?    @relation(fields: [clanId], references: [id])
 
-  stats         PlayerStats?
-  cosmetics     UserCosmetic[]
-  seasonStats   SeasonPlayerStats[]
-  matchesAsP1   Match[]  @relation("player1")
-  matchesAsP2   Match[]  @relation("player2")
-  wonMatches    Match[]  @relation("winner")
+  stats              PlayerStats?
+  cosmetics          UserCosmetic[]
+  seasonStats        SeasonPlayerStats[]
+  matchesAsP1        Match[]  @relation("player1")
+  matchesAsP2        Match[]  @relation("player2")
+  wonMatches         Match[]  @relation("winner")
+  securityQuestions  SecurityQuestion[]
 
   @@unique([provider, providerId])
 }
@@ -168,6 +169,19 @@ model ClanChatMessage {
   createdAt DateTime @default(now())
 
   @@index([clanId, createdAt])
+}
+
+// === Security Questions ===
+model SecurityQuestion {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  questionKey String
+  answerHash  String
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, questionKey])
+  @@index([userId])
 }
 
 // === P2-6 Seasons ===

@@ -2,13 +2,14 @@ import { Router } from 'express';
 import bcryptjs from 'bcryptjs';
 import { prisma } from '../services/db.js';
 import { signToken, authMiddleware } from '../middleware/auth.js';
+import { SECURITY_QUESTION_KEYS } from '../../../shared/src/securityQuestions.ts';
 
 export const authRouter = Router();
 
-// Register with email/password
+// Register with email/password + two security questions
 authRouter.post('/register', async (req, res) => {
   try {
-    const { email, username, password } = req.body;
+    const { email, username, password, securityQuestions } = req.body;
 
     if (!email || !username || !password) {
       res.status(400).json({ error: 'Email, username, and password are required' });
@@ -32,6 +33,28 @@ authRouter.post('/register', async (req, res) => {
       return;
     }
 
+    if (!Array.isArray(securityQuestions) || securityQuestions.length !== 2) {
+      res.status(400).json({ error: 'Exactly two security questions are required' });
+      return;
+    }
+
+    const [sq1, sq2] = securityQuestions as Array<{ questionKey: string; answer: string }>;
+
+    if (!sq1?.questionKey || !sq1?.answer?.trim() || !sq2?.questionKey || !sq2?.answer?.trim()) {
+      res.status(400).json({ error: 'Each security question must have a question and a non-empty answer' });
+      return;
+    }
+
+    if (!SECURITY_QUESTION_KEYS.has(sq1.questionKey) || !SECURITY_QUESTION_KEYS.has(sq2.questionKey)) {
+      res.status(400).json({ error: 'Invalid security question key' });
+      return;
+    }
+
+    if (sq1.questionKey === sq2.questionKey) {
+      res.status(400).json({ error: 'Security questions must be distinct' });
+      return;
+    }
+
     const existing = await prisma.user.findFirst({
       where: { OR: [{ email }, { username }] },
     });
@@ -43,15 +66,30 @@ authRouter.post('/register', async (req, res) => {
       return;
     }
 
-    const passwordHash = await bcryptjs.hash(password, 12);
+    const [passwordHash, answerHash1, answerHash2] = await Promise.all([
+      bcryptjs.hash(password, 12),
+      bcryptjs.hash(sq1.answer.trim().toLowerCase(), 10),
+      bcryptjs.hash(sq2.answer.trim().toLowerCase(), 10),
+    ]);
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        username,
-        passwordHash,
-        stats: { create: {} },
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email,
+          username,
+          passwordHash,
+          stats: { create: {} },
+        },
+      });
+
+      await tx.securityQuestion.createMany({
+        data: [
+          { userId: newUser.id, questionKey: sq1.questionKey, answerHash: answerHash1 },
+          { userId: newUser.id, questionKey: sq2.questionKey, answerHash: answerHash2 },
+        ],
+      });
+
+      return newUser;
     });
 
     const token = signToken({ userId: user.id, email: user.email });
