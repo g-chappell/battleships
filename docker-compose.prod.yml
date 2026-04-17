@@ -43,6 +43,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       CLIENT_URL: ${CLIENT_URL:?CLIENT_URL must be set}
       ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
     expose:
       - "3001"
 

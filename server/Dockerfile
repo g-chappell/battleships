@@ -45,5 +45,5 @@ COPY --from=build /app /app
 EXPOSE 3001
 
 WORKDIR /app/server
-# tsx is installed as part of server devDependencies
-CMD ["npx", "tsx", "src/index.ts"]
+# Push any pending schema changes, then start the server
+CMD ["sh", "-c", "npx prisma db push && npx tsx src/index.ts"]
