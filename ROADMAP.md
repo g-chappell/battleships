@@ -986,7 +986,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-080
 - **title:** Profile achievements gallery + deep-link from top-right
-- **status:** ready
+- **status:** in-progress
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
