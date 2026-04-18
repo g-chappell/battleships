@@ -9,6 +9,7 @@ interface AchievementCatalogItem {
 
 interface AchievementsStore {
   unlocked: Set<string>;
+  unlockedDates: Map<string, string>;
   toastQueue: AchievementDef[];
 
   loadFromServer: (token: string) => Promise<void>;
@@ -24,6 +25,7 @@ function isGuest(userId: string | null): boolean {
 
 export const useAchievementsStore = create<AchievementsStore>((set, get) => ({
   unlocked: new Set(),
+  unlockedDates: new Map(),
   toastQueue: [],
 
   loadFromServer: async (token) => {
@@ -33,12 +35,14 @@ export const useAchievementsStore = create<AchievementsStore>((set, get) => ({
     );
     if (!data) return;
     const unlocked = new Set<string>();
+    const unlockedDates = new Map<string, string>();
     for (const item of data.catalog) {
       if (item.unlockedAt !== null) {
         unlocked.add(item.id);
+        unlockedDates.set(item.id, item.unlockedAt);
       }
     }
-    set({ unlocked });
+    set({ unlocked, unlockedDates });
   },
 
   unlock: async (id, token, userId) => {
@@ -52,10 +56,13 @@ export const useAchievementsStore = create<AchievementsStore>((set, get) => ({
         json: { achievementId: id },
         token,
       });
+      const now = new Date().toISOString();
       set((s) => {
         const next = new Set(s.unlocked);
         next.add(id);
-        return { unlocked: next, toastQueue: [...s.toastQueue, def] };
+        const nextDates = new Map(s.unlockedDates);
+        nextDates.set(id, now);
+        return { unlocked: next, unlockedDates: nextDates, toastQueue: [...s.toastQueue, def] };
       });
     } catch {
       // Server rejection (unknown id, already unlocked, etc.) — silently ignore

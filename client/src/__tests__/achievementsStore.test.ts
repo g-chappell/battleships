@@ -48,6 +48,7 @@ describe('achievementsStore', () => {
   beforeEach(() => {
     useAchievementsStore.setState({
       unlocked: new Set(),
+      unlockedDates: new Map(),
       toastQueue: [],
     });
     vi.clearAllMocks();
@@ -56,6 +57,7 @@ describe('achievementsStore', () => {
   it('has correct initial state', () => {
     const state = useAchievementsStore.getState();
     expect(state.unlocked).toEqual(new Set());
+    expect(state.unlockedDates).toEqual(new Map());
     expect(state.toastQueue).toEqual([]);
   });
 
@@ -92,10 +94,18 @@ describe('achievementsStore', () => {
     });
 
     it('does nothing when server returns null (network failure)', async () => {
-      useAchievementsStore.setState({ unlocked: new Set(['first_blood']), toastQueue: [] });
+      useAchievementsStore.setState({ unlocked: new Set(['first_blood']), unlockedDates: new Map(), toastQueue: [] });
       mockApiFetchSafe.mockResolvedValueOnce(null);
       await useAchievementsStore.getState().loadFromServer(REG_TOKEN);
       expect(useAchievementsStore.getState().unlocked.has('first_blood')).toBe(true);
+    });
+
+    it('populates unlockedDates for achievements with a date', async () => {
+      mockApiFetchSafe.mockResolvedValueOnce(makeCatalog(['first_blood']));
+      await useAchievementsStore.getState().loadFromServer(REG_TOKEN);
+      const { unlockedDates } = useAchievementsStore.getState();
+      expect(unlockedDates.get('first_blood')).toBe('2024-01-01T00:00:00.000Z');
+      expect(unlockedDates.has('sharpshooter')).toBe(false);
     });
 
     it('passes token to apiFetchSafe', async () => {
@@ -115,6 +125,14 @@ describe('achievementsStore', () => {
       expect(unlocked.has('first_blood')).toBe(true);
       expect(toastQueue).toHaveLength(1);
       expect(toastQueue[0]).toBe(ACHIEVEMENT_DEFS['first_blood']);
+    });
+
+    it('records unlock date in unlockedDates', async () => {
+      mockApiFetch.mockResolvedValueOnce({});
+      await useAchievementsStore.getState().unlock('first_blood', REG_TOKEN, REG_USER);
+      const { unlockedDates } = useAchievementsStore.getState();
+      expect(unlockedDates.has('first_blood')).toBe(true);
+      expect(typeof unlockedDates.get('first_blood')).toBe('string');
     });
 
     it('calls POST /achievements/unlock with token', async () => {

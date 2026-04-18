@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useGameStore } from '../store/gameStore';
 import { useAchievementsStore } from '../store/achievementsStore';
 import { useReplayStore } from '../store/replayStore';
-import { ACHIEVEMENT_DEFS } from '@shared/index';
+import { ACHIEVEMENT_DEFS, type AchievementCategory } from '@shared/index';
 import { apiFetchSafe } from '../services/apiClient';
 import { FONT_STYLES } from '../styles/fonts';
 import { PageShell } from '../components/ui/PageShell';
@@ -47,6 +47,7 @@ export function Dashboard() {
   const setScreen = useGameStore((s) => s.setScreen);
   const startNewGame = useGameStore((s) => s.startNewGame);
   const loadReplay = useReplayStore((s) => s.load);
+  const achievementsRef = useRef<HTMLDivElement>(null);
 
   const openReplay = async (matchId: string) => {
     await loadReplay(matchId);
@@ -61,6 +62,13 @@ export function Dashboard() {
     apiFetchSafe<Stats>(`/stats/${user.id}`).then((data) => data && setStats(data));
     apiFetchSafe<MatchHistoryResponse>(`/matches/history/${user.id}`).then((data) => data && setMatches(data.matches));
   }, [user, token]);
+
+  useEffect(() => {
+    if (window.location.hash === '#achievements') {
+      window.location.hash = '';
+      achievementsRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
 
   if (!user) return null;
 
@@ -100,7 +108,7 @@ export function Dashboard() {
       </div>
 
       {/* Achievements */}
-      <AchievementsSection />
+      <AchievementsSection ref={achievementsRef} />
 
       {/* Match history */}
       <div>
@@ -149,13 +157,35 @@ function StatCard({ label, value, color }: { label: string; value: string | numb
   );
 }
 
-function AchievementsSection() {
+const CATEGORY_LABELS: Record<AchievementCategory, string> = {
+  combat: 'Combat',
+  volume: 'Volume',
+  campaign: 'Campaign',
+  multiplayer: 'Multiplayer',
+  abilities: 'Abilities',
+  misc: 'Miscellaneous',
+};
+
+const CATEGORY_ORDER: AchievementCategory[] = ['combat', 'multiplayer', 'abilities', 'campaign', 'volume', 'misc'];
+
+function formatUnlockDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+const AchievementsSection = ({ ref }: { ref: React.RefObject<HTMLDivElement | null> }) => {
   const unlocked = useAchievementsStore((s) => s.unlocked);
+  const unlockedDates = useAchievementsStore((s) => s.unlockedDates);
   const all = Object.values(ACHIEVEMENT_DEFS);
   const totalPoints = all.filter(a => unlocked.has(a.id)).reduce((sum, a) => sum + a.points, 0);
 
+  const byCategory = CATEGORY_ORDER.map((cat) => ({
+    cat,
+    label: CATEGORY_LABELS[cat],
+    achievements: all.filter(a => a.category === cat),
+  }));
+
   return (
-    <div className="mb-8">
+    <div ref={ref} className="mb-8" id="achievements">
       <div className="flex items-baseline justify-between mb-4">
         <h2 className="text-2xl text-blood-bright" style={FONT_STYLES.pirate}>
           Achievements
@@ -164,29 +194,53 @@ function AchievementsSection() {
           {unlocked.size} / {all.length} unlocked · {totalPoints} pts
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {all.map((ach) => {
-          const isUnlocked = unlocked.has(ach.id);
+
+      <div className="space-y-6">
+        {byCategory.map(({ cat, label, achievements }) => {
+          const unlockedCount = achievements.filter(a => unlocked.has(a.id)).length;
           return (
-            <div
-              key={ach.id}
-              className={`p-3 rounded-lg border ${
-                isUnlocked
-                  ? 'bg-blood-dark/30 border-blood-bright/60'
-                  : 'bg-coal/40 border-mahogany-light opacity-50'
-              }`}
-              title={ach.description}
-            >
-              <div className="flex items-start gap-2">
-                <div className="text-2xl">{isUnlocked ? ach.icon : '\u{1F512}'}</div>
-                <div className="flex-1 min-w-0">
-                  <div className={`text-sm font-bold truncate ${isUnlocked ? 'text-bone' : 'text-parchment/40'}`} style={FONT_STYLES.labelSC}>
-                    {ach.title}
-                  </div>
-                  <div className={`text-xs ${isUnlocked ? 'text-parchment/70' : 'text-parchment/30'} truncate italic`} style={FONT_STYLES.body}>
-                    {ach.description}
-                  </div>
-                </div>
+            <div key={cat}>
+              <div className="flex items-baseline gap-3 mb-2">
+                <h3 className="text-sm uppercase tracking-wider text-copper" style={FONT_STYLES.labelSC}>
+                  {label}
+                </h3>
+                <span className="text-xs text-parchment/40" style={FONT_STYLES.labelSC}>
+                  {unlockedCount}/{achievements.length}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {achievements.map((ach) => {
+                  const isUnlocked = unlocked.has(ach.id);
+                  const dateStr = isUnlocked ? unlockedDates.get(ach.id) : undefined;
+                  return (
+                    <div
+                      key={ach.id}
+                      className={`p-3 rounded-lg border transition-opacity ${
+                        isUnlocked
+                          ? 'bg-blood-dark/30 border-blood-bright/60'
+                          : 'bg-coal/40 border-mahogany/60 opacity-50'
+                      }`}
+                      title={ach.description}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="text-2xl flex-shrink-0">{isUnlocked ? ach.icon : '🔒'}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-sm font-bold truncate ${isUnlocked ? 'text-bone' : 'text-parchment/40'}`} style={FONT_STYLES.labelSC}>
+                            {ach.title}
+                          </div>
+                          <div className={`text-xs ${isUnlocked ? 'text-parchment/70' : 'text-parchment/30'} truncate italic`} style={FONT_STYLES.body}>
+                            {ach.description}
+                          </div>
+                          {dateStr && (
+                            <div className="text-xs text-gold/60 mt-1" style={FONT_STYLES.labelSC}>
+                              {formatUnlockDate(dateStr)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -194,4 +248,4 @@ function AchievementsSection() {
       </div>
     </div>
   );
-}
+};
