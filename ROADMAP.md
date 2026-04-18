@@ -828,7 +828,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-067
 - **title:** Admin — live telemetry dashboard
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** server, client
 - **complexity:** medium
