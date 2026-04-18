@@ -846,7 +846,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-068
 - **title:** Tournament lobby + DB-persisted chat
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** server, shared
 - **complexity:** medium
