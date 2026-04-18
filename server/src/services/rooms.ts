@@ -96,6 +96,10 @@ export function getRoom(roomId: string): GameRoom | undefined {
   return rooms.get(roomId);
 }
 
+export function getRoomsCount(): number {
+  return rooms.size;
+}
+
 export function getRoomByCode(code: string): GameRoom | undefined {
   const id = codeToRoom.get(code.toUpperCase());
   return id ? rooms.get(id) : undefined;

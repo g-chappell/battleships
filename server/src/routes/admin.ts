@@ -4,6 +4,8 @@ import { authMiddleware } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 import { prisma } from '../services/db.js';
 import { invalidateSeasonCache } from '../services/seasons.js';
+import { getRoomsCount } from '../services/rooms.js';
+import { getConnectedCount } from '../services/telemetry.js';
 import { seedPairings, totalRounds, VALID_TOURNAMENT_SIZES } from '../../../shared/src/tournaments.ts';
 
 export const adminRouter = Router();
@@ -546,5 +548,41 @@ adminRouter.post('/tournaments/:id/advance', async (req, res) => {
     return res.json({ ok: true, nextRound: currentRound + 1 });
   } catch {
     return res.status(500).json({ error: 'Failed to advance tournament' });
+  }
+});
+
+// ─── Telemetry ────────────────────────────────────────────────────────────────
+
+adminRouter.get('/telemetry', async (_req, res) => {
+  try {
+    const matches = await prisma.match.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        mode: true,
+        durationMs: true,
+        createdAt: true,
+        player1: { select: { username: true } },
+        player2: { select: { username: true } },
+        winner: { select: { username: true } },
+      },
+    });
+
+    return res.json({
+      activeUsers: getConnectedCount(),
+      gamesInProgress: getRoomsCount(),
+      recentMatches: matches.map((m) => ({
+        id: m.id,
+        mode: m.mode,
+        player1: m.player1.username,
+        player2: m.player2?.username ?? null,
+        winner: m.winner?.username ?? null,
+        durationMs: m.durationMs,
+        createdAt: m.createdAt.toISOString(),
+      })),
+    });
+  } catch {
+    return res.status(500).json({ error: 'Failed to fetch telemetry' });
   }
 });

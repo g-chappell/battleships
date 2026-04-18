@@ -828,7 +828,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-067
 - **title:** Admin — live telemetry dashboard
-- **status:** ready
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/91
+- **completed:** 2026-04-18
 - **priority:** med
 - **workspaces:** server, client
 - **complexity:** medium
