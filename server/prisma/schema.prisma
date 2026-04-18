@@ -121,6 +121,7 @@ model Tournament {
 
   entries TournamentEntry[]
   matches TournamentMatch[]
+  chat    TournamentChatMessage[]
 
   @@index([status, createdAt])
 }
@@ -150,6 +151,18 @@ model TournamentMatch {
   status       String   // 'pending' | 'ready' | 'in_progress' | 'done'
 
   @@index([tournamentId, round])
+}
+
+model TournamentChatMessage {
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  userId       String
+  username     String
+  text         String
+  createdAt    DateTime   @default(now())
+
+  @@index([tournamentId, createdAt])
 }
 
 // === P2-3 Clans ===
