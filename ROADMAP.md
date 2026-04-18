@@ -846,12 +846,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-068
 - **title:** Tournament lobby + DB-persisted chat
-- **status:** in-progress
+- **status:** done
 - **priority:** med
 - **workspaces:** server, shared
 - **complexity:** medium
 - **depends_on:** [TASK-066]
 - **description:** Add `TournamentChatMessage` Prisma model (tournamentId, userId, message, createdAt). Apply the 5-msgs / 10-seconds rate-limit pattern from game chat. Socket events `tournament:chat:send` and `tournament:chat:new` plus `GET /tournaments/:id/chat` for history (last 100). Add socket events `tournament:lobby:joined` / `tournament:lobby:left` for live roster updates.
+- **pr:** https://github.com/g-chappell/battleships/pull/92
+- **completed:** 2026-04-18
 
 #### TASK-069
 - **title:** Tournament lobby UI with joinable bracket slots and chat panel
