@@ -23,9 +23,7 @@ const NAV_ITEMS: { id: AdminSection; label: string; icon: string }[] = [
   { id: 'telemetry', label: 'Telemetry', icon: '🔭' },
 ];
 
-const STUB_DESCRIPTIONS: Record<Exclude<AdminSection, 'users' | 'seasons' | 'tournaments'>, string> = {
-  telemetry: 'View active players, games in progress, and recent match outcomes.',
-};
+const STUB_DESCRIPTIONS: Record<Exclude<AdminSection, 'users' | 'seasons' | 'tournaments' | 'telemetry'>, string> = {};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1112,16 +1110,147 @@ function TournamentsSection({ token }: { token: string }) {
   );
 }
 
+// ─── TelemetrySection ─────────────────────────────────────────────────────────
+
+interface TelemetryMatch {
+  id: string;
+  mode: string;
+  player1: string;
+  player2: string | null;
+  winner: string | null;
+  durationMs: number;
+  createdAt: string;
+}
+
+interface TelemetryData {
+  activeUsers: number;
+  gamesInProgress: number;
+  recentMatches: TelemetryMatch[];
+}
+
+function formatMode(mode: string): string {
+  return mode.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatDuration(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return `${m}:${String(rem).padStart(2, '0')}`;
+}
+
+function TelemetrySection({ token }: { token: string }) {
+  const [data, setData] = useState<TelemetryData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const result = await apiFetch<TelemetryData>('/admin/telemetry', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setData(result);
+      setError(null);
+      setLastUpdated(new Date());
+    } catch {
+      setError('Failed to load telemetry');
+    }
+  }, [token]);
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 10_000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full text-blood" style={FONT_STYLES.body}>
+        {error}
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center h-full text-parchment/50" style={FONT_STYLES.body}>
+        Loading…
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6 overflow-y-auto">
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-coal/60 border border-blood/30 rounded-lg p-5 text-center">
+          <p className="text-4xl font-bold text-gold" style={FONT_STYLES.pirate}>{data.activeUsers}</p>
+          <p className="text-parchment/60 text-sm mt-1 tracking-wide" style={FONT_STYLES.labelSC}>Active Users</p>
+        </div>
+        <div className="bg-coal/60 border border-blood/30 rounded-lg p-5 text-center">
+          <p className="text-4xl font-bold text-blood-bright" style={FONT_STYLES.pirate}>{data.gamesInProgress}</p>
+          <p className="text-parchment/60 text-sm mt-1 tracking-wide" style={FONT_STYLES.labelSC}>Games in Progress</p>
+        </div>
+      </div>
+
+      {/* Recent matches */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg text-bone" style={FONT_STYLES.pirate}>Recent Matches</h3>
+          {lastUpdated && (
+            <p className="text-xs text-parchment/40" style={FONT_STYLES.body}>
+              Updated {lastUpdated.toLocaleTimeString()}
+            </p>
+          )}
+        </div>
+
+        {data.recentMatches.length === 0 ? (
+          <p className="text-parchment/40 text-sm text-center py-8" style={FONT_STYLES.body}>
+            No matches recorded yet
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" style={FONT_STYLES.body}>
+              <thead>
+                <tr className="border-b border-blood/20 text-parchment/50 text-xs tracking-widest uppercase" style={FONT_STYLES.labelSC}>
+                  <th className="text-left pb-2 pr-4">Mode</th>
+                  <th className="text-left pb-2 pr-4">Player 1</th>
+                  <th className="text-left pb-2 pr-4">Player 2</th>
+                  <th className="text-left pb-2 pr-4">Winner</th>
+                  <th className="text-right pb-2 pr-4">Duration</th>
+                  <th className="text-right pb-2">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recentMatches.map((m) => (
+                  <tr key={m.id} className="border-b border-blood/10 hover:bg-blood/5 transition-colors">
+                    <td className="py-2 pr-4 text-copper">{formatMode(m.mode)}</td>
+                    <td className="py-2 pr-4 text-parchment">{m.player1}</td>
+                    <td className="py-2 pr-4 text-parchment/70">{m.player2 ?? <span className="text-parchment/30">AI</span>}</td>
+                    <td className="py-2 pr-4 text-gold">{m.winner ?? '—'}</td>
+                    <td className="py-2 pr-4 text-right text-parchment/60">{formatDuration(m.durationMs)}</td>
+                    <td className="py-2 text-right text-parchment/40">{new Date(m.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── StubContent ──────────────────────────────────────────────────────────────
 
-function StubContent({ section }: { section: Exclude<AdminSection, 'users' | 'seasons' | 'tournaments'> }) {
+function StubContent({ section }: { section: Exclude<AdminSection, 'users' | 'seasons' | 'tournaments' | 'telemetry'> }) {
   const item = NAV_ITEMS.find((n) => n.id === section)!;
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[320px] text-center gap-4">
       <div className="text-6xl">{item.icon}</div>
       <h2 className="text-3xl text-gold" style={FONT_STYLES.pirate}>{item.label}</h2>
       <p className="text-parchment/70 text-sm max-w-xs" style={FONT_STYLES.body}>
-        {STUB_DESCRIPTIONS[section]}
+        {(STUB_DESCRIPTIONS as Record<string, string>)[section] ?? ''}
       </p>
       <p className="text-blood/60 text-xs tracking-widest uppercase mt-2" style={FONT_STYLES.labelSC}>
         Coming soon
@@ -1225,8 +1354,10 @@ export function AdminPage() {
             token ? <SeasonsSection token={token} /> : null
           ) : activeSection === 'tournaments' ? (
             token ? <TournamentsSection token={token} /> : null
+          ) : activeSection === 'telemetry' ? (
+            token ? <TelemetrySection token={token} /> : null
           ) : (
-            <StubContent section={activeSection as Exclude<AdminSection, 'users' | 'seasons' | 'tournaments'>} />
+            <StubContent section={activeSection as Exclude<AdminSection, 'users' | 'seasons' | 'tournaments' | 'telemetry'>} />
           )}
         </Card>
       </main>

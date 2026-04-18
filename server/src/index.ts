@@ -16,6 +16,7 @@ import { seasonsRouter } from './routes/seasons.js';
 import { adminRouter } from './routes/admin.js';
 import { achievementsRouter } from './routes/achievements.js';
 import { setupGameSocket } from './sockets/gameSocket.js';
+import { setIo } from './services/telemetry.js';
 
 dotenv.config();
 
@@ -77,6 +78,7 @@ const io = new SocketIOServer(httpServer, {
 });
 
 setupGameSocket(io as any);
+setIo(io as any);
 
 httpServer.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

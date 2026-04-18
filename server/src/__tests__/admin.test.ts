@@ -9,7 +9,7 @@ import { signToken } from '../middleware/auth.ts';
 
 const {
   mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction, mockSeason, mockSeasonPlayerStats,
-  mockTournament, mockTournamentMatch,
+  mockTournament, mockTournamentMatch, mockMatch,
 } = vi.hoisted(() => {
   const mockUser = {
     findUnique: vi.fn(),
@@ -47,9 +47,12 @@ const {
     findMany: vi.fn(),
     create: vi.fn(),
   };
+  const mockMatch = {
+    findMany: vi.fn(),
+  };
   return {
     mockUser, mockPlayerStats, mockAdminAuditLog, mockTransaction, mockSeason, mockSeasonPlayerStats,
-    mockTournament, mockTournamentMatch,
+    mockTournament, mockTournamentMatch, mockMatch,
   };
 });
 
@@ -63,8 +66,15 @@ vi.mock('../services/db.ts', () => ({
     seasonPlayerStats: mockSeasonPlayerStats,
     tournament: mockTournament,
     tournamentMatch: mockTournamentMatch,
+    match: mockMatch,
   },
 }));
+
+const { mockGetRoomsCount } = vi.hoisted(() => ({ mockGetRoomsCount: vi.fn().mockReturnValue(0) }));
+vi.mock('../services/rooms.ts', () => ({ getRoomsCount: mockGetRoomsCount }));
+
+const { mockGetConnectedCount } = vi.hoisted(() => ({ mockGetConnectedCount: vi.fn().mockReturnValue(0) }));
+vi.mock('../services/telemetry.ts', () => ({ getConnectedCount: mockGetConnectedCount }));
 
 vi.mock('../services/seasons.ts', () => ({
   getActiveSeason: vi.fn(),
@@ -113,6 +123,9 @@ beforeEach(() => {
   mockTournament.update.mockResolvedValue({});
   mockTournamentMatch.create.mockResolvedValue({});
   mockTournamentMatch.findMany.mockResolvedValue([]);
+  mockMatch.findMany.mockResolvedValue([]);
+  mockGetRoomsCount.mockReturnValue(0);
+  mockGetConnectedCount.mockReturnValue(0);
 });
 
 afterEach(() => {
@@ -917,6 +930,95 @@ describe('POST /admin/tournaments/:id/advance', () => {
       method: 'POST',
       headers: authHeaders(),
     });
+    expect(res.status).toBe(500);
+  });
+});
+
+// ─── GET /admin/telemetry ─────────────────────────────────────────────────────
+
+describe('GET /admin/telemetry', () => {
+  it('returns 401 without token', async () => {
+    const res = await fetch(`${baseUrl}/telemetry`);
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 for non-admin', async () => {
+    const res = await fetch(`${baseUrl}/telemetry`, {
+      headers: { Authorization: `Bearer ${userToken()}` },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('returns activeUsers from getConnectedCount', async () => {
+    mockGetConnectedCount.mockReturnValue(7);
+    const res = await fetch(`${baseUrl}/telemetry`, { headers: authHeaders() });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { activeUsers: number };
+    expect(body.activeUsers).toBe(7);
+  });
+
+  it('returns gamesInProgress from getRoomsCount', async () => {
+    mockGetRoomsCount.mockReturnValue(3);
+    const res = await fetch(`${baseUrl}/telemetry`, { headers: authHeaders() });
+    const body = await res.json() as { gamesInProgress: number };
+    expect(body.gamesInProgress).toBe(3);
+  });
+
+  it('returns recentMatches with shaped fields', async () => {
+    const now = new Date('2026-04-18T10:00:00Z');
+    mockMatch.findMany.mockResolvedValue([
+      {
+        id: 'm1',
+        mode: 'ranked',
+        durationMs: 90000,
+        createdAt: now,
+        player1: { username: 'alice' },
+        player2: { username: 'bob' },
+        winner: { username: 'alice' },
+      },
+      {
+        id: 'm2',
+        mode: 'ai_hard',
+        durationMs: 60000,
+        createdAt: now,
+        player1: { username: 'carol' },
+        player2: null,
+        winner: { username: 'carol' },
+      },
+    ]);
+    const res = await fetch(`${baseUrl}/telemetry`, { headers: authHeaders() });
+    const body = await res.json() as { recentMatches: unknown[] };
+    expect(body.recentMatches).toHaveLength(2);
+    expect(body.recentMatches[0]).toMatchObject({
+      id: 'm1',
+      mode: 'ranked',
+      player1: 'alice',
+      player2: 'bob',
+      winner: 'alice',
+      durationMs: 90000,
+    });
+    expect(body.recentMatches[1]).toMatchObject({
+      id: 'm2',
+      player2: null,
+    });
+  });
+
+  it('returns empty recentMatches when no matches exist', async () => {
+    const res = await fetch(`${baseUrl}/telemetry`, { headers: authHeaders() });
+    const body = await res.json() as { recentMatches: unknown[] };
+    expect(body.recentMatches).toHaveLength(0);
+  });
+
+  it('queries match with correct orderBy and take', async () => {
+    await fetch(`${baseUrl}/telemetry`, { headers: authHeaders() });
+    expect(mockMatch.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { createdAt: 'desc' }, take: 50 })
+    );
+  });
+
+  it('returns 500 on DB error', async () => {
+    mockMatch.findMany.mockRejectedValue(new Error('db down'));
+    const res = await fetch(`${baseUrl}/telemetry`, { headers: authHeaders() });
     expect(res.status).toBe(500);
   });
 });
