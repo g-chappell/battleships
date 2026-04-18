@@ -71,6 +71,15 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface TournamentChatMessage {
+  id: string;
+  tournamentId: string;
+  userId: string;
+  username: string;
+  text: string;
+  createdAt: string; // ISO timestamp
+}
+
 export interface MatchSummary {
   winnerId: string;
   turns: number;
@@ -140,6 +149,7 @@ export interface ClientToServerEvents {
   // Tournaments
   'tournament:subscribe': (payload: { tournamentId: string }) => void;
   'tournament:unsubscribe': (payload: { tournamentId: string }) => void;
+  'tournament:chat:send': (payload: { tournamentId: string; text: string }) => void;
 
   // Clan chat
   'clan:chat:send': (payload: { text: string }) => void;
@@ -188,6 +198,9 @@ export interface ServerToClientEvents {
   // Tournaments
   'tournament:update': (payload: { tournamentId: string }) => void;
   'tournament:match_ready': (payload: { roomId: string; tournamentId: string; opponent: PlayerView }) => void;
+  'tournament:chat:new': (payload: TournamentChatMessage) => void;
+  'tournament:lobby:joined': (payload: { tournamentId: string; userId: string; username: string }) => void;
+  'tournament:lobby:left': (payload: { tournamentId: string; userId: string }) => void;
 
   // Clan chat
   'clan:chat:message': (payload: { id: string; clanId: string; userId: string; username: string; text: string; createdAt: string }) => void;

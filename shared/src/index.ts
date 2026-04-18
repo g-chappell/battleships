@@ -115,6 +115,7 @@ export type {
   PublicGameState,
   ChatMessage,
   MatchSummary,
+  TournamentChatMessage,
 } from './sockets';
 
 // Captains

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
+import { prisma } from '../services/db.js';
 import {
   listTournaments,
   getTournamentDetail,
@@ -50,4 +51,17 @@ tournamentsRouter.post('/:id/join', authMiddleware, async (req, res) => {
     return;
   }
   res.json(result);
+});
+
+tournamentsRouter.get('/:id/chat', async (req, res) => {
+  try {
+    const messages = await prisma.tournamentChatMessage.findMany({
+      where: { tournamentId: req.params.id },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    res.json({ messages: messages.reverse() });
+  } catch {
+    res.status(500).json({ error: 'Chat unavailable' });
+  }
 });

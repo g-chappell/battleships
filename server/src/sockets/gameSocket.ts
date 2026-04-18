@@ -57,6 +57,9 @@ interface SocketData {
 type GameSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
 const lastChatTimestamps = new Map<string, number[]>();
+const lastTournamentChatTimestamps = new Map<string, number[]>();
+// socketId → set of tournamentIds the socket has subscribed to
+const tournamentSubscriptions = new Map<string, Set<string>>();
 
 function rateLimitChat(playerId: string): boolean {
   const now = Date.now();
@@ -69,6 +72,19 @@ function rateLimitChat(playerId: string): boolean {
   }
   recent.push(now);
   lastChatTimestamps.set(playerId, recent);
+  return true;
+}
+
+function rateLimitTournamentChat(playerId: string): boolean {
+  const now = Date.now();
+  const history = lastTournamentChatTimestamps.get(playerId) ?? [];
+  const recent = history.filter((t) => now - t < 10000);
+  if (recent.length >= 5) {
+    lastTournamentChatTimestamps.set(playerId, recent);
+    return false;
+  }
+  recent.push(now);
+  lastTournamentChatTimestamps.set(playerId, recent);
   return true;
 }
 
@@ -364,12 +380,76 @@ export function setupGameSocket(io: Server<ClientToServerEvents, ServerToClientE
       ack(listSpectatableRooms());
     });
 
+    // === TOURNAMENT LOBBY + CHAT ===
+
+    socket.on('tournament:subscribe', ({ tournamentId }) => {
+      socket.join(`tournament:${tournamentId}`);
+      const subs = tournamentSubscriptions.get(socket.id) ?? new Set();
+      subs.add(tournamentId);
+      tournamentSubscriptions.set(socket.id, subs);
+      io.to(`tournament:${tournamentId}`).emit('tournament:lobby:joined', {
+        tournamentId,
+        userId: socket.data.userId,
+        username: socket.data.username,
+      });
+    });
+
+    socket.on('tournament:unsubscribe', ({ tournamentId }) => {
+      socket.leave(`tournament:${tournamentId}`);
+      const subs = tournamentSubscriptions.get(socket.id);
+      if (subs) subs.delete(tournamentId);
+      io.to(`tournament:${tournamentId}`).emit('tournament:lobby:left', {
+        tournamentId,
+        userId: socket.data.userId,
+      });
+    });
+
+    socket.on('tournament:chat:send', async ({ tournamentId, text }) => {
+      if (!rateLimitTournamentChat(socket.data.userId)) {
+        socket.emit('error', { code: 'CHAT_RATE_LIMIT', message: 'Slow down, captain!' });
+        return;
+      }
+      const trimmed = text.trim().slice(0, 200);
+      if (!trimmed) return;
+      try {
+        const msg = await prisma.tournamentChatMessage.create({
+          data: {
+            tournamentId,
+            userId: socket.data.userId,
+            username: socket.data.username,
+            text: trimmed,
+          },
+        });
+        io.to(`tournament:${tournamentId}`).emit('tournament:chat:new', {
+          id: msg.id,
+          tournamentId: msg.tournamentId,
+          userId: msg.userId,
+          username: msg.username,
+          text: msg.text,
+          createdAt: msg.createdAt.toISOString(),
+        });
+      } catch {
+        socket.emit('error', { code: 'CHAT_FAILED', message: 'Chat unavailable' });
+      }
+    });
+
     // === DISCONNECT ===
 
     socket.on('disconnect', () => {
       console.log(`[socket] disconnected ${socket.data.username}`);
       leaveQueueBySocket(socket.id);
       removeSpectator(socket.id); // Clean up if they were spectating
+      // Emit lobby:left for all tournament subscriptions
+      const subs = tournamentSubscriptions.get(socket.id);
+      if (subs) {
+        for (const tournamentId of subs) {
+          io.to(`tournament:${tournamentId}`).emit('tournament:lobby:left', {
+            tournamentId,
+            userId: socket.data.userId,
+          });
+        }
+        tournamentSubscriptions.delete(socket.id);
+      }
       const room = handleDisconnect(socket.id);
       if (room) {
         const opponentSocketId = room.players.find((p) => p && p.socketId !== socket.id)?.socketId;
