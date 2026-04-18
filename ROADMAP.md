@@ -986,7 +986,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-080
 - **title:** Profile achievements gallery + deep-link from top-right
-- **status:** ready
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/93
+- **completed:** 2026-04-18
 - **priority:** high
 - **workspaces:** client
 - **complexity:** medium
