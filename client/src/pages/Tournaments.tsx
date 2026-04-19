@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTournamentsStore } from '../store/tournamentsStore';
 import { useAuthStore } from '../store/authStore';
+import { useSocketStore } from '../store/socketStore';
 import { VALID_TOURNAMENT_SIZES } from '@shared/index';
 import type { TournamentSize, TournamentBracketMatch } from '@shared/index';
 import { FONT_STYLES } from '../styles/fonts';
@@ -18,24 +19,47 @@ export function Tournaments() {
   const current = useTournamentsStore((s) => s.current);
   const loading = useTournamentsStore((s) => s.loading);
   const error = useTournamentsStore((s) => s.error);
+  const tournamentChat = useTournamentsStore((s) => s.tournamentChat);
   const fetchList = useTournamentsStore((s) => s.fetchList);
   const fetchOne = useTournamentsStore((s) => s.fetchOne);
+  const fetchTournamentChat = useTournamentsStore((s) => s.fetchTournamentChat);
   const createTournament = useTournamentsStore((s) => s.create);
   const joinTournament = useTournamentsStore((s) => s.join);
+  const subscribeTournament = useSocketStore((s) => s.subscribeTournament);
+  const unsubscribeTournament = useSocketStore((s) => s.unsubscribeTournament);
+  const sendTournamentChat = useSocketStore((s) => s.sendTournamentChat);
+  const socketStatus = useSocketStore((s) => s.status);
 
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createName, setCreateName] = useState('');
   const [createSize, setCreateSize] = useState<TournamentSize>(4);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [chatInput, setChatInput] = useState('');
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fetchList();
   }, [fetchList]);
 
   useEffect(() => {
-    if (selectedId) fetchOne(selectedId);
-  }, [selectedId, fetchOne]);
+    if (selectedId) {
+      fetchOne(selectedId);
+      fetchTournamentChat(selectedId);
+    }
+  }, [selectedId, fetchOne, fetchTournamentChat]);
+
+  // Subscribe to tournament socket room when viewing a tournament
+  useEffect(() => {
+    if (!selectedId || socketStatus !== 'connected') return;
+    subscribeTournament(selectedId);
+    return () => { unsubscribeTournament(selectedId); };
+  }, [selectedId, socketStatus, subscribeTournament, unsubscribeTournament]);
+
+  // Scroll chat to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [tournamentChat]);
 
   const handleCreate = async () => {
     if (!token || !createName.trim()) {
@@ -66,6 +90,14 @@ export function Tournaments() {
       setFeedback(null);
     }
   };
+
+  const handleSendChat = () => {
+    if (!chatInput.trim() || !selectedId) return;
+    sendTournamentChat(selectedId, chatInput.trim());
+    setChatInput('');
+  };
+
+  const isInTournament = user && current?.entries.some((e) => e.userId === user.id);
 
   return (
     <PageShell maxWidth="5xl">
@@ -146,29 +178,46 @@ export function Tournaments() {
             {current.status.toUpperCase()} · {current.playerCount}/{current.maxPlayers}
           </p>
 
-          <h3 className="text-xl text-gold mt-4 mb-2" style={FONT_STYLES.pirate}>
-            Entries
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
-            {current.entries.map((e) => (
-              <div
-                key={e.userId}
-                className={`p-2 rounded-full text-center text-sm border ${
-                  e.eliminated
-                    ? 'bg-mahogany-light/40 border-mahogany-light text-aged-gold/40 line-through'
-                    : 'bg-blood-dark/30 border-blood-bright/40 text-bone'
-                }`}
-                style={FONT_STYLES.labelSC}
-              >
-                #{e.seed + 1} {e.username}
+          {current.status === 'lobby' ? (
+            <LobbyView
+              current={current}
+              userId={user?.id}
+              token={token}
+              isInTournament={!!isInTournament}
+              onJoinSlot={() => handleJoin(current.id)}
+              chatMessages={tournamentChat}
+              chatInput={chatInput}
+              onChatInputChange={setChatInput}
+              onSendChat={handleSendChat}
+              chatEndRef={chatEndRef}
+            />
+          ) : (
+            <>
+              <h3 className="text-xl text-gold mt-4 mb-2" style={FONT_STYLES.pirate}>
+                Entries
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+                {current.entries.map((e) => (
+                  <div
+                    key={e.userId}
+                    className={`p-2 rounded-full text-center text-sm border ${
+                      e.eliminated
+                        ? 'bg-mahogany-light/40 border-mahogany-light text-aged-gold/40 line-through'
+                        : 'bg-blood-dark/30 border-blood-bright/40 text-bone'
+                    }`}
+                    style={FONT_STYLES.labelSC}
+                  >
+                    #{e.seed + 1} {e.username}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <h3 className="text-xl text-gold mt-4 mb-2" style={FONT_STYLES.pirate}>
-            Bracket
-          </h3>
-          <Bracket matches={current.matches} myUserId={user?.id} />
+              <h3 className="text-xl text-gold mt-4 mb-2" style={FONT_STYLES.pirate}>
+                Bracket
+              </h3>
+              <Bracket matches={current.matches} myUserId={user?.id} />
+            </>
+          )}
         </div>
       )}
 
@@ -217,6 +266,157 @@ export function Tournaments() {
         </DialogContent>
       </Dialog>
     </PageShell>
+  );
+}
+
+interface LobbyViewProps {
+  current: import('@shared/index').TournamentDetail;
+  userId?: string;
+  token: string | null;
+  isInTournament: boolean;
+  onJoinSlot: () => void;
+  chatMessages: import('@shared/index').TournamentChatMessage[];
+  chatInput: string;
+  onChatInputChange: (v: string) => void;
+  onSendChat: () => void;
+  chatEndRef: React.RefObject<HTMLDivElement | null>;
+}
+
+function LobbyView({
+  current,
+  userId,
+  token,
+  isInTournament,
+  onJoinSlot,
+  chatMessages,
+  chatInput,
+  onChatInputChange,
+  onSendChat,
+  chatEndRef,
+}: LobbyViewProps) {
+  const slots = Array.from({ length: current.maxPlayers }, (_, i) => {
+    const entry = current.entries.find((e) => e.seed === i);
+    return { index: i, entry: entry ?? null };
+  });
+  const isFull = current.playerCount >= current.maxPlayers;
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Left: slot cards */}
+      <div className="flex-1">
+        <h3 className="text-xl text-gold mb-3" style={FONT_STYLES.pirate}>
+          Crew Roster
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          {slots.map(({ index, entry }) => {
+            const isMe = entry?.userId === userId;
+            const canJoin = !isInTournament && !isFull && !!token && !entry;
+
+            return (
+              <Card
+                key={index}
+                variant={entry ? 'glow' : 'default'}
+                padding="md"
+                className={`relative transition-colors ${
+                  canJoin
+                    ? 'cursor-pointer hover:border-blood-bright/60 hover:bg-blood-dark/20'
+                    : ''
+                } ${isMe ? '!border-gold/60' : ''}`}
+                onClick={canJoin ? onJoinSlot : undefined}
+              >
+                <div className="text-xs text-aged-gold mb-1" style={FONT_STYLES.labelSC}>
+                  Berth {index + 1}
+                </div>
+                {entry ? (
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-base text-bone font-bold truncate"
+                      style={FONT_STYLES.pirate}
+                    >
+                      {entry.username}
+                    </span>
+                    {isMe && (
+                      <span className="text-xs text-gold" style={FONT_STYLES.labelSC}>
+                        (you)
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className={`text-sm italic ${canJoin ? 'text-blood-bright' : 'text-parchment/30'}`}
+                    style={FONT_STYLES.body}
+                  >
+                    {canJoin ? 'Click to join' : 'Empty'}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+
+        {!token && (
+          <p className="mt-4 text-sm text-parchment/50 italic" style={FONT_STYLES.body}>
+            Sign in to claim a berth.
+          </p>
+        )}
+        {isInTournament && (
+          <p className="mt-4 text-sm text-gold italic" style={FONT_STYLES.body}>
+            You&apos;re enrolled. Waiting for the admiral&apos;s signal…
+          </p>
+        )}
+        {isFull && !isInTournament && (
+          <p className="mt-4 text-sm text-parchment/50 italic" style={FONT_STYLES.body}>
+            All berths claimed — come back for the next voyage.
+          </p>
+        )}
+      </div>
+
+      {/* Right: chat panel */}
+      <div className="w-full lg:w-80">
+        <h3 className="text-xl text-gold mb-3" style={FONT_STYLES.pirate}>
+          Parley
+        </h3>
+        <Card variant="glow" padding="none" className="flex flex-col h-[400px] overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {chatMessages.length === 0 ? (
+              <p className="text-parchment/40 italic text-center mt-4" style={FONT_STYLES.body}>
+                No messages yet
+              </p>
+            ) : (
+              chatMessages.map((msg) => (
+                <div key={msg.id} className="text-sm">
+                  <span className="text-gold font-bold mr-2" style={FONT_STYLES.pirate}>
+                    {msg.username}:
+                  </span>
+                  <span className="text-bone" style={FONT_STYLES.body}>
+                    {msg.text}
+                  </span>
+                </div>
+              ))
+            )}
+            <div ref={chatEndRef} />
+          </div>
+          <div className="p-3 border-t border-mahogany-light flex gap-2">
+            <FormField
+              value={chatInput}
+              onChange={(e) => onChatInputChange(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && onSendChat()}
+              placeholder={token ? 'Say yer piece…' : 'Sign in to chat'}
+              disabled={!token || !isInTournament}
+              className="flex-1"
+            />
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onSendChat}
+              disabled={!token || !isInTournament}
+            >
+              Send
+            </Button>
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }
 

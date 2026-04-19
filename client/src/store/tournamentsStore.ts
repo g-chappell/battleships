@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import type { TournamentSummary, TournamentDetail } from '@shared/index';
+import type { TournamentSummary, TournamentDetail, TournamentChatMessage } from '@shared/index';
 import { apiFetch, apiFetchSafe, ApiError } from '../services/apiClient';
 
 interface TournamentsListResponse { tournaments?: TournamentSummary[] }
 interface TournamentDetailResponse { tournament?: TournamentDetail | null }
+interface TournamentChatResponse { messages?: TournamentChatMessage[] }
 interface CreateTournamentResponse { id: string }
 
 interface TournamentsStore {
@@ -11,9 +12,12 @@ interface TournamentsStore {
   current: TournamentDetail | null;
   loading: boolean;
   error: string | null;
+  tournamentChat: TournamentChatMessage[];
 
   fetchList: () => Promise<void>;
   fetchOne: (id: string) => Promise<void>;
+  fetchTournamentChat: (id: string) => Promise<void>;
+  appendTournamentChatMessage: (msg: TournamentChatMessage) => void;
   create: (name: string, maxPlayers: number, token: string) => Promise<{ id: string } | { error: string }>;
   join: (id: string, token: string) => Promise<{ ok: true } | { error: string }>;
 }
@@ -23,6 +27,7 @@ export const useTournamentsStore = create<TournamentsStore>((set, get) => ({
   current: null,
   loading: false,
   error: null,
+  tournamentChat: [],
 
   fetchList: async () => {
     set({ loading: true, error: null });
@@ -38,6 +43,15 @@ export const useTournamentsStore = create<TournamentsStore>((set, get) => ({
     if (data) set({ current: data.tournament ?? null });
     else set({ error: 'Tournament not found' });
     set({ loading: false });
+  },
+
+  fetchTournamentChat: async (id) => {
+    const data = await apiFetchSafe<TournamentChatResponse>(`/tournaments/${id}/chat`);
+    if (data) set({ tournamentChat: data.messages ?? [] });
+  },
+
+  appendTournamentChatMessage: (msg) => {
+    set((s) => ({ tournamentChat: [...s.tournamentChat, msg].slice(-100) }));
   },
 
   create: async (name, maxPlayers, token) => {
