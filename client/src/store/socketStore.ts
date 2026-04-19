@@ -10,6 +10,7 @@ import type {
 } from '@shared/index';
 import type { ShipPlacement, Coordinate, AbilityType } from '@shared/index';
 import { SOCKET_URL } from '../services/apiClient';
+import { useTournamentsStore } from './tournamentsStore';
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -102,6 +103,11 @@ interface SocketStore {
   toggleMuteOpponent: () => void;
   requestRematch: () => void;
   resetRoom: () => void;
+
+  // Tournament lobby
+  subscribeTournament: (id: string) => void;
+  unsubscribeTournament: (id: string) => void;
+  sendTournamentChat: (tournamentId: string, text: string) => void;
 }
 
 export const useSocketStore = create<SocketStore>((set, get) => ({
@@ -240,6 +246,23 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
       }));
     });
 
+    // Tournament lobby events — delegate to tournamentsStore
+    socket.on('tournament:chat:new', (msg) => {
+      useTournamentsStore.getState().appendTournamentChatMessage(msg);
+    });
+
+    socket.on('tournament:update', ({ tournamentId }) => {
+      useTournamentsStore.getState().fetchOne(tournamentId);
+    });
+
+    socket.on('tournament:lobby:joined', ({ tournamentId }) => {
+      useTournamentsStore.getState().fetchOne(tournamentId);
+    });
+
+    socket.on('tournament:lobby:left', ({ tournamentId }) => {
+      useTournamentsStore.getState().fetchOne(tournamentId);
+    });
+
     socket.on('error', ({ code, message }) => {
       console.warn(`[socket] error ${code}: ${message}`);
       set({ errorMessage: `${code}: ${message}` });
@@ -367,5 +390,23 @@ export const useSocketStore = create<SocketStore>((set, get) => ({
       opponentRequestedRematch: false,
       matchmakingState: 'idle',
     });
+  },
+
+  subscribeTournament: (id) => {
+    const socket = get().socket;
+    if (!socket) return;
+    socket.emit('tournament:subscribe', { tournamentId: id });
+  },
+
+  unsubscribeTournament: (id) => {
+    const socket = get().socket;
+    if (!socket) return;
+    socket.emit('tournament:unsubscribe', { tournamentId: id });
+  },
+
+  sendTournamentChat: (tournamentId, text) => {
+    const socket = get().socket;
+    if (!socket) return;
+    socket.emit('tournament:chat:send', { tournamentId, text });
   },
 }));
