@@ -857,7 +857,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-069
 - **title:** Tournament lobby UI with joinable bracket slots and chat panel
-- **status:** in-progress
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/94
+- **completed:** 2026-04-19
 - **priority:** med
 - **workspaces:** client
 - **complexity:** large
