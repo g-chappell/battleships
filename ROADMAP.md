@@ -857,7 +857,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-069
 - **title:** Tournament lobby UI with joinable bracket slots and chat panel
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** large
