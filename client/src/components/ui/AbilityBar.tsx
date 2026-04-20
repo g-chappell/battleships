@@ -14,6 +14,7 @@ export function AbilityBar() {
   const setScreen = useGameStore((s) => s.setScreen);
   const summonKraken = useGameStore((s) => s.summonKraken);
   const playerRitualTurnsRemaining = useGameStore((s) => s.playerRitualTurnsRemaining);
+  const activeForbiddenAbilities = useGameStore((s) => s.activeForbiddenAbilities);
 
   const isPlaying = engine.phase === GamePhase.Playing || engine.phase === GamePhase.Placement;
   const isPlayerTurn = engine.currentTurn === 'player';
@@ -29,7 +30,9 @@ export function AbilityBar() {
         <>
           {playerAbilities.abilityStates.map((ability) => {
             const def = ABILITY_DEFS[ability.type];
+            const isForbidden = activeForbiddenAbilities.includes(ability.type);
             const usable =
+              !isForbidden &&
               canUseAbility(playerAbilities, ability.type) &&
               isPlayerTurn &&
               !isAnimating &&
@@ -56,7 +59,9 @@ export function AbilityBar() {
                     onClick={handleClick}
                     disabled={!usable}
                     className={`relative h-11 px-3 sm:px-4 rounded-full border transition-all flex items-center gap-2 text-sm whitespace-nowrap shrink-0 ${
-                      isActive
+                      isForbidden
+                        ? 'bg-[#221210]/60 border-[#4d2e22]/40 text-[#d4c4a1]/30 cursor-not-allowed line-through opacity-40'
+                        : isActive
                         ? 'bg-[#8b0000]/70 border-[#c41e3a] text-[#e8dcc8]'
                         : usable
                         ? 'bg-[#4d2e22]/80 border-[#8b0000]/60 text-[#e8dcc8] hover:bg-[#5c0000]/60 hover:border-[#c41e3a]/80'
@@ -65,18 +70,23 @@ export function AbilityBar() {
                     style={labelStyle}
                   >
                     <span className="font-bold">{def.name}</span>
-                    {onCooldown && (
+                    {!isForbidden && onCooldown && (
                       <span className="bg-[#c41e3a] text-[#0d0606] text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                         {ability.cooldownRemaining}
                       </span>
                     )}
-                    {exhausted && <span className="text-[#c41e3a] text-[10px]">USED</span>}
+                    {!isForbidden && exhausted && <span className="text-[#c41e3a] text-[10px]">USED</span>}
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{def.description}</p>
-                  {onCooldown && <p className="text-parchment">Cooldown: {ability.cooldownRemaining} turn{ability.cooldownRemaining !== 1 ? 's' : ''}</p>}
-                  {exhausted && <p className="text-[#c41e3a]">No uses remaining</p>}
+                  {isForbidden
+                    ? <p>Forbidden in this mission</p>
+                    : <>
+                        <p>{def.description}</p>
+                        {onCooldown && <p className="text-parchment">Cooldown: {ability.cooldownRemaining} turn{ability.cooldownRemaining !== 1 ? 's' : ''}</p>}
+                        {exhausted && <p className="text-[#c41e3a]">No uses remaining</p>}
+                      </>
+                  }
                 </TooltipContent>
               </Tooltip>
             );
