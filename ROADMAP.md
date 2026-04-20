@@ -1016,11 +1016,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-081
 - **title:** Audit every stat-writing path for correct guest skip
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** server
 - **complexity:** small
 - **description:** Systematic pass over `persistMatch`, `persistAIMatch`, `awardGold`, `getOrCreateSeasonStats`, ELO application, achievement unlock. For each, add a unit test asserting a guest ID produces no DB write. Document findings in the PR description, including any paths that currently leak.
+- **pr:** https://github.com/g-chappell/battleships/pull/100
+- **completed:** 2026-04-20
 
 ### Story: Client-side audit
 

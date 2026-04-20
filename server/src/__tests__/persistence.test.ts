@@ -121,6 +121,28 @@ describe('persistMatch — guest player handling', () => {
     await persistMatch(makeMatchInput({ player2Id: 'guest_xyz' }));
     expect(mockAwardGold).not.toHaveBeenCalled();
   });
+
+  it('skips playerStats writes (ELO) in ranked match when player1 is a guest', async () => {
+    const result = await persistMatch(makeMatchInput({ player1Id: 'guest_abc', isRanked: true, mode: 'ranked' }));
+    expect(result).toBeNull();
+    expect(mockPlayerStats.findUnique).not.toHaveBeenCalled();
+    expect(mockPlayerStats.upsert).not.toHaveBeenCalled();
+  });
+
+  it('skips playerStats writes (ELO) in ranked match when player2 is a guest', async () => {
+    const result = await persistMatch(makeMatchInput({ player2Id: 'guest_xyz', isRanked: true, mode: 'ranked' }));
+    expect(result).toBeNull();
+    expect(mockPlayerStats.findUnique).not.toHaveBeenCalled();
+    expect(mockPlayerStats.upsert).not.toHaveBeenCalled();
+  });
+
+  it('skips season stats writes in ranked match with active season when player is a guest', async () => {
+    mockGetActiveSeason.mockResolvedValue({ id: 'season-1', name: 'Test Season' });
+    const result = await persistMatch(makeMatchInput({ player1Id: 'guest_abc', isRanked: true, mode: 'ranked' }));
+    expect(result).toBeNull();
+    expect(mockSeasonPlayerStats.findUnique).not.toHaveBeenCalled();
+    expect(mockSeasonPlayerStats.upsert).not.toHaveBeenCalled();
+  });
 });
 
 // ─── persistMatch — non-ranked match ─────────────────────────────────────────
