@@ -1028,7 +1028,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-082
 - **title:** Audit UI surfaces for correct guest messaging
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
