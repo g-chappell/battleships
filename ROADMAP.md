@@ -1028,12 +1028,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-082
 - **title:** Audit UI surfaces for correct guest messaging
-- **status:** in-progress
+- **status:** done
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
 - **depends_on:** [TASK-081]
 - **description:** Review Dashboard, Leaderboard, and Profile for the current user's stats view as a guest. Replace any stats display that would show misleading zeros with a "Sign up to track your stats" CTA (using `Button` → AuthPage). Verify via `verify-ui` skill in both guest and registered modes.
+- **pr:** https://github.com/g-chappell/battleships/pull/101
+- **completed:** 2026-04-20
 
 ---
 
