@@ -46,6 +46,7 @@ const {
   const mockTournamentMatch = {
     findMany: vi.fn(),
     create: vi.fn(),
+    updateMany: vi.fn(),
   };
   const mockMatch = {
     findMany: vi.fn(),
@@ -850,12 +851,45 @@ describe('POST /admin/tournaments/:id/start', () => {
 // ─── POST /admin/tournaments/:id/advance ─────────────────────────────────────
 
 describe('POST /admin/tournaments/:id/advance', () => {
-  it('returns ok when current round is complete', async () => {
+  it('activates next-round matches and returns ok when current round is complete', async () => {
     mockTournament.findUnique.mockResolvedValue({ id: 't1', status: 'active', maxPlayers: 4 });
-    mockTournamentMatch.findMany.mockResolvedValue([
+    // First findMany: all matches for completeness check
+    mockTournamentMatch.findMany.mockResolvedValueOnce([
       { round: 0, status: 'done' },
       { round: 0, status: 'done' },
       { round: 1, status: 'pending' },
+    ]);
+    // Second findMany: next-round matches with both players seeded
+    mockTournamentMatch.findMany.mockResolvedValueOnce([
+      { id: 'tm-r1-0', round: 1, p1UserId: 'winner1', p2UserId: 'winner2' },
+    ]);
+    mockTournamentMatch.updateMany.mockResolvedValue({ count: 1 });
+
+    const res = await fetch(`${baseUrl}/tournaments/t1/advance`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json() as { ok: boolean; nextRound: number; matchCount: number };
+    expect(body.ok).toBe(true);
+    expect(body.nextRound).toBe(1);
+    expect(body.matchCount).toBe(1);
+    expect(mockTournamentMatch.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['tm-r1-0'] } },
+      data: { status: 'ready' },
+    });
+  });
+
+  it('returns ok with matchCount 0 when next-round slots are not yet filled', async () => {
+    mockTournament.findUnique.mockResolvedValue({ id: 't1', status: 'active', maxPlayers: 4 });
+    mockTournamentMatch.findMany.mockResolvedValueOnce([
+      { round: 0, status: 'done' },
+      { round: 0, status: 'done' },
+      { round: 1, status: 'pending' },
+    ]);
+    // Next-round match has only one player seeded
+    mockTournamentMatch.findMany.mockResolvedValueOnce([
+      { id: 'tm-r1-0', round: 1, p1UserId: 'winner1', p2UserId: null },
     ]);
 
     const res = await fetch(`${baseUrl}/tournaments/t1/advance`, {
@@ -863,9 +897,10 @@ describe('POST /admin/tournaments/:id/advance', () => {
       headers: authHeaders(),
     });
     expect(res.status).toBe(200);
-    const body = await res.json() as { ok: boolean; nextRound: number };
+    const body = await res.json() as { ok: boolean; matchCount: number };
     expect(body.ok).toBe(true);
-    expect(body.nextRound).toBe(1);
+    expect(body.matchCount).toBe(0);
+    expect(mockTournamentMatch.updateMany).not.toHaveBeenCalled();
   });
 
   it('returns 400 with completion info when round is incomplete', async () => {

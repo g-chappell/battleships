@@ -879,12 +879,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-071
 - **title:** Round-barrier tournament progression (admin-gated)
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** server, client
 - **complexity:** medium
 - **depends_on:** [TASK-066, TASK-070]
 - **description:** Replace the current auto-advance in `tournaments.ts:onTournamentMatchComplete`. Server only marks round as "ready to advance" when all matches in the current round are complete; admin must POST `/admin/tournaments/:id/advance` to start the next round. Client: "Advance Round" button in admin panel, disabled until complete. Spectators and entrants see a waiting state between rounds.
+- **pr:** https://github.com/g-chappell/battleships/pull/96
+- **completed:** 2026-04-20
 
 ---
 

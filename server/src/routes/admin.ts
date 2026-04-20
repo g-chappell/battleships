@@ -545,7 +545,21 @@ adminRouter.post('/tournaments/:id/advance', async (req, res) => {
       return res.status(400).json({ error: 'Tournament is already complete' });
     }
 
-    return res.json({ ok: true, nextRound: currentRound + 1 });
+    const nextRound = currentRound + 1;
+    const nextRoundMatches = await prisma.tournamentMatch.findMany({
+      where: { tournamentId: t.id, round: nextRound },
+    });
+    const readyMatchIds = nextRoundMatches
+      .filter((m) => m.p1UserId && m.p2UserId)
+      .map((m) => m.id);
+    if (readyMatchIds.length > 0) {
+      await prisma.tournamentMatch.updateMany({
+        where: { id: { in: readyMatchIds } },
+        data: { status: 'ready' },
+      });
+    }
+
+    return res.json({ ok: true, nextRound, matchCount: readyMatchIds.length });
   } catch {
     return res.status(500).json({ error: 'Failed to advance tournament' });
   }

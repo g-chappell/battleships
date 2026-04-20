@@ -291,17 +291,11 @@ export async function onTournamentMatchComplete(
       where: { tournamentId: tm.tournamentId, round: nextRound, bracketIdx: nextBracketIdx },
     });
     if (nextMatch) {
-      const updateData: { p1UserId?: string; p2UserId?: string; status?: string } = {};
+      const updateData: { p1UserId?: string; p2UserId?: string } = {};
       if (slot === 'p1') updateData.p1UserId = winnerUserId;
       else updateData.p2UserId = winnerUserId;
 
-      // Determine if both slots are now filled
-      const currentP1 = slot === 'p1' ? winnerUserId : nextMatch.p1UserId;
-      const currentP2 = slot === 'p2' ? winnerUserId : nextMatch.p2UserId;
-      if (currentP1 && currentP2) {
-        updateData.status = 'ready';
-      }
-
+      // Slot the winner — leave status as 'pending' until admin advances the round
       await prisma.tournamentMatch.update({
         where: { id: nextMatch.id },
         data: updateData,
