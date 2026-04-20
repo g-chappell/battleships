@@ -944,7 +944,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-076
 - **title:** CampaignMap shows per-objective stars, story beats, difficulty
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
