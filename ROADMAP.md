@@ -868,7 +868,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-070
 - **title:** Visual bracket component (responsive single-elimination tree)
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** medium
