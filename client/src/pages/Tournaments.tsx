@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useTournamentsStore } from '../store/tournamentsStore';
 import { useAuthStore } from '../store/authStore';
 import { useSocketStore } from '../store/socketStore';
-import { VALID_TOURNAMENT_SIZES } from '@shared/index';
+import { useSpectatorStore } from '../store/spectatorStore';
+import { useGameStore } from '../store/gameStore';
+import { VALID_TOURNAMENT_SIZES, totalRounds } from '@shared/index';
 import type { TournamentSize, TournamentBracketMatch } from '@shared/index';
 import { FONT_STYLES } from '../styles/fonts';
 import { Button } from '../components/ui/Button';
@@ -29,6 +31,8 @@ export function Tournaments() {
   const unsubscribeTournament = useSocketStore((s) => s.unsubscribeTournament);
   const sendTournamentChat = useSocketStore((s) => s.sendTournamentChat);
   const socketStatus = useSocketStore((s) => s.status);
+  const joinAsSpectator = useSpectatorStore((s) => s.joinAsSpectator);
+  const setScreen = useGameStore((s) => s.setScreen);
 
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -98,6 +102,11 @@ export function Tournaments() {
   };
 
   const isInTournament = user && current?.entries.some((e) => e.userId === user.id);
+
+  const handleSpectate = async (matchId: string) => {
+    const res = await joinAsSpectator(matchId);
+    if ('ok' in res) setScreen('spectate');
+  };
 
   return (
     <PageShell maxWidth="5xl">
@@ -215,7 +224,7 @@ export function Tournaments() {
               <h3 className="text-xl text-gold mt-4 mb-2" style={FONT_STYLES.pirate}>
                 Bracket
               </h3>
-              <Bracket matches={current.matches} myUserId={user?.id} />
+              <Bracket matches={current.matches} maxPlayers={current.maxPlayers} myUserId={user?.id} onSpectate={handleSpectate} />
             </>
           )}
         </div>
@@ -420,49 +429,196 @@ function LobbyView({
   );
 }
 
-function Bracket({ matches, myUserId }: { matches: TournamentBracketMatch[]; myUserId?: string }) {
+// Bracket layout constants
+const B_SLOT_H = 116; // vertical space per round-0 match slot
+const B_MATCH_H = 96; // fixed height per match card
+const B_COL_W = 180; // round column width
+const B_CONN_W = 36; // connector SVG width
+
+function getRoundLabel(round: number, numRounds: number): string {
+  const fromEnd = numRounds - 1 - round;
+  if (fromEnd === 0) return 'Final';
+  if (fromEnd === 1) return 'Semi-Final';
+  if (fromEnd === 2) return 'Quarter-Final';
+  return `Round ${round + 1}`;
+}
+
+const MATCH_STATUS_CLS: Record<string, string> = {
+  pending: 'bg-pitch/70 border-mahogany-light/40',
+  ready: 'bg-blood-dark/50 border-blood/70',
+  in_progress: 'bg-blood/20 border-blood-bright/80',
+  done: 'bg-mahogany-mid/40 border-mahogany-light/50',
+};
+
+function BracketMatchCard({
+  match,
+  myUserId,
+  onSpectate,
+}: {
+  match: TournamentBracketMatch;
+  myUserId?: string;
+  onSpectate?: (matchId: string) => void;
+}) {
+  const isP1Win = match.winnerUserId != null && match.winnerUserId === match.p1UserId;
+  const isP2Win = match.winnerUserId != null && match.winnerUserId === match.p2UserId;
+
+  return (
+    <div
+      className={`rounded-lg border flex flex-col px-2.5 py-2 ${MATCH_STATUS_CLS[match.status] ?? MATCH_STATUS_CLS.pending}`}
+      style={{ height: B_MATCH_H }}
+    >
+      {/* Player 1 */}
+      <div className="flex items-center justify-between gap-1">
+        <span
+          className={`text-xs truncate ${isP1Win ? 'text-gold font-bold' : 'text-bone/80'}`}
+          style={FONT_STYLES.labelSC}
+        >
+          {match.p1Username ?? <span className="text-parchment/30 italic text-[10px]">TBD</span>}
+          {match.p1UserId === myUserId && (
+            <span className="text-copper/70 ml-0.5 text-[10px]"> (you)</span>
+          )}
+        </span>
+        {isP1Win && <span className="text-gold text-xs shrink-0">★</span>}
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-mahogany-light/40 my-1.5" />
+
+      {/* Player 2 */}
+      <div className="flex items-center justify-between gap-1">
+        <span
+          className={`text-xs truncate ${isP2Win ? 'text-gold font-bold' : 'text-bone/80'}`}
+          style={FONT_STYLES.labelSC}
+        >
+          {match.p2Username ?? <span className="text-parchment/30 italic text-[10px]">TBD</span>}
+          {match.p2UserId === myUserId && (
+            <span className="text-copper/70 ml-0.5 text-[10px]"> (you)</span>
+          )}
+        </span>
+        {isP2Win && <span className="text-gold text-xs shrink-0">★</span>}
+      </div>
+
+      {/* Status / action area — always rendered to keep card height uniform */}
+      <div className="mt-auto pt-1">
+        {match.status === 'in_progress' && match.matchId && onSpectate ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="!h-5 text-[10px] px-2 w-full text-blood-bright hover:text-bone"
+            onClick={() => onSpectate(match.matchId!)}
+          >
+            Watch live
+          </Button>
+        ) : match.status === 'in_progress' ? (
+          <div className="text-[10px] text-blood-bright/60 text-center" style={FONT_STYLES.labelSC}>
+            In progress
+          </div>
+        ) : match.status === 'ready' ? (
+          <div className="text-[10px] text-aged-gold/50 text-center" style={FONT_STYLES.labelSC}>
+            Awaiting start
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function BracketConnector({
+  matchesInRound,
+  totalHeight,
+}: {
+  matchesInRound: number;
+  totalHeight: number;
+}) {
+  const matchesInNext = matchesInRound / 2;
+  const midX = B_CONN_W / 2;
+  const parts: string[] = [];
+
+  for (let i = 0; i < matchesInNext; i++) {
+    const yTop = ((2 * i + 0.5) / matchesInRound) * totalHeight;
+    const yBot = ((2 * i + 1.5) / matchesInRound) * totalHeight;
+    const yOut = ((i + 0.5) / matchesInNext) * totalHeight;
+    // Top feeder line → midpoint → output
+    parts.push(`M 0,${yTop} H ${midX} V ${yOut} H ${B_CONN_W}`);
+    // Bottom feeder line → midpoint (vertical already drawn above)
+    parts.push(`M 0,${yBot} H ${midX} V ${yOut}`);
+  }
+
+  return (
+    <svg width={B_CONN_W} height={totalHeight} style={{ flexShrink: 0 }}>
+      <path d={parts.join(' ')} stroke="#5c2525" strokeWidth={1.5} fill="none" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Bracket({
+  matches,
+  maxPlayers,
+  myUserId,
+  onSpectate,
+}: {
+  matches: TournamentBracketMatch[];
+  maxPlayers: number;
+  myUserId?: string;
+  onSpectate?: (matchId: string) => void;
+}) {
+  const numRounds = totalRounds(maxPlayers);
+  const matchesInRound0 = maxPlayers / 2;
+  const totalHeight = matchesInRound0 * B_SLOT_H;
+
   const byRound = new Map<number, TournamentBracketMatch[]>();
   matches.forEach((m) => {
     if (!byRound.has(m.round)) byRound.set(m.round, []);
     byRound.get(m.round)!.push(m);
   });
-  const rounds = Array.from(byRound.keys()).sort((a, b) => a - b);
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-4">
-      {rounds.map((r) => (
-        <div key={r} className="flex flex-col justify-around gap-3 min-w-[180px]">
-          <div className="text-xs text-aged-gold uppercase tracking-widest text-center" style={FONT_STYLES.labelSC}>
-            Round {r + 1}
-          </div>
-          {byRound.get(r)!.sort((a, b) => a.bracketIdx - b.bracketIdx).map((m) => (
+    <div className="overflow-x-auto pb-4">
+      {/* Round header labels */}
+      <div className="flex mb-2">
+        {Array.from({ length: numRounds }, (_, r) => (
+          <div
+            key={r}
+            style={{ width: r < numRounds - 1 ? B_COL_W + B_CONN_W : B_COL_W, flexShrink: 0 }}
+          >
             <div
-              key={m.id}
-              className={`p-2 rounded-lg border ${
-                m.status === 'done'
-                  ? 'bg-mahogany-light/50 border-mahogany-mid'
-                  : m.status === 'ready'
-                  ? 'bg-blood-dark/40 border-blood-bright/60'
-                  : 'bg-pitch/60 border-mahogany-light'
-              }`}
+              className="text-center text-[10px] text-aged-gold uppercase tracking-widest"
+              style={FONT_STYLES.labelSC}
             >
-              <div className="flex items-center justify-between text-sm" style={FONT_STYLES.labelSC}>
-                <span className={m.winnerUserId === m.p1UserId ? 'text-gold font-bold' : 'text-bone'}>
-                  {m.p1Username ?? '—'}
-                  {m.p1UserId === myUserId && ' (you)'}
-                </span>
-              </div>
-              <div className="border-t border-mahogany-light my-1" />
-              <div className="flex items-center justify-between text-sm" style={FONT_STYLES.labelSC}>
-                <span className={m.winnerUserId === m.p2UserId ? 'text-gold font-bold' : 'text-bone'}>
-                  {m.p2Username ?? '—'}
-                  {m.p2UserId === myUserId && ' (you)'}
-                </span>
-              </div>
+              {getRoundLabel(r, numRounds)}
             </div>
-          ))}
-        </div>
-      ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Bracket columns + connectors */}
+      <div className="flex" style={{ height: totalHeight }}>
+        {Array.from({ length: numRounds }, (_, r) => {
+          const matchesInRound = matchesInRound0 / Math.pow(2, r);
+          const roundMatches = (byRound.get(r) ?? []).sort((a, b) => a.bracketIdx - b.bracketIdx);
+
+          return (
+            <Fragment key={r}>
+              <div
+                className="flex flex-col justify-around shrink-0"
+                style={{ width: B_COL_W, height: totalHeight }}
+              >
+                {roundMatches.map((m) => (
+                  <BracketMatchCard
+                    key={m.id}
+                    match={m}
+                    myUserId={myUserId}
+                    onSpectate={onSpectate}
+                  />
+                ))}
+              </div>
+              {r < numRounds - 1 && (
+                <BracketConnector matchesInRound={matchesInRound} totalHeight={totalHeight} />
+              )}
+            </Fragment>
+          );
+        })}
+      </div>
     </div>
   );
 }
