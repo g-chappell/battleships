@@ -8,6 +8,7 @@ import { PageShell } from '../components/ui/PageShell';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { AuthPage } from './AuthPage';
 
 interface LeaderboardEntry {
   rank: number;
@@ -35,6 +36,8 @@ export function Leaderboard() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
 
   useEffect(() => {
     fetchActive();
@@ -162,6 +165,37 @@ export function Leaderboard() {
           </div>
         </Card>
       )}
+
+      {/* Guest CTA — sign up to appear on the leaderboard */}
+      {!user && (
+        <Card variant="default" padding="lg" className="mt-6 text-center">
+          <div className="text-3xl mb-3">⚓</div>
+          <h3 className="text-xl text-gold mb-2" style={FONT_STYLES.pirate}>
+            Track Your Stats
+          </h3>
+          <p className="text-parchment/70 mb-5 max-w-sm mx-auto" style={FONT_STYLES.body}>
+            Sign up to earn a rating, track your wins, and appear on the leaderboard.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => { setAuthMode('register'); setShowAuth(true); }}
+            >
+              Join the Crew
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { setAuthMode('login'); setShowAuth(true); }}
+            >
+              Sign In
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {showAuth && <AuthPage onClose={() => setShowAuth(false)} initialMode={authMode} />}
     </PageShell>
   );
 }

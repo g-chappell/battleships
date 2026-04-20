@@ -88,7 +88,7 @@ function App() {
         {screen === 'guide' && <GuidePage />}
         {screen === 'dashboard' && <AuthGate featureName="Dashboard"><Dashboard /></AuthGate>}
         {screen === 'lobby' && <MultiplayerLobby />}
-        {screen === 'leaderboard' && <AuthGate featureName="Leaderboard"><Leaderboard /></AuthGate>}
+        {screen === 'leaderboard' && <Leaderboard />}
         {screen === 'campaign' && <AuthGate featureName="Campaign"><CampaignMap /></AuthGate>}
         {screen === 'friends' && <AuthGate featureName="Friends"><Friends /></AuthGate>}
         {screen === 'shop' && <AuthGate featureName="Shop"><Shop /></AuthGate>}
