@@ -1058,10 +1058,12 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-084
 - **title:** Expand Captain's Guide with mixed media (screenshots, clips, diagrams)
-- **status:** in-progress
+- **status:** done
 - **priority:** low
 - **workspaces:** client
 - **complexity:** large
 - **depends_on:** [TASK-074, TASK-079, TASK-069]
+- **pr:** https://github.com/g-chappell/battleships/pull/103
+- **completed:** 2026-04-20
 - **description:** Populate `GuidePage.tsx` with: static screenshots (placement screen, GameOverScreen, campaign map) under `client/public/guide/screenshots/`; short WebM clips of each ability activation under `client/public/guide/clips/`; SVG diagrams (turn flow, ability range overlays, trait effect indicators) under `client/public/guide/diagrams/`; one embedded R3F mini-scene showcasing a ship with a rotating camera. Reorganize the guide into clear sections (Basics, Abilities, Traits, Campaign, Tournaments, Achievements). Depends on the campaign/achievements/tournaments epics landing so the content reflects current reality.
 
