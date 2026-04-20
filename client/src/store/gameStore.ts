@@ -103,6 +103,7 @@ interface GameStore {
   opponentAbilities: AbilitySystemState | null;
   selectedCaptain: string;
   activeAbility: AbilityType | null; // ability being targeted this turn
+  activeForbiddenAbilities: AbilityType[]; // abilities forbidden by the current campaign mission
   sonarResult: SonarPingResult | null;
   spAbilitiesUsed: Record<string, number>; // single-player ability usage count
   spAbilitySinks: Record<string, number>; // sinks credited to specific abilities this match
@@ -196,6 +197,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   opponentAbilities: null,
   selectedCaptain: DEFAULT_CAPTAIN,
   activeAbility: null,
+  activeForbiddenAbilities: [],
   sonarResult: null,
     sonarHistory: [],
     spyglassResult: null,
@@ -242,6 +244,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerAbilities: null,
       opponentAbilities: null,
       activeAbility: null,
+      activeForbiddenAbilities: mission.modifiers.forbiddenAbilities ?? [],
       sonarResult: null,
       sonarHistory: [],
       spyglassResult: null,
@@ -289,6 +292,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerAbilities: null,
       opponentAbilities: null,
       activeAbility: null,
+      activeForbiddenAbilities: [],
       sonarResult: null,
     sonarHistory: [],
     spyglassResult: null,
@@ -333,6 +337,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerAbilities: null,
       opponentAbilities: null,
       activeAbility: null,
+      activeForbiddenAbilities: [],
       sonarResult: null,
       sonarHistory: [],
       commentary: '',
@@ -524,10 +529,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   useAbility: (type, coord) => {
-    const { engine, isAnimating, playerAbilities, opponentTraits, playerRitualTurnsRemaining } = get();
+    const { engine, isAnimating, playerAbilities, opponentTraits, playerRitualTurnsRemaining, activeForbiddenAbilities } = get();
     if (isAnimating || !playerAbilities) return;
     if (engine.phase !== GamePhase.Playing || engine.currentTurn !== 'player') return;
     if (playerRitualTurnsRemaining && playerRitualTurnsRemaining > 0) return;
+    if (activeForbiddenAbilities.includes(type)) {
+      console.error(`[campaign] Ability ${type} is forbidden in this mission`);
+      return;
+    }
     if (!canUseAbility(playerAbilities, type)) return;
     // SummonKraken has its own dedicated action (summonKraken) because it
     // doesn't take a coordinate and starts a multi-turn ritual.
@@ -1193,6 +1202,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       playerAbilities: null,
       opponentAbilities: null,
       activeAbility: null,
+      activeForbiddenAbilities: [],
       sonarResult: null,
     sonarHistory: [],
     spyglassResult: null,

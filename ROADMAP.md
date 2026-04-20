@@ -931,12 +931,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-075
 - **title:** Enforce captain lock + forbidden abilities at runtime
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** client, shared
 - **complexity:** medium
 - **depends_on:** [TASK-073]
 - **description:** Update `campaignStore` to carry the active mission's constraints. `CaptainPicker` locks to `requiredCaptain`. `AbilityBar` filters out `forbiddenAbilities`. Engine-level safety check: if a forbidden ability somehow reaches activation, reject with an error. Cover with unit tests.
+- **pr:** https://github.com/g-chappell/battleships/pull/98
+- **completed:** 2026-04-20
 
 ### Story: Campaign map polish
 

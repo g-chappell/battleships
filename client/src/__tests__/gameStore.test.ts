@@ -13,7 +13,10 @@ import {
   Orientation,
   CellState,
   ShotResult,
+  AbilityType,
+  createAbilitySystemState,
   createTraitState,
+  getMission,
   type ShipPlacement,
 } from '@shared/index';
 
@@ -209,5 +212,77 @@ describe('gameStore', () => {
     }
     const submarine = engine.opponentBoard.ships.find((s) => s.type === ShipType.Submarine)!;
     expect(submarine.hits.size).toBe(submarine.cells.length);
+  });
+
+  describe('activeForbiddenAbilities', () => {
+    it('is empty by default', () => {
+      expect(useGameStore.getState().activeForbiddenAbilities).toEqual([]);
+    });
+
+    it('startNewGame() clears activeForbiddenAbilities', () => {
+      useGameStore.setState({ activeForbiddenAbilities: [AbilityType.SonarPing] });
+      useGameStore.getState().startNewGame();
+      expect(useGameStore.getState().activeForbiddenAbilities).toEqual([]);
+    });
+
+    it('resetGame() clears activeForbiddenAbilities', () => {
+      useGameStore.setState({ activeForbiddenAbilities: [AbilityType.CannonBarrage] });
+      useGameStore.getState().resetGame();
+      expect(useGameStore.getState().activeForbiddenAbilities).toEqual([]);
+    });
+
+    it('startCampaignMission() sets activeForbiddenAbilities from mission modifiers', () => {
+      // Mission 8 has forbiddenAbilities (ChainShot) per campaign definition
+      // Use a synthetic mission object to avoid depending on specific campaign data
+      const fakeMission = {
+        ...getMission(1)!,
+        modifiers: { forbiddenAbilities: [AbilityType.ChainShot, AbilityType.SonarPing] },
+      };
+      useGameStore.getState().startCampaignMission(fakeMission);
+      expect(useGameStore.getState().activeForbiddenAbilities).toEqual([
+        AbilityType.ChainShot,
+        AbilityType.SonarPing,
+      ]);
+    });
+
+    it('startCampaignMission() sets activeForbiddenAbilities to [] when mission has none', () => {
+      const fakeMission = { ...getMission(1)!, modifiers: {} };
+      useGameStore.getState().startCampaignMission(fakeMission);
+      expect(useGameStore.getState().activeForbiddenAbilities).toEqual([]);
+    });
+
+    it('useAbility() rejects a forbidden ability without applying any effect', () => {
+      installReadyGame();
+      useGameStore.setState({
+        playerAbilities: createAbilitySystemState([AbilityType.SonarPing]),
+        activeForbiddenAbilities: [AbilityType.SonarPing],
+        isAnimating: false,
+      });
+      useGameStore.getState().engine.currentTurn = 'player';
+
+      const beforeTick = useGameStore.getState().tick;
+      useGameStore.getState().useAbility(AbilityType.SonarPing, { row: 5, col: 5 });
+
+      // Tick should not advance — ability was rejected
+      expect(useGameStore.getState().tick).toBe(beforeTick);
+      // sonarResult stays null — SonarPing never ran
+      expect(useGameStore.getState().sonarResult).toBeNull();
+    });
+
+    it('useAbility() allows a non-forbidden ability normally', () => {
+      installReadyGame();
+      useGameStore.setState({
+        playerAbilities: createAbilitySystemState([AbilityType.SonarPing]),
+        activeForbiddenAbilities: [AbilityType.CannonBarrage],
+        isAnimating: false,
+      });
+      useGameStore.getState().engine.currentTurn = 'player';
+
+      const beforeTick = useGameStore.getState().tick;
+      useGameStore.getState().useAbility(AbilityType.SonarPing, { row: 5, col: 5 });
+
+      // Tick advances — SonarPing was allowed
+      expect(useGameStore.getState().tick).toBeGreaterThan(beforeTick);
+    });
   });
 });
