@@ -1058,7 +1058,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-084
 - **title:** Expand Captain's Guide with mixed media (screenshots, clips, diagrams)
-- **status:** ready
+- **status:** in-progress
 - **priority:** low
 - **workspaces:** client
 - **complexity:** large
