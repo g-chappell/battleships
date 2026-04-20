@@ -1046,11 +1046,13 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-083
 - **title:** Content alignment sweep — headings centered, paragraphs left
-- **status:** in-progress
+- **status:** done
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
 - **description:** Apply the convention: long paragraphs left-aligned inside the already-centered `PageShell` container, headings centered. Fix Guide page (all left-aligned today) and any other page where text alignment reads awkwardly (scan MainMenu, Dashboard, Leaderboard, Campaign, Shop, Tournaments, Friends, Clans, Profile). Verify via `verify-ui` skill with before/after screenshots.
+- **pr:** https://github.com/g-chappell/battleships/pull/102
+- **completed:** 2026-04-20
 
 ### Story: Captain's Guide expansion
 
