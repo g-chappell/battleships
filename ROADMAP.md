@@ -879,7 +879,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-071
 - **title:** Round-barrier tournament progression (admin-gated)
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** server, client
 - **complexity:** medium
