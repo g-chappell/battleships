@@ -920,12 +920,14 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-074
 - **title:** Pre-mission screen rework (narrative + tiers + captain lock)
-- **status:** ready
+- **status:** done
 - **priority:** med
 - **workspaces:** client
 - **complexity:** medium
 - **depends_on:** [TASK-073]
 - **description:** Replace or extend `MissionBriefing`. Show: narrative beat text, objectives list with bronze/silver/gold thresholds, progressive difficulty badge, required captain (captain picker disabled with explanation), forbidden abilities (greyed in picker with tooltip "Forbidden in this mission"). Verify via `verify-ui` skill.
+- **pr:** https://github.com/g-chappell/battleships/pull/97
+- **completed:** 2026-04-20
 
 #### TASK-075
 - **title:** Enforce captain lock + forbidden abilities at runtime
