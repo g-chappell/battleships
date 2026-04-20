@@ -944,7 +944,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-076
 - **title:** CampaignMap shows per-objective stars, story beats, difficulty
-- **status:** ready
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/99
+- **completed:** 2026-04-20
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
