@@ -868,7 +868,9 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-070
 - **title:** Visual bracket component (responsive single-elimination tree)
-- **status:** in-progress
+- **status:** done
+- **pr:** https://github.com/g-chappell/battleships/pull/95
+- **completed:** 2026-04-20
 - **priority:** med
 - **workspaces:** client
 - **complexity:** medium
