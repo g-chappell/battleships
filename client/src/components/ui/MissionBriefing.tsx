@@ -3,11 +3,59 @@ import { useCampaignStore } from '../../store/campaignStore';
 import { useGameStore } from '../../store/gameStore';
 import { ComicPanel } from './ComicPanel';
 import { CaptainPicker } from './CaptainPicker';
-import type { ComicPanel as ComicPanelType } from '@shared/index';
+import type { ComicPanel as ComicPanelType, DifficultyLabel, ObjectiveThresholds } from '@shared/index';
 import { Dialog, DialogContent, DialogTitle } from '../shadcn/dialog';
 
 const labelStyle = { fontFamily: "'IM Fell English SC', serif" };
 const pirateStyle = { fontFamily: "'Pirata One', serif" };
+const bodyStyle = { fontFamily: "'IM Fell English', serif" };
+
+const DIFFICULTY_COLOR: Record<DifficultyLabel, string> = {
+  'Calm Waters':    '#e8dcc8',
+  'Rough Seas':     '#d4a040',
+  'Storm Warning':  '#b87333',
+  'Kraken Waters':  '#c41e3a',
+  'No Mercy':       '#c41e3a',
+};
+
+const DIFFICULTY_ICON: Record<DifficultyLabel, string> = {
+  'Calm Waters':   '⚓',
+  'Rough Seas':    '🌊',
+  'Storm Warning': '🌩️',
+  'Kraken Waters': '🐙',
+  'No Mercy':      '💀',
+};
+
+function formatThreshold(t: ObjectiveThresholds): string {
+  const parts: string[] = [];
+  if (t.maxTurns !== undefined) parts.push(`Under ${t.maxTurns} turns`);
+  if (t.minAccuracyPct !== undefined) parts.push(`≥${t.minAccuracyPct}% accuracy`);
+  if (t.noShipsLost) parts.push('No ships lost');
+  return parts.length > 0 ? parts.join(' · ') : 'Win the battle';
+}
+
+interface TierRow {
+  label: string;
+  medal: string;
+  description: string;
+  color: string;
+}
+
+function buildTierRows(mission: { starRequirements: { twoStars: ObjectiveThresholds; threeStars: ObjectiveThresholds }; modifiers: { starTiers?: { bronze: ObjectiveThresholds; silver: ObjectiveThresholds; gold: ObjectiveThresholds } } }): TierRow[] {
+  const tiers = mission.modifiers.starTiers;
+  if (tiers) {
+    return [
+      { label: 'Bronze', medal: '🥉', description: formatThreshold(tiers.bronze), color: '#b87333' },
+      { label: 'Silver', medal: '🥈', description: formatThreshold(tiers.silver), color: '#e8dcc8' },
+      { label: 'Gold',   medal: '🥇', description: formatThreshold(tiers.gold),   color: '#d4a040' },
+    ];
+  }
+  return [
+    { label: 'Bronze', medal: '🥉', description: 'Win the battle',                                         color: '#b87333' },
+    { label: 'Silver', medal: '🥈', description: formatThreshold(mission.starRequirements.twoStars),        color: '#e8dcc8' },
+    { label: 'Gold',   medal: '🥇', description: formatThreshold(mission.starRequirements.threeStars),      color: '#d4a040' },
+  ];
+}
 
 export function MissionBriefing() {
   const mission = useCampaignStore((s) => s.currentMission);
@@ -33,6 +81,11 @@ export function MissionBriefing() {
     }
   };
 
+  const requiredCaptain = mission?.modifiers.requiredCaptain;
+  const forbiddenAbilities = mission?.modifiers.forbiddenAbilities ?? [];
+  const hasFixedAbilities = !!(mission?.modifiers.fixedAbilities?.length);
+  const showCaptainPicker = isLast && (!hasFixedAbilities || !!requiredCaptain);
+
   return (
     <Dialog open={!!mission} onOpenChange={(open) => !open && closeBriefing()}>
       <DialogContent
@@ -42,9 +95,27 @@ export function MissionBriefing() {
       >
         {mission && (
           <>
+            {/* Header: mission number + difficulty badge */}
             <div className="text-center mb-4">
-              <div className="text-xs text-[#a06820] uppercase tracking-[0.3em]" style={labelStyle}>
-                Mission {mission.id} of 15
+              <div className="flex items-center justify-center gap-3 mb-1">
+                <div className="text-xs text-[#a06820] uppercase tracking-[0.3em]" style={labelStyle}>
+                  Mission {mission.id} of 15
+                </div>
+                <div
+                  className="flex items-center gap-1 text-xs px-2 py-0.5 rounded border"
+                  style={{
+                    color: DIFFICULTY_COLOR[mission.difficultyLabel],
+                    borderColor: DIFFICULTY_COLOR[mission.difficultyLabel] + '60',
+                    backgroundColor: DIFFICULTY_COLOR[mission.difficultyLabel] + '12',
+                    fontFamily: "'IM Fell English SC', serif",
+                    ...(mission.difficultyLabel === 'No Mercy'
+                      ? { textShadow: `0 0 8px ${DIFFICULTY_COLOR[mission.difficultyLabel]}80` }
+                      : {}),
+                  }}
+                >
+                  <span>{DIFFICULTY_ICON[mission.difficultyLabel]}</span>
+                  <span>{mission.difficultyLabel}</span>
+                </div>
               </div>
               <DialogTitle
                 className="text-4xl text-[#c41e3a]"
@@ -52,7 +123,7 @@ export function MissionBriefing() {
               >
                 {mission.title}
               </DialogTitle>
-              <p className="text-[#d4a040] text-sm italic" style={{ fontFamily: "'IM Fell English', serif" }}>
+              <p className="text-[#d4a040] text-sm italic" style={bodyStyle}>
                 {mission.subtitle}
               </p>
             </div>
@@ -68,34 +139,51 @@ export function MissionBriefing() {
               ))}
             </div>
 
-            {/* Mission objectives */}
-            <div className="bg-[#150c0c]/60 border border-[#8b0000]/40 rounded p-3 mb-4 text-sm">
-              <div className="text-[#a06820] uppercase tracking-wider text-xs mb-1" style={labelStyle}>Star Goals</div>
-              <div className="text-[#d4c4a1] grid grid-cols-3 gap-2 text-center" style={labelStyle}>
-                <div>
-                  <span className="text-[#d4a040] text-lg">★</span>
-                  <div className="text-xs">Win the battle</div>
-                </div>
-                <div>
-                  <span className="text-[#d4a040] text-lg">★★</span>
-                  <div className="text-xs">
-                    {mission.starRequirements.twoStars.maxTurns ? `Under ${mission.starRequirements.twoStars.maxTurns} turns` : 'Win efficiently'}
+            {/* Star objectives: bronze / silver / gold */}
+            <div className="bg-[#150c0c]/60 border border-[#8b0000]/40 rounded p-3 mb-4">
+              <div className="text-[#a06820] uppercase tracking-wider text-xs mb-2" style={labelStyle}>
+                Objectives
+              </div>
+              <div className="flex flex-col gap-1">
+                {buildTierRows(mission).map((row) => (
+                  <div key={row.label} className="flex items-center gap-2 text-xs" style={labelStyle}>
+                    <span className="text-base leading-none w-5 text-center">{row.medal}</span>
+                    <span className="font-bold w-12" style={{ color: row.color }}>{row.label}</span>
+                    <span className="text-[#d4c4a1]/70">{row.description}</span>
                   </div>
-                </div>
-                <div>
-                  <span className="text-[#d4a040] text-lg">★★★</span>
-                  <div className="text-xs">
-                    {mission.starRequirements.threeStars.maxTurns ? `Under ${mission.starRequirements.threeStars.maxTurns} turns` : ''}
-                    {mission.starRequirements.threeStars.noShipsLost ? ' · No losses' : ''}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Captain picker — only on last panel before battle, if no fixed abilities */}
-            {isLast && !(mission.modifiers.fixedAbilities && mission.modifiers.fixedAbilities.length > 0) && (
+            {/* Modifier callouts */}
+            {(mission.modifiers.foggyVision || mission.modifiers.krakenAttack) && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {mission.modifiers.foggyVision && (
+                  <span
+                    className="text-xs px-2 py-0.5 rounded border border-[#4a90d9]/40 text-[#4a90d9]/80"
+                    style={{ backgroundColor: '#4a90d912', fontFamily: "'IM Fell English SC', serif" }}
+                  >
+                    🌫️ Foggy Vision
+                  </span>
+                )}
+                {mission.modifiers.krakenAttack && (
+                  <span
+                    className="text-xs px-2 py-0.5 rounded border border-[#8b0000]/60 text-[#c41e3a]/80"
+                    style={{ backgroundColor: '#8b000012', fontFamily: "'IM Fell English SC', serif" }}
+                  >
+                    🐙 Kraken Attacks
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Captain picker (free or locked) */}
+            {showCaptainPicker && (
               <div className="mb-4">
-                <CaptainPicker />
+                <CaptainPicker
+                  requiredCaptain={requiredCaptain}
+                  forbiddenAbilities={forbiddenAbilities}
+                />
               </div>
             )}
 
