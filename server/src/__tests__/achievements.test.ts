@@ -167,6 +167,16 @@ describe('POST /achievements/unlock', () => {
     expect(body.error).toMatch(/guests/i);
   });
 
+  it('does not write to userAchievement DB for guest user', async () => {
+    const token = makeToken('guest_xyz', 'guest@example.com');
+    await fetch(`${baseUrl}/unlock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader(token) },
+      body: JSON.stringify({ achievementId: 'first_blood' }),
+    });
+    expect(mockUserAchievement.upsert).not.toHaveBeenCalled();
+  });
+
   it('returns 400 when achievementId is missing', async () => {
     const token = makeToken();
     const res = await fetch(`${baseUrl}/unlock`, {
