@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 320" width="560" height="320">
+  <rect width="560" height="320" fill="#150c0c"/>
+
+  <!-- Title -->
+  <text x="280" y="22" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="13" letter-spacing="3">ABILITY RANGES</text>
+
+  <!-- Helper: each mini-grid is 5x5 cells, cell=16px, grid=80px square -->
+  <!-- Row 1: Cannon Barrage (col 0), Sonar Ping (col 1), Smoke Screen (col 2) -->
+  <!-- Row 2: Chain Shot (col 0), Spyglass (col 1), Boarding Party (col 2) -->
+
+  <!-- COLUMN offsets: 30, 210, 390 -->
+  <!-- ROW offsets: 40, 170 -->
+
+  <!-- === ROW 1 === -->
+
+  <!-- CANNON BARRAGE -->
+  <text x="70" y="42" text-anchor="middle" fill="#c41e3a" font-family="Georgia,serif" font-size="11" font-weight="bold">Cannon Barrage</text>
+  <!-- Grid background -->
+  <rect x="30" y="48" width="80" height="80" fill="#1a1010" rx="3"/>
+  <!-- Grid lines -->
+  <line x1="30" y1="64" x2="110" y2="64" stroke="#3d1f1f" stroke-width="0.5"/>
+  <line x1="30" y1="80" x2="110" y2="80" stroke="#3d1f1f" stroke-width="0.5"/>
+  <line x1="30" y1="96" x2="110" y2="96" stroke="#3d1f1f" stroke-width="0.5"/>
+  <line x1="30" y1="112" x2="110" y2="112" stroke="#3d1f1f" stroke-width="0.5"/>
+  <line x1="46" y1="48" x2="46" y2="128" stroke="#3d1f1f" stroke-width="0.5"/>
+  <line x1="62" y1="48" x2="62" y2="128" stroke="#3d1f1f" stroke-width="0.5"/>
+  <line x1="78" y1="48" x2="78" y2="128" stroke="#3d1f1f" stroke-width="0.5"/>
+  <line x1="94" y1="48" x2="94" y2="128" stroke="#3d1f1f" stroke-width="0.5"/>
+  <!-- Highlight: row 2, cols 1-3 (barrage of 3) -->
+  <rect x="46" y="80" width="16" height="16" fill="#8b0000" opacity="0.9"/>
+  <rect x="62" y="80" width="16" height="16" fill="#c41e3a" opacity="0.9"/>
+  <rect x="78" y="80" width="16" height="16" fill="#8b0000" opacity="0.9"/>
+  <!-- Target marker -->
+  <text x="70" y="91" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="9">✕</text>
+  <text x="70" y="142" text-anchor="middle" fill="#9ab0d4" font-family="Georgia,serif" font-size="9">3-cell row strike</text>
+
+  <!-- SONAR PING -->
+  <text x="250" y="42" text-anchor="middle" fill="#4a9ad4" font-family="Georgia,serif" font-size="11" font-weight="bold">Sonar Ping</text>
+  <rect x="210" y="48" width="80" height="80" fill="#0a1020" rx="3"/>
+  <line x1="210" y1="64" x2="290" y2="64" stroke="#1a2a3a" stroke-width="0.5"/>
+  <line x1="210" y1="80" x2="290" y2="80" stroke="#1a2a3a" stroke-width="0.5"/>
+  <line x1="210" y1="96" x2="290" y2="96" stroke="#1a2a3a" stroke-width="0.5"/>
+  <line x1="210" y1="112" x2="290" y2="112" stroke="#1a2a3a" stroke-width="0.5"/>
+  <line x1="226" y1="48" x2="226" y2="128" stroke="#1a2a3a" stroke-width="0.5"/>
+  <line x1="242" y1="48" x2="242" y2="128" stroke="#1a2a3a" stroke-width="0.5"/>
+  <line x1="258" y1="48" x2="258" y2="128" stroke="#1a2a3a" stroke-width="0.5"/>
+  <line x1="274" y1="48" x2="274" y2="128" stroke="#1a2a3a" stroke-width="0.5"/>
+  <!-- Highlight: center + adjacent (cross pattern) -->
+  <rect x="242" y="64" width="16" height="16" fill="#1a4a7a" opacity="0.9"/>
+  <rect x="226" y="80" width="16" height="16" fill="#1a4a7a" opacity="0.9"/>
+  <rect x="242" y="80" width="16" height="16" fill="#2a6aaa" opacity="0.9"/>
+  <rect x="258" y="80" width="16" height="16" fill="#1a4a7a" opacity="0.9"/>
+  <rect x="242" y="96" width="16" height="16" fill="#1a4a7a" opacity="0.9"/>
+  <text x="250" y="91" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="9">✕</text>
+  <text x="250" y="142" text-anchor="middle" fill="#9ab0d4" font-family="Georgia,serif" font-size="9">Reveals centre + adjacent</text>
+
+  <!-- SMOKE SCREEN -->
+  <text x="430" y="42" text-anchor="middle" fill="#8a7a5a" font-family="Georgia,serif" font-size="11" font-weight="bold">Smoke Screen</text>
+  <rect x="390" y="48" width="80" height="80" fill="#141410" rx="3"/>
+  <line x1="390" y1="64" x2="470" y2="64" stroke="#2a2a1a" stroke-width="0.5"/>
+  <line x1="390" y1="80" x2="470" y2="80" stroke="#2a2a1a" stroke-width="0.5"/>
+  <line x1="390" y1="96" x2="470" y2="96" stroke="#2a2a1a" stroke-width="0.5"/>
+  <line x1="390" y1="112" x2="470" y2="112" stroke="#2a2a1a" stroke-width="0.5"/>
+  <line x1="406" y1="48" x2="406" y2="128" stroke="#2a2a1a" stroke-width="0.5"/>
+  <line x1="422" y1="48" x2="422" y2="128" stroke="#2a2a1a" stroke-width="0.5"/>
+  <line x1="438" y1="48" x2="438" y2="128" stroke="#2a2a1a" stroke-width="0.5"/>
+  <line x1="454" y1="48" x2="454" y2="128" stroke="#2a2a1a" stroke-width="0.5"/>
+  <!-- 2x2 smoke fog -->
+  <rect x="422" y="80" width="16" height="16" fill="#5a5020" opacity="0.7"/>
+  <rect x="438" y="80" width="16" height="16" fill="#5a5020" opacity="0.7"/>
+  <rect x="422" y="96" width="16" height="16" fill="#5a5020" opacity="0.7"/>
+  <rect x="438" y="96" width="16" height="16" fill="#5a5020" opacity="0.7"/>
+  <text x="430" y="91" text-anchor="middle" fill="#d4a040" font-family="sans-serif" font-size="9">✕</text>
+  <text x="430" y="142" text-anchor="middle" fill="#9ab0d4" font-family="Georgia,serif" font-size="9">2×2 fog-of-war area</text>
+
+  <!-- === ROW 2 === -->
+
+  <!-- CHAIN SHOT -->
+  <text x="70" y="172" text-anchor="middle" fill="#b87333" font-family="Georgia,serif" font-size="11" font-weight="bold">Chain Shot</text>
+  <rect x="30" y="178" width="80" height="80" fill="#1a1208" rx="3"/>
+  <line x1="30" y1="194" x2="110" y2="194" stroke="#2a1a08" stroke-width="0.5"/>
+  <line x1="30" y1="210" x2="110" y2="210" stroke="#2a1a08" stroke-width="0.5"/>
+  <line x1="30" y1="226" x2="110" y2="226" stroke="#2a1a08" stroke-width="0.5"/>
+  <line x1="30" y1="242" x2="110" y2="242" stroke="#2a1a08" stroke-width="0.5"/>
+  <line x1="46" y1="178" x2="46" y2="258" stroke="#2a1a08" stroke-width="0.5"/>
+  <line x1="62" y1="178" x2="62" y2="258" stroke="#2a1a08" stroke-width="0.5"/>
+  <line x1="78" y1="178" x2="78" y2="258" stroke="#2a1a08" stroke-width="0.5"/>
+  <line x1="94" y1="178" x2="94" y2="258" stroke="#2a1a08" stroke-width="0.5"/>
+  <!-- Primary + chained secondary -->
+  <rect x="62" y="210" width="16" height="16" fill="#b87333" opacity="0.9"/>
+  <rect x="78" y="226" width="16" height="16" fill="#6a4218" opacity="0.9"/>
+  <text x="70" y="221" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="9">✕</text>
+  <!-- Chain arrow -->
+  <line x1="78" y1="218" x2="86" y2="226" stroke="#d4a040" stroke-width="1.5"/>
+  <polygon points="86,226 77,221 82,230" fill="#d4a040"/>
+  <text x="70" y="272" text-anchor="middle" fill="#9ab0d4" font-family="Georgia,serif" font-size="9">Chains to adjacent cell</text>
+
+  <!-- SPYGLASS -->
+  <text x="250" y="172" text-anchor="middle" fill="#6a8a4a" font-family="Georgia,serif" font-size="11" font-weight="bold">Spyglass</text>
+  <rect x="210" y="178" width="80" height="80" fill="#0a1008" rx="3"/>
+  <line x1="210" y1="194" x2="290" y2="194" stroke="#1a2a18" stroke-width="0.5"/>
+  <line x1="210" y1="210" x2="290" y2="210" stroke="#1a2a18" stroke-width="0.5"/>
+  <line x1="210" y1="226" x2="290" y2="226" stroke="#1a2a18" stroke-width="0.5"/>
+  <line x1="210" y1="242" x2="290" y2="242" stroke="#1a2a18" stroke-width="0.5"/>
+  <line x1="226" y1="178" x2="226" y2="258" stroke="#1a2a18" stroke-width="0.5"/>
+  <line x1="242" y1="178" x2="242" y2="258" stroke="#1a2a18" stroke-width="0.5"/>
+  <line x1="258" y1="178" x2="258" y2="258" stroke="#1a2a18" stroke-width="0.5"/>
+  <line x1="274" y1="178" x2="274" y2="258" stroke="#1a2a18" stroke-width="0.5"/>
+  <!-- Reveal 3 cells in a column -->
+  <rect x="242" y="194" width="16" height="16" fill="#2a4a2a" opacity="0.9"/>
+  <rect x="242" y="210" width="16" height="16" fill="#3a6a3a" opacity="0.9"/>
+  <rect x="242" y="226" width="16" height="16" fill="#2a4a2a" opacity="0.9"/>
+  <text x="250" y="221" text-anchor="middle" fill="#d4d4d4" font-family="sans-serif" font-size="8">👁</text>
+  <text x="250" y="272" text-anchor="middle" fill="#9ab0d4" font-family="Georgia,serif" font-size="9">Reveals a 3-cell column</text>
+
+  <!-- BOARDING PARTY / REPAIR KIT (single cell) -->
+  <text x="430" y="172" text-anchor="middle" fill="#9a3a3a" font-family="Georgia,serif" font-size="11" font-weight="bold">Repair Kit</text>
+  <rect x="390" y="178" width="80" height="80" fill="#100808" rx="3"/>
+  <line x1="390" y1="194" x2="470" y2="194" stroke="#2a1010" stroke-width="0.5"/>
+  <line x1="390" y1="210" x2="470" y2="210" stroke="#2a1010" stroke-width="0.5"/>
+  <line x1="390" y1="226" x2="470" y2="226" stroke="#2a1010" stroke-width="0.5"/>
+  <line x1="390" y1="242" x2="470" y2="242" stroke="#2a1010" stroke-width="0.5"/>
+  <line x1="406" y1="178" x2="406" y2="258" stroke="#2a1010" stroke-width="0.5"/>
+  <line x1="422" y1="178" x2="422" y2="258" stroke="#2a1010" stroke-width="0.5"/>
+  <line x1="438" y1="178" x2="438" y2="258" stroke="#2a1010" stroke-width="0.5"/>
+  <line x1="454" y1="178" x2="454" y2="258" stroke="#2a1010" stroke-width="0.5"/>
+  <!-- Heal own ship cell -->
+  <rect x="422" y="210" width="16" height="16" fill="#6a1a1a" opacity="0.9"/>
+  <rect x="438" y="210" width="16" height="16" fill="#6a1a1a" opacity="0.9"/>
+  <!-- Cross symbol for repair -->
+  <line x1="430" y1="213" x2="430" y2="223" stroke="#e8dcc8" stroke-width="2"/>
+  <line x1="425" y1="218" x2="435" y2="218" stroke="#e8dcc8" stroke-width="2"/>
+  <text x="430" y="272" text-anchor="middle" fill="#9ab0d4" font-family="Georgia,serif" font-size="9">Heals own ship hits</text>
+
+  <!-- Bottom label -->
+  <text x="280" y="300" text-anchor="middle" fill="#5a5a5a" font-family="Georgia,serif" font-size="9.5">✕ = target cell · highlighted = area of effect</text>
+</svg>

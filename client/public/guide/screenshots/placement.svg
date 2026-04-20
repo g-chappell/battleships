@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320" width="480" height="320">
+  <rect width="480" height="320" fill="#150c0c"/>
+  <!-- Window chrome -->
+  <rect x="10" y="10" width="460" height="300" rx="8" fill="#1a1010" stroke="#3d1f1f" stroke-width="1.5"/>
+  <!-- Header bar -->
+  <rect x="10" y="10" width="460" height="32" rx="8" fill="#2a1a1a"/>
+  <rect x="10" y="30" width="460" height="12" fill="#2a1a1a"/>
+  <text x="240" y="30" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="11">Place Your Fleet</text>
+  <!-- 10x10 grid (cells = 22px) -->
+  <!-- Grid at x=30, y=55 -->
+  <rect x="30" y="55" width="220" height="220" fill="#0a1828" stroke="#1a3a5a" stroke-width="1"/>
+  <!-- Grid lines -->
+  <line x1="52" y1="55" x2="52" y2="275" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="74" y1="55" x2="74" y2="275" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="96" y1="55" x2="96" y2="275" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="118" y1="55" x2="118" y2="275" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="140" y1="55" x2="140" y2="275" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="162" y1="55" x2="162" y2="275" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="184" y1="55" x2="184" y2="275" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="206" y1="55" x2="206" y2="275" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="228" y1="55" x2="228" y2="275" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="30" y1="77" x2="250" y2="77" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="30" y1="99" x2="250" y2="99" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="30" y1="121" x2="250" y2="121" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="30" y1="143" x2="250" y2="143" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="30" y1="165" x2="250" y2="165" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="30" y1="187" x2="250" y2="187" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="30" y1="209" x2="250" y2="209" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="30" y1="231" x2="250" y2="231" stroke="#1a3a5a" stroke-width="0.5"/>
+  <line x1="30" y1="253" x2="250" y2="253" stroke="#1a3a5a" stroke-width="0.5"/>
+  <!-- Placed ships: Carrier row 1 cols 2-6, Battleship row 3 cols 1-4, Destroyer row 6 col 7-8 -->
+  <rect x="74" y="77" width="110" height="22" rx="3" fill="#9a6d40" opacity="0.9"/>
+  <text x="129" y="92" text-anchor="middle" fill="#e8dcc8" font-family="sans-serif" font-size="9">Carrier</text>
+  <rect x="52" y="121" width="88" height="22" rx="3" fill="#6e7d92" opacity="0.9"/>
+  <text x="96" y="136" text-anchor="middle" fill="#e8dcc8" font-family="sans-serif" font-size="9">Battleship</text>
+  <rect x="184" y="165" width="44" height="22" rx="3" fill="#8a6a42" opacity="0.9"/>
+  <text x="206" y="180" text-anchor="middle" fill="#e8dcc8" font-family="sans-serif" font-size="8">Dest.</text>
+  <!-- Drag indicator -->
+  <rect x="96" y="209" width="66" height="22" rx="3" fill="#bb7a52" stroke="#d4a040" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.7"/>
+  <text x="129" y="224" text-anchor="middle" fill="#d4a040" font-family="sans-serif" font-size="8">Cruiser ▾</text>
+  <!-- Ship tray panel -->
+  <rect x="270" y="55" width="185" height="220" rx="5" fill="#1f1010" stroke="#3d1f1f" stroke-width="1"/>
+  <text x="362" y="75" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="11">Fleet</text>
+  <rect x="285" y="85" width="155" height="22" rx="3" fill="#9a6d40" opacity="0.5"/>
+  <text x="362" y="100" text-anchor="middle" fill="#9a6a40" font-family="sans-serif" font-size="9">Carrier ✓ (placed)</text>
+  <rect x="285" y="115" width="155" height="22" rx="3" fill="#6e7d92" opacity="0.5"/>
+  <text x="362" y="130" text-anchor="middle" fill="#6e7d92" font-family="sans-serif" font-size="9">Battleship ✓ (placed)</text>
+  <rect x="285" y="145" width="155" height="22" rx="3" fill="#bb7a52" stroke="#d4a040" stroke-width="1.5"/>
+  <text x="362" y="160" text-anchor="middle" fill="#d4a040" font-family="sans-serif" font-size="9">Cruiser — dragging</text>
+  <rect x="285" y="175" width="155" height="22" rx="3" fill="#1a1a1a" stroke="#3a3a3a" stroke-width="1"/>
+  <text x="362" y="190" text-anchor="middle" fill="#5a5a5a" font-family="sans-serif" font-size="9">Submarine</text>
+  <rect x="285" y="205" width="155" height="22" rx="3" fill="#1a1a1a" stroke="#3a3a3a" stroke-width="1"/>
+  <text x="362" y="220" text-anchor="middle" fill="#5a5a5a" font-family="sans-serif" font-size="9">Destroyer</text>
+  <rect x="285" y="245" width="155" height="22" rx="4" fill="#3d1f1f" stroke="#8b0000" stroke-width="1.5"/>
+  <text x="362" y="260" text-anchor="middle" fill="#c41e3a" font-family="Georgia,serif" font-size="10">Ready for Battle</text>
+  <!-- Label -->
+  <text x="240" y="302" text-anchor="middle" fill="#5a5a5a" font-family="Georgia,serif" font-size="9">Ship Placement Screen — drag ships onto your grid</text>
+</svg>

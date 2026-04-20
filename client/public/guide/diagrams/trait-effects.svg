@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 300" width="560" height="300">
+  <rect width="560" height="300" fill="#150c0c"/>
+
+  <!-- Title -->
+  <text x="280" y="22" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="13" letter-spacing="3">SHIP TRAITS</text>
+
+  <!-- ROW 1: Carrier – Spotter -->
+  <rect x="20" y="36" width="520" height="40" rx="4" fill="#1a1010"/>
+  <rect x="28" y="46" width="76" height="18" rx="3" fill="#9a6d40"/>
+  <polygon points="104,55 112,55 104,46" fill="#9a6d40"/>
+  <rect x="52" y="42" width="8" height="26" rx="1" fill="#7a5530"/>
+  <line x1="56" y1="42" x2="56" y2="36" stroke="#9a6d40" stroke-width="1.5"/>
+  <text x="70" y="73" text-anchor="middle" fill="#9a6d40" font-family="Georgia,serif" font-size="9">Carrier (5)</text>
+  <text x="160" y="52" fill="#d4d4a4" font-family="Georgia,serif" font-size="12" font-weight="bold">Spotter</text>
+  <text x="160" y="68" fill="#9ab0d4" font-family="Georgia,serif" font-size="10">On every hit against any ship, reveals a random enemy cell to the attacker.</text>
+  <circle cx="510" cy="56" r="12" fill="#2a2a1a" stroke="#d4d4a4" stroke-width="1"/>
+  <circle cx="510" cy="56" r="5" fill="#d4d4a4"/>
+  <circle cx="510" cy="56" r="2" fill="#150c0c"/>
+
+  <!-- ROW 2: Battleship – Ironclad -->
+  <rect x="20" y="86" width="520" height="40" rx="4" fill="#1a1010"/>
+  <rect x="28" y="96" width="60" height="18" rx="3" fill="#6e7d92"/>
+  <polygon points="88,105 96,105 88,96" fill="#6e7d92"/>
+  <rect x="44" y="92" width="8" height="26" rx="1" fill="#4e5d72"/>
+  <line x1="48" y1="92" x2="48" y2="86" stroke="#6e7d92" stroke-width="1.5"/>
+  <text x="62" y="123" text-anchor="middle" fill="#6e7d92" font-family="Georgia,serif" font-size="9">Battleship (4)</text>
+  <text x="160" y="102" fill="#c0d0e0" font-family="Georgia,serif" font-size="12" font-weight="bold">Ironclad</text>
+  <text x="160" y="118" fill="#9ab0d4" font-family="Georgia,serif" font-size="10">First hit is deflected — the cell stays targetable. No damage dealt on that shot.</text>
+  <path d="M505,48 L515,48 L515,62 L510,66 L505,62 Z" fill="#1a2a3a" stroke="#c0d0e0" stroke-width="1.5"/>
+  <text x="510" y="60" text-anchor="middle" fill="#c0d0e0" font-family="sans-serif" font-size="10">✦</text>
+
+  <!-- ROW 3: Cruiser – Kraken Ward -->
+  <rect x="20" y="136" width="520" height="40" rx="4" fill="#1a1010"/>
+  <rect x="28" y="146" width="44" height="18" rx="3" fill="#bb7a52"/>
+  <polygon points="72,155 80,155 72,146" fill="#bb7a52"/>
+  <rect x="36" y="142" width="7" height="26" rx="1" fill="#9b5a32"/>
+  <line x1="39" y1="142" x2="39" y2="136" stroke="#bb7a52" stroke-width="1.5"/>
+  <text x="54" y="173" text-anchor="middle" fill="#bb7a52" font-family="Georgia,serif" font-size="9">Cruiser (3)</text>
+  <text x="160" y="152" fill="#e0aa72" font-family="Georgia,serif" font-size="12" font-weight="bold">Kraken Ward</text>
+  <text x="160" y="168" fill="#9ab0d4" font-family="Georgia,serif" font-size="10">Summon Kraken can never target the Cruiser — even as the last ship afloat.</text>
+  <!-- Kraken tentacle icon -->
+  <path d="M500,148 Q510,144 520,148 Q518,156 510,162 Q502,156 500,148Z" fill="#1a0a2a" stroke="#e0aa72" stroke-width="1.5"/>
+  <line x1="510" y1="155" x2="506" y2="162" stroke="#e0aa72" stroke-width="1"/>
+  <line x1="510" y1="155" x2="514" y2="162" stroke="#e0aa72" stroke-width="1"/>
+
+  <!-- ROW 4: Destroyer – Depth Charge -->
+  <rect x="20" y="186" width="520" height="40" rx="4" fill="#1a1010"/>
+  <rect x="28" y="196" width="28" height="18" rx="3" fill="#8a6a42"/>
+  <polygon points="56,205 64,205 56,196" fill="#8a6a42"/>
+  <rect x="32" y="192" width="5" height="26" rx="1" fill="#6a4a22"/>
+  <line x1="34" y1="192" x2="34" y2="186" stroke="#8a6a42" stroke-width="1.5"/>
+  <text x="46" y="223" text-anchor="middle" fill="#8a6a42" font-family="Georgia,serif" font-size="9">Destroyer (2)</text>
+  <text x="160" y="202" fill="#ffc844" font-family="Georgia,serif" font-size="12" font-weight="bold">Depth Charge</text>
+  <text x="160" y="218" fill="#9ab0d4" font-family="Georgia,serif" font-size="10">On first hit, fires 6 random retaliatory shots back at the attacker's board.</text>
+  <!-- Explosion icon -->
+  <circle cx="510" cy="206" r="9" fill="#3a2800" stroke="#ffc844" stroke-width="1.5"/>
+  <line x1="510" y1="195" x2="510" y2="199" stroke="#ffc844" stroke-width="1.5"/>
+  <line x1="510" y1="213" x2="510" y2="217" stroke="#ffc844" stroke-width="1.5"/>
+  <line x1="499" y1="206" x2="503" y2="206" stroke="#ffc844" stroke-width="1.5"/>
+  <line x1="517" y1="206" x2="521" y2="206" stroke="#ffc844" stroke-width="1.5"/>
+  <text x="510" y="210" text-anchor="middle" fill="#ffc844" font-family="sans-serif" font-size="10">💥</text>
+
+  <!-- ROW 5: Submarine – Silent Running -->
+  <rect x="20" y="236" width="520" height="40" rx="4" fill="#1a1010"/>
+  <rect x="28" y="246" width="44" height="14" rx="7" fill="#4a5a68"/>
+  <rect x="48" y="242" width="12" height="10" rx="2" fill="#3a4a58"/>
+  <line x1="52" y1="242" x2="52" y2="238" stroke="#6a8a90" stroke-width="1"/>
+  <text x="54" y="273" text-anchor="middle" fill="#4a5a68" font-family="Georgia,serif" font-size="9">Submarine (3)</text>
+  <text x="160" y="252" fill="#8ab0d4" font-family="Georgia,serif" font-size="12" font-weight="bold">Silent Running</text>
+  <text x="160" y="268" fill="#9ab0d4" font-family="Georgia,serif" font-size="10">Invisible to Sonar Ping. Attacker sees only a vague "something nearby" signal.</text>
+  <ellipse cx="510" cy="256" rx="11" ry="7" fill="none" stroke="#8ab0d4" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="510" y="260" text-anchor="middle" fill="#8ab0d4" font-family="sans-serif" font-size="10">?</text>
+</svg>
