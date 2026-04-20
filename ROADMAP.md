@@ -1016,7 +1016,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-081
 - **title:** Audit every stat-writing path for correct guest skip
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** server
 - **complexity:** small
