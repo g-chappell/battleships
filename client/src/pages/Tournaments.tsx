@@ -224,6 +224,26 @@ export function Tournaments() {
               <h3 className="text-xl text-gold mt-4 mb-2" style={FONT_STYLES.pirate}>
                 Bracket
               </h3>
+              {(() => {
+                if (current.status !== 'active') return null;
+                const nonPending = current.matches.filter((m) => m.status !== 'pending');
+                if (nonPending.length === 0) return null;
+                const currentRound = Math.max(...nonPending.map((m) => m.round));
+                const inCurrentRound = current.matches.filter((m) => m.round === currentRound);
+                const allDone = inCurrentRound.every((m) => m.status === 'done');
+                const hasPending = current.matches.some((m) => m.status === 'pending');
+                if (!allDone || !hasPending) return null;
+                return (
+                  <div
+                    className="mb-4 px-4 py-3 rounded border bg-coal/60 border-blood/30 text-center"
+                    style={FONT_STYLES.labelSC}
+                  >
+                    <p className="text-blood-bright text-sm">
+                      ⏳ Round {currentRound + 1} complete — awaiting next round
+                    </p>
+                  </div>
+                );
+              })()}
               <Bracket matches={current.matches} maxPlayers={current.maxPlayers} myUserId={user?.id} onSpectate={handleSpectate} />
             </>
           )}

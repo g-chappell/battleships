@@ -317,12 +317,10 @@ describe('onTournamentMatchComplete', () => {
 
     const result = await onTournamentMatchComplete('tm1', 'user3');
     expect(result).toEqual({ tournamentFinished: false, tournamentId: 't1' });
-    // When both p1 and p2 are filled, status should become 'ready'
-    expect(mockTournamentMatch.update).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ p2UserId: 'user3', status: 'ready' }),
-      })
-    );
+    // Status stays 'pending' — admin must advance the round
+    const lastCall = mockTournamentMatch.update.mock.calls.at(-1)?.[0] as { data: Record<string, unknown> };
+    expect(lastCall.data.p2UserId).toBe('user3');
+    expect(lastCall.data.status).toBeUndefined();
   });
 
   it('finalizes tournament on final round and awards gold', async () => {
