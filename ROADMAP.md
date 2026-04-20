@@ -920,7 +920,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-074
 - **title:** Pre-mission screen rework (narrative + tiers + captain lock)
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** medium
