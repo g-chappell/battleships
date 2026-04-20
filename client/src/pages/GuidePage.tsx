@@ -100,11 +100,11 @@ export function GuidePage() {
       <div className="space-y-4 mb-12">
         {SECTIONS.map((section) => (
           <Card key={section.title} variant="default" padding="md">
-            <h3 className="text-xl text-blood-bright mb-2" style={FONT_STYLES.pirate}>
+            <h3 className="text-xl text-blood-bright mb-2 text-center" style={FONT_STYLES.pirate}>
               {section.title}
               {section.requiresAuth && LOCK_BADGE}
             </h3>
-            <p className="text-parchment/70 text-sm leading-relaxed" style={FONT_STYLES.body}>
+            <p className="text-parchment/70 text-sm leading-relaxed text-left" style={FONT_STYLES.body}>
               {section.description}
             </p>
           </Card>
