@@ -931,7 +931,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-075
 - **title:** Enforce captain lock + forbidden abilities at runtime
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client, shared
 - **complexity:** medium
