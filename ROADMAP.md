@@ -1046,7 +1046,7 @@ Each task entry uses these fields (agent-writable fields marked †):
 
 #### TASK-083
 - **title:** Content alignment sweep — headings centered, paragraphs left
-- **status:** ready
+- **status:** in-progress
 - **priority:** med
 - **workspaces:** client
 - **complexity:** small
