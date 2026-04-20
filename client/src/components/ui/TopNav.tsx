@@ -23,7 +23,7 @@ const NAV_LINKS: NavLink[] = [
   { label: 'Tournaments', screen: 'tournaments', requiresAuth: true },
   { label: 'Clans', screen: 'clans', requiresAuth: true },
   { label: 'Shop', screen: 'shop', requiresAuth: true },
-  { label: 'Leaderboard', screen: 'leaderboard', requiresAuth: true },
+  { label: 'Leaderboard', screen: 'leaderboard' },
   { label: 'Friends', screen: 'friends', requiresAuth: true },
 ];
 
