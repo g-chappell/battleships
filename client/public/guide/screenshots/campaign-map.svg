@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 300" width="480" height="300">
+  <rect width="480" height="300" fill="#0a1828"/>
+  <!-- Ocean texture -->
+  <rect x="0" y="0" width="480" height="300" fill="url(#ocean)"/>
+  <defs>
+    <pattern id="ocean" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <rect width="40" height="40" fill="#0a1828"/>
+      <path d="M0,20 Q10,14 20,20 Q30,26 40,20" fill="none" stroke="#0d2040" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <!-- Header -->
+  <rect x="0" y="0" width="480" height="40" fill="#0d0808" opacity="0.8"/>
+  <text x="240" y="26" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="16" font-weight="bold">⚓ Campaign Chart</text>
+  <!-- Act labels -->
+  <text x="80" y="60" text-anchor="middle" fill="#c41e3a" font-family="Georgia,serif" font-size="10" font-weight="bold">ACT I — IRONBEARD</text>
+  <text x="240" y="60" text-anchor="middle" fill="#4a9ad4" font-family="Georgia,serif" font-size="10" font-weight="bold">ACT II — MISTRAL</text>
+  <text x="400" y="60" text-anchor="middle" fill="#8a4a9a" font-family="Georgia,serif" font-size="10" font-weight="bold">ACT III — BLACKHEART</text>
+  <!-- Mission nodes (15 total: 5 per act) -->
+  <!-- Act I: x=20-140 -->
+  <!-- Mission 1 (done) -->
+  <circle cx="30" cy="100" r="14" fill="#3d1f00" stroke="#d4a040" stroke-width="2"/>
+  <text x="30" y="105" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="11" font-weight="bold">1</text>
+  <text x="30" y="122" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="7">★★★</text>
+  <line x1="44" y1="100" x2="56" y2="100" stroke="#d4a040" stroke-width="1.5"/>
+  <!-- Mission 2 (done) -->
+  <circle cx="70" cy="100" r="14" fill="#3d1f00" stroke="#d4a040" stroke-width="2"/>
+  <text x="70" y="105" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="11" font-weight="bold">2</text>
+  <text x="70" y="122" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="7">★★☆</text>
+  <line x1="84" y1="100" x2="96" y2="100" stroke="#d4a040" stroke-width="1.5"/>
+  <!-- Mission 3 (active) -->
+  <circle cx="110" cy="100" r="14" fill="#1a0a00" stroke="#c41e3a" stroke-width="2.5"/>
+  <text x="110" y="105" text-anchor="middle" fill="#c41e3a" font-family="Georgia,serif" font-size="11" font-weight="bold">3</text>
+  <text x="110" y="122" text-anchor="middle" fill="#5a5a5a" font-family="Georgia,serif" font-size="7">- - -</text>
+  <line x1="124" y1="100" x2="136" y2="100" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="3,2"/>
+  <!-- Mission 4 (locked) -->
+  <circle cx="150" cy="100" r="14" fill="#0a0808" stroke="#3a2a2a" stroke-width="1.5"/>
+  <text x="150" y="105" text-anchor="middle" fill="#4a3a3a" font-family="Georgia,serif" font-size="11">4</text>
+  <line x1="164" y1="100" x2="176" y2="100" stroke="#2a2a2a" stroke-width="1" stroke-dasharray="3,2"/>
+  <!-- Mission 5 (locked) -->
+  <circle cx="190" cy="100" r="14" fill="#0a0808" stroke="#3a2a2a" stroke-width="1.5"/>
+  <text x="190" y="105" text-anchor="middle" fill="#4a3a3a" font-family="Georgia,serif" font-size="11">5</text>
+  <!-- Act divider -->
+  <line x1="208" y1="70" x2="208" y2="130" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="4,2"/>
+  <!-- Act II missions 6-10: x=220-380 -->
+  <circle cx="225" cy="100" r="14" fill="#0a0808" stroke="#2a3a4a" stroke-width="1.5"/>
+  <text x="225" y="105" text-anchor="middle" fill="#3a4a5a" font-family="Georgia,serif" font-size="11">6</text>
+  <line x1="239" y1="100" x2="251" y2="100" stroke="#2a2a2a" stroke-width="1" stroke-dasharray="3,2"/>
+  <circle cx="265" cy="100" r="14" fill="#0a0808" stroke="#2a3a4a" stroke-width="1.5"/>
+  <text x="265" y="105" text-anchor="middle" fill="#3a4a5a" font-family="Georgia,serif" font-size="11">7</text>
+  <line x1="279" y1="100" x2="291" y2="100" stroke="#2a2a2a" stroke-width="1" stroke-dasharray="3,2"/>
+  <circle cx="305" cy="100" r="14" fill="#0a0808" stroke="#2a3a4a" stroke-width="1.5"/>
+  <text x="305" y="105" text-anchor="middle" fill="#3a4a5a" font-family="Georgia,serif" font-size="11">8</text>
+  <line x1="319" y1="100" x2="331" y2="100" stroke="#2a2a2a" stroke-width="1" stroke-dasharray="3,2"/>
+  <circle cx="345" cy="100" r="14" fill="#0a0808" stroke="#2a3a4a" stroke-width="1.5"/>
+  <text x="345" y="105" text-anchor="middle" fill="#3a4a5a" font-family="Georgia,serif" font-size="11">9</text>
+  <line x1="359" y1="100" x2="371" y2="100" stroke="#2a2a2a" stroke-width="1" stroke-dasharray="3,2"/>
+  <circle cx="385" cy="100" r="14" fill="#0a0808" stroke="#2a3a4a" stroke-width="1.5"/>
+  <text x="385" y="100" text-anchor="middle" fill="#3a4a5a" font-family="Georgia,serif" font-size="9">10</text>
+  <!-- Act III divider -->
+  <line x1="403" y1="70" x2="403" y2="130" stroke="#3a3a3a" stroke-width="1" stroke-dasharray="4,2"/>
+  <!-- Act III missions 11-15: x=415-475 -->
+  <circle cx="418" cy="100" r="14" fill="#0a0808" stroke="#2a1a2a" stroke-width="1.5"/>
+  <text x="418" y="100" text-anchor="middle" fill="#3a2a3a" font-family="Georgia,serif" font-size="9">11</text>
+  <line x1="432" y1="100" x2="440" y2="100" stroke="#2a2a2a" stroke-width="1" stroke-dasharray="3,2"/>
+  <circle cx="450" cy="100" r="10" fill="#0a0808" stroke="#2a1a2a" stroke-width="1"/>
+  <text x="450" y="104" text-anchor="middle" fill="#3a2a3a" font-family="sans-serif" font-size="8">…15</text>
+  <!-- Mission brief panel -->
+  <rect x="20" y="148" width="440" height="110" rx="6" fill="#100808" stroke="#3d1f1f" stroke-width="1.5"/>
+  <text x="240" y="168" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="12" font-weight="bold">Mission 3 — The Merchant's Run</text>
+  <text x="240" y="185" text-anchor="middle" fill="#9ab0d4" font-family="Georgia,serif" font-size="10">Captain: Ironbeard · Difficulty: ★★☆ Medium</text>
+  <text x="35" y="204" fill="#e8dcc8" font-family="Georgia,serif" font-size="9">🥉 Bronze: Sink all ships in 30 turns</text>
+  <text x="35" y="219" fill="#e8dcc8" font-family="Georgia,serif" font-size="9">🥈 Silver: Win without losing a ship</text>
+  <text x="35" y="234" fill="#d4a040" font-family="Georgia,serif" font-size="9">🥇 Gold: Win using only 2 abilities</text>
+  <rect x="340" y="195" width="105" height="25" rx="4" fill="#3d1f1f" stroke="#c41e3a" stroke-width="1.5"/>
+  <text x="392" y="212" text-anchor="middle" fill="#c41e3a" font-family="Georgia,serif" font-size="11">Start Mission</text>
+  <!-- Footer label -->
+  <text x="240" y="290" text-anchor="middle" fill="#3a4a5a" font-family="Georgia,serif" font-size="9">Campaign Map — 15 missions across 3 acts</text>
+</svg>

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 300" width="480" height="300">
+  <rect width="480" height="300" fill="#150c0c"/>
+  <rect x="10" y="10" width="460" height="280" rx="8" fill="#1a1010" stroke="#3d1f1f" stroke-width="1.5"/>
+  <!-- Victory banner -->
+  <rect x="10" y="10" width="460" height="60" rx="8" fill="#3d1f00" stroke="#d4a040" stroke-width="2"/>
+  <rect x="10" y="50" width="460" height="20" fill="#3d1f00"/>
+  <text x="240" y="38" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="22" font-weight="bold">⚓ VICTORY! ⚓</text>
+  <text x="240" y="60" text-anchor="middle" fill="#e8dcc8" font-family="Georgia,serif" font-size="11">All enemy ships sunk • +420 gold earned</text>
+  <!-- Stats row -->
+  <rect x="30" y="85" width="420" height="70" rx="5" fill="#2a1010"/>
+  <text x="240" y="105" text-anchor="middle" fill="#9ab0d4" font-family="Georgia,serif" font-size="11">Match Summary</text>
+  <text x="90" y="128" text-anchor="middle" fill="#e8dcc8" font-family="Georgia,serif" font-size="20" font-weight="bold">24</text>
+  <text x="90" y="146" text-anchor="middle" fill="#6a7a8a" font-family="Georgia,serif" font-size="9">Shots Fired</text>
+  <text x="200" y="128" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="20" font-weight="bold">17</text>
+  <text x="200" y="146" text-anchor="middle" fill="#6a7a8a" font-family="Georgia,serif" font-size="9">Hits</text>
+  <text x="300" y="128" text-anchor="middle" fill="#c41e3a" font-family="Georgia,serif" font-size="20" font-weight="bold">7</text>
+  <text x="300" y="146" text-anchor="middle" fill="#6a7a8a" font-family="Georgia,serif" font-size="9">Misses</text>
+  <text x="400" y="128" text-anchor="middle" fill="#4a9a4a" font-family="Georgia,serif" font-size="20" font-weight="bold">71%</text>
+  <text x="400" y="146" text-anchor="middle" fill="#6a7a8a" font-family="Georgia,serif" font-size="9">Accuracy</text>
+  <!-- Ships sunk section -->
+  <rect x="30" y="165" width="200" height="85" rx="5" fill="#1a1010" stroke="#2a2a1a" stroke-width="1"/>
+  <text x="130" y="182" text-anchor="middle" fill="#9ab0d4" font-family="Georgia,serif" font-size="10">Sunk</text>
+  <rect x="40" y="188" width="76" height="12" rx="3" fill="#9a6d40"/>
+  <rect x="40" y="206" width="60" height="12" rx="3" fill="#6e7d92"/>
+  <rect x="40" y="224" width="44" height="12" rx="3" fill="#bb7a52"/>
+  <rect x="125" y="188" width="44" height="12" rx="3" fill="#4a5a68"/>
+  <rect x="125" y="206" width="28" height="12" rx="3" fill="#8a6a42"/>
+  <!-- Abilities used -->
+  <rect x="245" y="165" width="205" height="85" rx="5" fill="#1a1010" stroke="#2a2a1a" stroke-width="1"/>
+  <text x="347" y="182" text-anchor="middle" fill="#9ab0d4" font-family="Georgia,serif" font-size="10">Abilities Used</text>
+  <text x="257" y="200" fill="#c41e3a" font-family="Georgia,serif" font-size="10">⚡ Cannon Barrage ×2</text>
+  <text x="257" y="216" fill="#4a9ad4" font-family="Georgia,serif" font-size="10">🔭 Sonar Ping ×1</text>
+  <text x="257" y="232" fill="#8a8a8a" font-family="Georgia,serif" font-size="10">no chain shot used</text>
+  <!-- Action buttons -->
+  <rect x="50" y="260" width="140" height="25" rx="4" fill="#3d1f1f" stroke="#8b0000" stroke-width="1.5"/>
+  <text x="120" y="277" text-anchor="middle" fill="#c41e3a" font-family="Georgia,serif" font-size="11">Rematch</text>
+  <rect x="210" y="260" width="140" height="25" rx="4" fill="#1a1010" stroke="#3a3a3a" stroke-width="1"/>
+  <text x="280" y="277" text-anchor="middle" fill="#8a8a8a" font-family="Georgia,serif" font-size="11">Main Menu</text>
+  <rect x="370" y="260" width="90" height="25" rx="4" fill="#2a2a0a" stroke="#d4a040" stroke-width="1"/>
+  <text x="415" y="277" text-anchor="middle" fill="#d4a040" font-family="Georgia,serif" font-size="11">View Replay</text>
+</svg>
